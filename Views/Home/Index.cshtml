@@ -1,8 +1,330 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Trang chủ - BookReader";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <h1>
+            Nền tảng <span class="highlight">sức khỏe</span><br>
+            luyện tập và dinh dưỡng khoa học
+        </h1>
+        
+        <p>
+            HealthWeb giúp bạn theo dõi luyện tập, ăn uống và lối sống lành mạnh mỗi ngày. 
+            Chúng tôi mang đến bài tập phù hợp, thực đơn cân bằng, mẹo chăm sóc giấc ngủ và những gợi ý nhỏ để hình thành thói quen tốt.
+        </p>
+
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-input">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Tìm kiếm bất cứ thứ gì bạn cần biết về sức khỏe">
+                </div>
+                <button class="search-btn">
+                    <i class="fas fa-search"></i>
+                    <span>Tìm kiếm</span>
+                </button>
+            </div>
+
+            <div class="filter-options">
+                <label class="filter-option">
+                    <input type="radio" name="filter" value="all" checked>
+                    <span class="radio-custom"></span>
+                    <span>Bài viết</span>
+                </label>
+                <label class="filter-option">
+                    <input type="radio" name="filter" value="audiobook">
+                    <span class="radio-custom"></span>
+                    <span>Dinh dưỡng</span>
+                </label>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="quick-health-row">
+
+<!-- Daily Goals Section -->
+<div class="section-title with-icon"><i class="fas fa-bullseye"></i> Mục tiêu hôm nay</div>
+<div class="tips-panel goals-tips">
+    <ul class="tips-list">
+        <li><i class="fas fa-bolt"></i><span>Bắt đầu ngày mới của bạn bằng cách chọn vài mục tiêu nhỏ nhé!</span></li>
+        <li><i class="fas fa-hand-fist"></i><span>Chưa có mục tiêu nào được hoàn thành hôm nay — cùng cố gắng nào 💪</span></li>
+        <li><i class="fas fa-leaf"></i><span>Giữ cơ thể khỏe mạnh bắt đầu từ những thói quen nhỏ.</span></li>
+        <li><i class="fas fa-circle-info"></i><span>Chọn các mục tiêu bên phải để theo dõi tiến độ mỗi ngày.</span></li>
+    </ul>
 </div>
+<section class="goals-section">
+    <div class="goals-grid">
+        <button class="goal-chip" data-key="water">
+            <i class="fas fa-droplet"></i>
+            <span>Uống nước</span>
+        </button>
+        <button class="goal-chip" data-key="steps">
+            <i class="fas fa-shoe-prints"></i>
+            <span>10.000 bước</span>
+        </button>
+        <button class="goal-chip" data-key="sleep">
+            <i class="fas fa-moon"></i>
+            <span>Ngủ đủ</span>
+        </button>
+        <button class="goal-chip" data-key="workout">
+            <i class="fas fa-dumbbell"></i>
+            <span>Tập 30’</span>
+        </button>
+        <button class="goal-chip" data-key="veggies">
+            <i class="fas fa-apple-whole"></i>
+            <span>Ăn rau</span>
+        </button>
+    </div>
+    <div class="goals-progress">
+        <div class="progress-ring"><span class="progress-percent">0%</span></div>
+        <div class="progress-text">Hoàn thành mục tiêu trong ngày</div>
+    </div>
+    <div class="goals-note">Mục tiêu sẽ tự động reset mỗi ngày. Dữ liệu lưu cục bộ trên trình duyệt.</div>
+    <div class="goals-actions">
+        <button class="btn btn-secondary goals-reset"><i class="fas fa-rotate"></i> Reset</button>
+    </div>
+    
+</section>
+
+<!-- Mini BMI/TDEE Section -->
+<div class="section-title with-icon"><i class="fas fa-heart-pulse"></i> Chỉ số cơ thể nhanh</div>
+<div class="tips-panel bmi-tips">
+    <ul class="tips-list">
+        <li><i class="fas fa-ruler-vertical"></i><span>Điền chiều cao, cân nặng và độ tuổi để tính nhanh BMI và mức năng lượng.</span></li>
+        <li><i class="fas fa-user-clock"></i><span>Chưa có dữ liệu cơ thể nào — hãy nhập thông tin để xem chỉ số sức khỏe của bạn.</span></li>
+        <li><i class="fas fa-chart-line"></i><span>Theo dõi sự thay đổi cơ thể mỗi tuần để thấy tiến bộ rõ rệt hơn!</span></li>
+        <li><i class="fas fa-chart-column"></i><span>Kết quả của bạn sẽ hiển thị ở đây 📊</span></li>
+    </ul>
+</div>
+<section class="bmi-section">
+        <div class="bmi-row">
+            <label>Chiều cao (cm)</label>
+            <input type="number" id="bmiHeight" min="80" max="250" placeholder="170">
+        </div>
+        <div class="bmi-row">
+            <label>Cân nặng (kg)</label>
+            <input type="number" id="bmiWeight" min="20" max="300" placeholder="65">
+        </div>
+        <div class="bmi-row">
+            <label>Tuổi</label>
+            <input type="number" id="bmiAge" min="10" max="100" placeholder="25">
+        </div>
+        <div class="bmi-row">
+            <label>Giới tính</label>
+            <select id="bmiSex">
+                <option value="male">Nam</option>
+                <option value="female">Nữ</option>
+            </select>
+        </div>
+        <div class="bmi-row">
+            <label>Hoạt động</label>
+            <select id="bmiActivity">
+                <option value="1.2">Ít vận động</option>
+                <option value="1.375">Nhẹ (1-3 buổi/tuần)</option>
+                <option value="1.55" selected>Vừa (3-5 buổi/tuần)</option>
+                <option value="1.725">Nhiều (6-7 buổi/tuần)</option>
+                <option value="1.9">Rất nhiều (lao động nặng)</option>
+            </select>
+        </div>
+        <div class="bmi-actions">
+            <button class="btn btn-primary bmi-calc"><i class="fas fa-equals"></i> Tính nhanh</button>
+        </div>
+        <div class="bmi-result">
+            <div><i class="fas fa-weight-scale"></i> BMI: <span id="bmiValue">—</span> <span id="bmiLabel" class="badge">—</span></div>
+            <div><i class="fas fa-fire"></i> TDEE: <span id="tdeeValue">—</span> kcal/ngày</div>
+        </div>
+</section>
+
+</div>
+
+<!-- Did you know Section -->
+<section class="featured-section">
+    <div class="section-title">Bạn có biết?</div>
+    <div class="books-grid">
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-person-running"></i>
+            </div>
+            <div class="book-info">
+                <h3>150 phút/tuần</h3>
+                <p>Tập vừa phải giúp giảm 30% nguy cơ bệnh tim.</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-apple-whole"></i>
+            </div>
+            <div class="book-info">
+                <h3>400g rau quả/ngày</h3>
+                <p>Giúp bổ sung chất xơ, vitamin và giảm nguy cơ bệnh mạn tính.</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-moon"></i>
+            </div>
+            <div class="book-info">
+                <h3>7–8 giờ/ngày</h3>
+                <p>Thời lượng ngủ tối ưu để phục hồi thể chất và tinh thần.</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-droplet"></i>
+            </div>
+            <div class="book-info">
+                <h3>1.5–2 lít nước</h3>
+                <p>Uống đủ nước giúp trao đổi chất và tỉnh táo hơn.</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-heart-pulse"></i>
+            </div>
+            <div class="book-info">
+                <h3>10.000 bước</h3>
+                <p>Đi bộ thường xuyên cải thiện sức khỏe tim mạch.</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-cover">
+                <i class="fas fa-scale-balanced"></i>
+            </div>
+            <div class="book-info">
+                <h3>Cân bằng năng lượng</h3>
+                <p>Ăn vừa đủ và vận động giúp giữ cân nặng ổn định.</p>
+            </div>
+        </div>
+</div>
+
+</section>
+
+<!-- Health Topics Section -->
+<section class="categories-section">
+    <div class="section-title">Chủ đề sức khỏe</div>
+    <div class="categories-grid">
+        <div class="category-card">
+            <i class="fas fa-apple-whole"></i>
+            <h3>Dinh dưỡng</h3>
+            <p>Thực đơn, nguyên tắc và mẹo ăn uống lành mạnh</p>
+        </div>
+        <div class="category-card">
+            <i class="fas fa-person-running"></i>
+            <h3>Luyện tập</h3>
+            <p>Bài tập theo mục tiêu: giảm mỡ, tăng cơ, dẻo dai</p>
+        </div>
+        <div class="category-card">
+            <i class="fas fa-moon"></i>
+            <h3>Giấc ngủ</h3>
+            <p>Cải thiện chất lượng ngủ và phục hồi</p>
+        </div>
+        <div class="category-card">
+            <i class="fas fa-brain"></i>
+            <h3>Sức khỏe tinh thần</h3>
+            <p>Quản lý stress, mindfulness, cân bằng</p>
+        </div>
+        <div class="category-card">
+            <i class="fas fa-stethoscope"></i>
+            <h3>Kiểm tra sức khỏe</h3>
+            <p>Chỉ số cơ thể, theo dõi và nhắc lịch</p>
+        </div>
+        <div class="category-card">
+            <i class="fas fa-shield-heart"></i>
+            <h3>Phòng bệnh</h3>
+            <p>Thói quen tốt và kiến thức y học cơ bản</p>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter-section">
+    <div class="newsletter-content">
+        <h2>Đăng ký nhận bản tin sức khỏe</h2>
+        <p>Cập nhật bài tập mới, thực đơn tham khảo và mẹo sống khỏe từ HealthWeb</p>
+        
+        <div class="newsletter-form">
+            <input type="email" placeholder="Nhập email của bạn">
+            <button>Đăng ký</button>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/home.js"></script>
+    <script>
+        // Xử lý nút yêu thích
+        document.addEventListener('DOMContentLoaded', function() {
+            const favoriteButtons = document.querySelectorAll('.btn-favorite');
+            
+            favoriteButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const icon = this.querySelector('i');
+                    const bookId = this.getAttribute('data-book-id');
+                    
+                    // Toggle trạng thái yêu thích
+                    if (icon.classList.contains('far')) {
+                        // Chuyển sang trái tim đầy (yêu thích)
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        this.classList.add('favorited');
+                        showNotification('Đã thêm vào yêu thích!', 'success');
+                    } else {
+                        // Chuyển về trái tim rỗng (bỏ yêu thích)
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        this.classList.remove('favorited');
+                        showNotification('Đã xóa khỏi yêu thích!', 'info');
+                    }
+                });
+            });
+        });
+        
+        // Hàm hiển thị thông báo
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 2000);
+        }
+        
+        // Thêm CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @@keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+}

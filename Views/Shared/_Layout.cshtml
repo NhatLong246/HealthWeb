@@ -1,50 +1,173 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - HealthWeb</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/HealthWeb.styles.css" asp-append-version="true" />
-</head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">HealthWeb</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/home.css?v=@DateTime.Now.Ticks" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+    <style>
+        /* Light Mode - Orange Pink Theme (With Grid Pattern) */
+        body.light-mode {
+            background: #fff5f5 !important;
+            color: #7c2d12 !important;
+            background-image: 
+                linear-gradient(rgba(251, 146, 60, 0.6) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251, 146, 60, 0.6) 1px, transparent 1px) !important;
+            background-size: 30px 30px !important;
+            animation: gridMove 15s linear infinite !important;
+        }
+        
+        /* Dark Mode - Original Blue Theme (With Grid Pattern) */
+        body.dark-mode {
+            background: #1e293b !important;
+            color: #ffffff !important;
+            background-image: 
+                linear-gradient(rgba(78, 222, 128, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(78, 222, 128, 0.1) 1px, transparent 1px) !important;
+            background-size: 30px 30px !important;
+            animation: gridMove 15s linear infinite !important;
+        }
+        
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - HealthWeb - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        
+        @@keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 30px 30px; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <!-- Background Pattern -->
+    <div class="background-pattern"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-heart-pulse"></i>
+            <span>HealthWeb</span>
+        </div>
+        
+        <!-- Home button for non-home pages -->
+        @if (ViewContext.RouteData.Values["controller"]?.ToString() != "Home" || ViewContext.RouteData.Values["action"]?.ToString() != "Index")
+        {
+            <a href="/" class="home-btn" title="Về trang chủ">
+                <i class="fas fa-home"></i>
+            </a>
+        }
+        
+        <nav class="nav-links">
+            <a href="/E-Book">Sức khỏe chung</a>
+            <a href="/Audiobooks">Bảng xếp hạng</a>
+            <a href="/Categories">Dinh dưỡng</a>
+            <a href="/Library">Thống kê</a>
+        </nav>
+        
+        <div class="header-actions">
+            <i class="fas fa-bell"></i>
+            <i class="fas fa-search"></i>
+            <i class="fas fa-moon" id="theme-toggle"></i>
+            <a href="/Account/Login" class="btn btn-secondary">Đăng nhập</a>
+            <a href="/Account/Register" class="btn btn-primary">Đăng ký</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Về HealthWeb</h3>
+                <p>Cùng bạn xây dựng lối sống khỏe mạnh mỗi ngày: luyện tập, dinh dưỡng và nghỉ ngơi khoa học.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Liên kết</h3>
+                <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                <a href="#">Điều khoản</a>
+                <a href="#">Liên hệ</a>
+                <a href="#">Trợ giúp</a>
+            </div>
+            <div class="footer-section">
+                <h3>Chuyên mục</h3>
+                <a href="#">Dinh dưỡng</a>
+                <a href="#">Luyện tập</a>
+                <a href="#">Giấc ngủ</a>
+                <a href="#">Thói quen sống</a>
+            </div>
+            <div class="footer-section">
+                <h3>Hỗ trợ</h3>
+                <a href="#">Câu hỏi thường gặp</a>
+                <a href="#">Hỗ trợ kỹ thuật</a>
+                <a href="#">Góp ý</a>
+                <a href="#">Báo lỗi</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 HealthWeb</p>
         </div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="~/js/home.js" asp-append-version="true"></script>
+    <script>
+        // Manual theme toggle only
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            if (body.classList.contains('light-mode')) {
+                // Switch to dark mode
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.className = 'fas fa-moon';
+            } else {
+                // Switch to light mode
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                localStorage.setItem('theme', 'light');
+                themeToggle.className = 'fas fa-sun';
+            }
+        }
+        
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            if (savedTheme) {
+                // Use saved theme
+                if (savedTheme === 'light') {
+                    body.classList.remove('dark-mode');
+                    body.classList.add('light-mode');
+                    themeToggle.className = 'fas fa-sun';
+                } else {
+                    body.classList.remove('light-mode');
+                    body.classList.add('dark-mode');
+                    themeToggle.className = 'fas fa-moon';
+                }
+            } else {
+                // Default to dark mode
+                body.classList.add('dark-mode');
+                themeToggle.className = 'fas fa-moon';
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            
+            // Theme toggle button
+            document.getElementById('theme-toggle').addEventListener('click', function() {
+                toggleTheme();
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
