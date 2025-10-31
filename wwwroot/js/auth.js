@@ -41,7 +41,7 @@ function validateField(field){ const value=field.value.trim(); const fieldName=f
 function showFieldError(field,message){ const wrapper=field.closest('.input-wrapper')||field.closest('.form-group'); if(!wrapper) return; clearFieldError(field); field.style.borderColor='#ef4444'; wrapper.style.position='relative'; const errorDiv=document.createElement('div'); errorDiv.className='field-error'; errorDiv.textContent=message; errorDiv.style.cssText='color:#ef4444;font-size:.8rem;margin-top:.25rem;display:flex;align-items:center;gap:.25rem;'; wrapper.appendChild(errorDiv); }
 function clearFieldError(field){ const wrapper=field.closest('.input-wrapper')||field.closest('.form-group'); if(!wrapper) return; field.style.borderColor=''; const errorDiv=wrapper.querySelector('.field-error'); if(errorDiv) errorDiv.remove(); }
 
-function initLoginValidation(){ const loginForm=document.querySelector('.auth-form'); if(!loginForm) return; loginForm.addEventListener('submit', function(e){ e.preventDefault(); const email=document.getElementById('email').value.trim(); const password=document.getElementById('password').value; let isValid=true; if(!email){showFieldError(document.getElementById('email'),'Email là bắt buộc'); isValid=false;} else if(!isValidEmail(email)){showFieldError(document.getElementById('email'),'Email không hợp lệ'); isValid=false;} if(!password){showFieldError(document.getElementById('password'),'Mật khẩu là bắt buộc'); isValid=false;} if(!isValid){showNotification('Vui lòng kiểm tra lại thông tin','error'); return;} const submitBtn=loginForm.querySelector('.auth-btn'); const originalText=submitBtn.innerHTML; submitBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...'; submitBtn.disabled=true; setTimeout(()=>{ showNotification('Đăng nhập thành công!','success'); setTimeout(()=>{ window.location.href='/'; },1000); },2000); }); }
+function initLoginValidation(){ const loginForm=document.querySelector('.auth-form'); if(!loginForm) return; loginForm.addEventListener('submit', function(e){ e.preventDefault(); const username=document.getElementById('username').value.trim(); const password=document.getElementById('password').value; let isValid=true; if(!username){showFieldError(document.getElementById('username'),'Tên đăng nhập là bắt buộc'); isValid=false;} if(!password){showFieldError(document.getElementById('password'),'Mật khẩu là bắt buộc'); isValid=false;} if(!isValid){showNotification('Vui lòng kiểm tra lại thông tin','error'); return;} const submitBtn=loginForm.querySelector('.auth-btn'); const originalText=submitBtn.innerHTML; submitBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...'; submitBtn.disabled=true; setTimeout(()=>{ showNotification('Đăng nhập thành công!','success'); setTimeout(()=>{ window.location.href='/'; },1000); },2000); }); }
 
 function initRegisterValidation(){ const registerForm=document.querySelector('.auth-form'); if(!registerForm) return; registerForm.addEventListener('submit', function(e){ e.preventDefault(); const firstName=document.getElementById('firstName').value.trim(); const lastName=document.getElementById('lastName').value.trim(); const email=document.getElementById('email').value.trim(); const username=document.getElementById('username').value.trim(); const password=document.getElementById('password').value; const confirmPassword=document.getElementById('confirmPassword').value; const birthDate=document.getElementById('birthDate').value; const agreeTerms=document.querySelector('input[name="agreeTerms"]')?.checked; let isValid=true; if(!firstName){showFieldError(document.getElementById('firstName'),'Họ là bắt buộc'); isValid=false;} if(!lastName){showFieldError(document.getElementById('lastName'),'Tên là bắt buộc'); isValid=false;} if(!email){showFieldError(document.getElementById('email'),'Email là bắt buộc'); isValid=false;} else if(!isValidEmail(email)){showFieldError(document.getElementById('email'),'Email không hợp lệ'); isValid=false;} if(!username){showFieldError(document.getElementById('username'),'Tên đăng nhập là bắt buộc'); isValid=false;} if(!password){showFieldError(document.getElementById('password'),'Mật khẩu là bắt buộc'); isValid=false;} else if(password.length<8){showFieldError(document.getElementById('password'),'Mật khẩu phải có ít nhất 8 ký tự'); isValid=false;} if(!confirmPassword){showFieldError(document.getElementById('confirmPassword'),'Xác nhận mật khẩu là bắt buộc'); isValid=false;} else if(password!==confirmPassword){showFieldError(document.getElementById('confirmPassword'),'Mật khẩu xác nhận không khớp'); isValid=false;} if(!birthDate){showFieldError(document.getElementById('birthDate'),'Ngày sinh là bắt buộc'); isValid=false;} if(!agreeTerms){showNotification('Vui lòng đồng ý với điều khoản sử dụng','error'); isValid=false;} if(!isValid){showNotification('Vui lòng kiểm tra lại thông tin','error'); return;} const submitBtn=registerForm.querySelector('.auth-btn'); submitBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Đang tạo tài khoản...'; submitBtn.disabled=true; setTimeout(()=>{ showNotification('Đăng ký thành công! Chào mừng bạn đến với HealthWeb!','success'); setTimeout(()=>{ window.location.href='/Account/Login'; },2000); },2000); }); }
 
@@ -306,20 +306,14 @@ function initLoginValidation() {
     loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const email = document.getElementById('email').value.trim();
+        const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
         const rememberMe = document.querySelector('input[name="rememberMe"]')?.checked;
         
         // Validate all fields
         let isValid = true;
         
-        if (!email) {
-            showFieldError(document.getElementById('email'), 'Email là bắt buộc');
-            isValid = false;
-        } else if (!isValidEmail(email)) {
-            showFieldError(document.getElementById('email'), 'Email không hợp lệ');
-            isValid = false;
-        }
+        if (!username) { showFieldError(document.getElementById('username'), 'Tên đăng nhập là bắt buộc'); isValid = false; }
         
         if (!password) {
             showFieldError(document.getElementById('password'), 'Mật khẩu là bắt buộc');
@@ -339,6 +333,7 @@ function initLoginValidation() {
         
         // Simulate login process (replace with actual API call)
         setTimeout(() => {
+            try { localStorage.setItem('hw_is_auth','true'); localStorage.setItem('hw_username', username); } catch {}
             showNotification('Đăng nhập thành công!', 'success');
             // Redirect to dashboard or home page
             setTimeout(() => {
@@ -430,6 +425,7 @@ function initRegisterValidation() {
         
         // Simulate registration process (replace with actual API call)
         setTimeout(() => {
+            try { localStorage.setItem('hw_is_auth','true'); } catch {}
             showNotification('Đăng ký thành công! Chào mừng bạn đến với HealthWeb!', 'success');
             // Redirect to login page
             setTimeout(() => {

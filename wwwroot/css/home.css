@@ -461,6 +461,31 @@ body.light-mode .btn-primary:hover {
 }
 
 /* ==========================================
+   NOTIFICATION DRAWER
+   ========================================== */
+.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1500; opacity: 0; transition: opacity .25s ease; display:none; }
+.drawer { position: fixed; top:0; right:0; height:100vh; width: 360px; max-width: 100%; background: rgba(15,23,42,.96); color:#fff; z-index: 1510; transform: translateX(100%); transition: transform .3s ease; display:flex; flex-direction: column; }
+body.light-mode .drawer { background: #ffffff; color:#0f172a; }
+.drawer.open { transform: translateX(0); }
+.drawer-overlay.open { opacity: 1; display:block; }
+.drawer-header { display:flex; align-items:center; justify-content: space-between; padding: 1rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+body.light-mode .drawer-header { border-color: rgba(0,0,0,.08); }
+.drawer-title { font-weight: 700; display:flex; align-items:center; gap:.5rem; }
+.drawer-close { background: transparent; border:none; color: inherit; font-size: 1.1rem; }
+.drawer-user { display:flex; align-items:center; gap:.75rem; padding: .75rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+body.light-mode .drawer-user { border-color: rgba(0,0,0,.08); }
+.drawer-user .avatar { width: 36px; height:36px; border-radius: 50%; background: rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
+body.light-mode .drawer-user .avatar { background: rgba(0,0,0,.06); }
+.drawer-body { padding: .5rem 0; overflow:auto; }
+.notif-list { list-style:none; margin:0; padding:0; }
+.notif-list li { padding: .75rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:flex-start; gap:.6rem; }
+body.light-mode .notif-list li { border-color: rgba(0,0,0,.06); }
+.notif-list li .icon { color:#22c55e; margin-top:.2rem; }
+body.light-mode .notif-list li .icon { color:#ea580c; }
+.notif-list li .content { line-height:1.4; }
+.notif-list li .time { opacity:.7; font-size:.85rem; margin-top:.15rem; }
+
+/* ==========================================
    MAIN CONTENT
    ========================================== */
 main {
