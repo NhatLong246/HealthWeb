@@ -175,3 +175,107 @@
     });
 })();
 
+// GYM Map functionality
+(function(){
+    let mapInstance;
+    let userMarker;
+    let gymLayer;
+
+    function initMap(center){
+        if(!mapInstance){
+            mapInstance = L.map('gymMap', { zoomControl: true });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
+        }
+        mapInstance.setView(center, 14);
+        if(userMarker){ userMarker.remove(); }
+        userMarker = L.marker(center).addTo(mapInstance).bindPopup('Vị trí của bạn');
+    }
+
+    function fetchNearbyGyms(center){
+        if(gymLayer){ gymLayer.clearLayers(); }
+        else { gymLayer = L.layerGroup().addTo(mapInstance); }
+        const lat = center[0];
+        const lon = center[1];
+        const query = `[out:json];(node["amenity"="gym"](around:3000,${lat},${lon});node["leisure"="fitness_centre"](around:3000,${lat},${lon});node["sport"="fitness"](around:3000,${lat},${lon}););out center 100;`;
+        fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query })
+            .then(r => r.json())
+            .then(data => {
+                if(!data || !data.elements){ return; }
+                data.elements.forEach(el => {
+                    if(!el.lat || !el.lon) return;
+                    const m = L.marker([el.lat, el.lon]).addTo(gymLayer);
+                    const name = (el.tags && (el.tags.name || el.tags['name:en'])) || 'Phòng gym';
+                    const addr = el.tags && (el.tags['addr:full'] || el.tags['addr:street'] || '');
+                    m.bindPopup(`<strong>${name}</strong><br/>${addr}`);
+                });
+            })
+            .catch(() => {});
+    }
+
+    function openAndLoad(){
+        const wrapper = document.getElementById('gymMapWrapper');
+        if(!wrapper) return;
+        wrapper.hidden = false;
+        const fallback = [21.028511, 105.804817];
+        if(navigator.geolocation){
+            navigator.geolocation.getCurrentPosition(function(pos){
+                const center = [pos.coords.latitude, pos.coords.longitude];
+                initMap(center);
+                setTimeout(() => mapInstance.invalidateSize(), 50);
+                fetchNearbyGyms(center);
+            }, function(){
+                initMap(fallback);
+                setTimeout(() => mapInstance.invalidateSize(), 50);
+                fetchNearbyGyms(fallback);
+            }, { enableHighAccuracy: true, timeout: 8000 });
+        }else{
+            initMap(fallback);
+            setTimeout(() => mapInstance.invalidateSize(), 50);
+            fetchNearbyGyms(fallback);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        const openBtn = document.getElementById('openGymMap');
+        if(openBtn){
+            openBtn.addEventListener('click', function(e){
+                e.preventDefault();
+                const wrapper = document.getElementById('gymMapWrapper');
+                if(!wrapper) return;
+                if(wrapper.hidden){
+                    openAndLoad();
+                }else{
+                    wrapper.hidden = true;
+                }
+            });
+        }
+    });
+})();
+
+// Reveal on scroll animations
+(function(){
+    function initRevealAnimations(){
+        const groups = document.querySelectorAll('.stats, .detail-badges, .row-list');
+        groups.forEach(g => g.classList.add('reveal-stagger'));
+        const singles = document.querySelectorAll('.card-group, .tile.with-action, .stat-card, .badge-pill, .thumb');
+        singles.forEach(el => el.classList.add('reveal'));
+
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting){
+                    entry.target.classList.add('is-visible');
+                    io.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+    }
+
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', initRevealAnimations);
+    }else{
+        initRevealAnimations();
+    }
+})();
+

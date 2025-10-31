@@ -238,5 +238,5 @@ D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\refint\HealthWeb.dll
 D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\HealthWeb.pdb
 D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\HealthWeb.genruntimeconfig.cache
 D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\ref\HealthWeb.dll
-D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\compressed\cg6rsmjyj3-4dck50oox8.gz
-D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\compressed\ensomh6h4x-7zc4g8sf4e.gz
+D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\compressed\cg6rsmjyj3-qa45iqc3yz.gz
+D:\LapTrinhWeb\BTL\HealthWeb\obj\Debug\net9.0\compressed\ensomh6h4x-egu6joyzvb.gz

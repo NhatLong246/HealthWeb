@@ -9,14 +9,21 @@
 	<title>Mục tiêu luyện tập</title>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap-grid.min.css" integrity="sha512-i1b/nzkVo97VN5WbEtaPebBG8REvjWeqNclJ6AItj7msdVcaveKrlIIByDpvjk5nwHjXkIqGZscVxOrTb9tsMA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 	<link rel="stylesheet" type="text/css" href="~/asset/css/mucTieu.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
 	<div class="page">
 		<header class="app-header">
 			<button class="icon-btn" aria-label="Back">&#x2190;</button>
 			<h1 class="title">MỤC TIÊU LUYỆN TẬP</h1>
-			<a class="badge" href="#">GYM Map</a>
+			<a class="badge" href="#" id="openGymMap"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> GYM Map</a>
 		</header>
+
+		<!-- Inline expandable map at top -->
+		<section id="gymMapWrapper" class="gym-map-wrapper" hidden>
+			<div id="gymMap"></div>
+		</section>
 
 		<main class="screen" id="screenSetup">
 			<p class="subtitle">Thêm các mục tiêu luyện tập và sắp xếp thời gian địa điểm hợp lí</p>
@@ -177,12 +184,12 @@
 							<span class="group-icon">📈</span>
 							<h2>Thống Kê Các Bài Tập</h2>
 						</div>
-						<div class="stats">
-							<div class="stat-card pink"><strong>90</strong><span>Tổng thời gian</span></div>
-							<div class="stat-card yellow"><strong>45</strong><span>Buổi tập/tuần</span></div>
-							<div class="stat-card green"><strong>Tốt</strong><span>Hiệu suất</span></div>
-							<div class="stat-card blue"><strong>3000</strong><span>Điểm cá nhân</span></div>
-						</div>
+					<div class="stats">
+						<div class="stat-card pink"><i class="bi bi-clock-history"></i><strong>90</strong><span>Tổng thời gian</span></div>
+						<div class="stat-card yellow"><i class="bi bi-graph-up-arrow"></i><strong>45</strong><span>Buổi tập/tuần</span></div>
+						<div class="stat-card green"><i class="bi bi-trophy-fill"></i><strong>Tốt</strong><span>Hiệu suất</span></div>
+						<div class="stat-card blue"><i class="bi bi-star-fill"></i><strong>3000</strong><span>Điểm cá nhân</span></div>
+					</div>
 						<p class="date-range">10 9 2025 - 12 12 2025 • Dự kiến hoàn thành</p>
 						<div class="cta-row">
 							<button class="btn start-orange">Bắt Đầu</button>
@@ -196,14 +203,14 @@
 							<span class="group-icon">📋</span>
 							<h2>Chi Tiết Bài Tập</h2>
 						</div>
-						<div class="detail-badges">
-							<div class="badge-pill yellow"><strong id="dSessions">45</strong><span>Số buổi tập</span></div>
-							<div class="badge-pill pink"><strong id="dTime">30</strong><span>Thời gian dự kiến</span></div>
-							<div class="badge-pill blue"><strong id="dEffect">Tốt</strong><span>Hiệu quả</span></div>
-							<div class="badge-pill green"><strong id="dCalories">1200</strong><span>Calorie ĐT bình quân</span></div>
-							<div class="badge-pill purple"><strong id="dScheme">15 / 3 - 5 / 1</strong><span>Gài / Hiệp / Tăng / Tuần</span></div>
-							<div class="badge-pill lilac"><strong id="dDiff">Khó</strong><span>Mức độ</span></div>
-						</div>
+					<div class="detail-badges">
+						<div class="badge-pill yellow"><i class="bi bi-graph-up-arrow"></i><strong id="dSessions">45</strong><span>Số buổi tập</span></div>
+						<div class="badge-pill pink"><i class="bi bi-clock"></i><strong id="dTime">30</strong><span>Thời gian dự kiến</span></div>
+						<div class="badge-pill blue"><i class="bi bi-bullseye"></i><strong id="dEffect">Tốt</strong><span>Hiệu quả</span></div>
+						<div class="badge-pill green"><i class="bi bi-fire"></i><strong id="dCalories">1200</strong><span>Calorie ĐT bình quân</span></div>
+						<div class="badge-pill purple"><i class="bi bi-activity"></i><strong id="dScheme">15 / 3 - 5 / 1</strong><span>Gài / Hiệp / Tăng / Tuần</span></div>
+						<div class="badge-pill lilac"><i class="bi bi-layers-fill"></i><strong id="dDiff">Khó</strong><span>Mức độ</span></div>
+					</div>
 
 						<h3 class="detail-subtitle">Nội dung bài tập</h3>
 						<div class="detail-media" id="dImage"></div>
@@ -213,8 +220,10 @@
 			</div>
 		</main>
 	</div>
-	<script src="~/asset/js/mucTieu.js" asp-append-version="true"></script>
+
 	<script src="~/lib/jquery/jquery.min.js"></script>
 	<script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script src="~/asset/js/mucTieu.js" asp-append-version="true"></script>
 </body>
 </html>
