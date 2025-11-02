@@ -76,10 +76,15 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 @media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
-.stat-card{background:#f6fbff;border:1px solid #e1eefb;border-radius:12px;padding:14px;text-align:center;transition:transform .2s ease, box-shadow .2s ease}
+.stat-card{background:#f6fbff;border:1px solid #e1eefb;border-radius:12px;padding:14px;text-align:center;transition:transform .2s ease, box-shadow .2s ease;position:relative}
 .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.1)}
-.stat-card strong{display:block;font-size:20px}
-.stat-card span{color:#5a6d86;font-size:12px}
+.stat-card i{display:block;font-size:28px;margin-bottom:8px;opacity:.9}
+.stat-card strong{display:block;font-size:20px;margin-top:4px}
+.stat-card span{color:#5a6d86;font-size:12px;display:block;margin-top:4px}
+.stat-card.yellow i{color:#f57c00}
+.stat-card.pink i{color:#e91e63}
+.stat-card.green i{color:#4caf50}
+.stat-card.blue i{color:#2196f3}
 .stat-card.pink{background:#fff0f6}
 .stat-card.yellow{background:#fff8e1}
 .stat-card.green{background:#ecfff1}
@@ -95,9 +100,16 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 /* Detail panel */
 .detail-badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
 @media (max-width:1100px){.detail-badges{grid-template-columns:repeat(2,1fr)}}
-.badge-pill{border-radius:12px;padding:10px;background:#f6fbff;border:1px solid #e1eefb;text-align:center}
-.badge-pill strong{display:block;font-size:18px;margin-bottom:2px}
-.badge-pill span{font-size:12px;color:#5a6d86}
+.badge-pill{border-radius:12px;padding:10px;background:#f6fbff;border:1px solid #e1eefb;text-align:center;position:relative}
+.badge-pill i{display:block;font-size:24px;margin-bottom:6px;opacity:.9}
+.badge-pill strong{display:block;font-size:18px;margin-bottom:2px;margin-top:4px}
+.badge-pill span{font-size:12px;color:#5a6d86;display:block;margin-top:2px}
+.badge-pill.yellow i{color:#f57c00}
+.badge-pill.pink i{color:#e91e63}
+.badge-pill.blue i{color:#2196f3}
+.badge-pill.green i{color:#4caf50}
+.badge-pill.purple i{color:#9c27b0}
+.badge-pill.lilac i{color:#ab47bc}
 .badge-pill.yellow{background:#fff8e1}
 .badge-pill.pink{background:#ffe6ee}
 .badge-pill.blue{background:#e8f3ff}
@@ -108,3 +120,21 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 .detail-media{height:180px;border-radius:12px;border:1px solid #e1eefb;background-size:cover;background-position:center}
 .detail-list{margin-top:10px;font-size:13px;color:#2b415d;white-space:pre-line}
 
+/* Reveal on scroll */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease, transform .6s ease}
+.reveal.is-visible{opacity:1;transform:translateY(0)}
+.reveal.fast{transition-duration:.4s}
+.reveal.slow{transition-duration:.9s}
+.reveal-stagger> *{opacity:0;transform:translateY(14px)}
+.reveal-stagger.is-visible> *{opacity:1;transform:none}
+.reveal-stagger.is-visible> *{transition:opacity .6s ease, transform .6s ease}
+.reveal-stagger.is-visible> *:nth-child(1){transition-delay:0s}
+.reveal-stagger.is-visible> *:nth-child(2){transition-delay:.06s}
+.reveal-stagger.is-visible> *:nth-child(3){transition-delay:.12s}
+.reveal-stagger.is-visible> *:nth-child(4){transition-delay:.18s}
+.reveal-stagger.is-visible> *:nth-child(5){transition-delay:.24s}
+.reveal-stagger.is-visible> *:nth-child(6){transition-delay:.30s}
+
+/* Gym map */
+.gym-map-wrapper{margin:10px 16px 0 16px;border:1px solid #dfeaf6;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+#gymMap{height:60vh;width:100%}
