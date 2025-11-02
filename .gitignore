@@ -1,1 +1,5 @@
 .vs/
+.BookReaderWebApp/
+.Healthtracker.sql/
+bin/
+obj/

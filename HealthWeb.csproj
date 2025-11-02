@@ -6,4 +6,28 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Exclude sample/reference files under testNloc from build and Razor compile -->
+  <ItemGroup>
+    <Content Remove="testNloc\**\*" />
+    <None Remove="testNloc\**\*" />
+    <Compile Remove="testNloc\**\*" />
+    <EmbeddedResource Remove="testNloc\**\*" />
+  </ItemGroup>
+
+  <!-- Exclude the copied sample project directory to avoid duplicate Program.cs, controllers, EF models/migrations -->
+  <ItemGroup>
+    <Content Remove="BookReaderWebApp\**\*" />
+    <None Remove="BookReaderWebApp\**\*" />
+    <Compile Remove="BookReaderWebApp\**\*" />
+    <EmbeddedResource Remove="BookReaderWebApp\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>
