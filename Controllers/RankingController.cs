@@ -33,9 +33,9 @@ namespace HealthWeb.Controllers
                 _logger.LogInformation("GetPersonalStats called for user: {UserId}, period: {Period}", userId, period);
 
                 // Lấy dữ liệu ranking của user
-                var personalRanking = await _context.XepHang
+                var personalRanking = await _context.XepHangs
                     .Include(x => x.User)
-                    .Where(x => x.UserID == userId && x.ChuKy == period)
+                    .Where(x => x.UserId == userId && x.ChuKy == period)
                     .FirstOrDefaultAsync();
 
                 if (personalRanking == null)
@@ -45,17 +45,19 @@ namespace HealthWeb.Controllers
 
                 // Lấy số lượng health logs trong period để tính số buổi tập
                 var (startDate, endDate) = GetPeriodDates(period);
-                var healthLogsCount = await _context.LuuTruSucKhoe
-                    .Where(h => h.UserID == userId && 
-                               h.NgayGhiNhan >= startDate && 
-                               h.NgayGhiNhan < endDate)
+                var startDateOnly = DateOnly.FromDateTime(startDate);
+                var endDateOnly = DateOnly.FromDateTime(endDate);
+                var healthLogsCount = await _context.LuuTruSucKhoes
+                    .Where(h => h.UserId == userId && 
+                               h.NgayGhiNhan >= startDateOnly && 
+                               h.NgayGhiNhan < endDateOnly)
                     .CountAsync();
 
                 // Tính tổng thời gian (hours) từ health logs có GhiChu (nghĩa là đã tập)
-                var totalTimeHours = await _context.LuuTruSucKhoe
-                    .Where(h => h.UserID == userId && 
-                               h.NgayGhiNhan >= startDate && 
-                               h.NgayGhiNhan < endDate &&
+                var totalTimeHours = await _context.LuuTruSucKhoes
+                    .Where(h => h.UserId == userId && 
+                               h.NgayGhiNhan >= startDateOnly && 
+                               h.NgayGhiNhan < endDateOnly &&
                                h.GhiChu != null && h.GhiChu != "")
                     .CountAsync() * 0.5; // Mỗi log = 0.5 giờ (rough estimate)
 
@@ -89,15 +91,15 @@ namespace HealthWeb.Controllers
                 // Xác định khoảng thời gian
                 var (startDate, endDate) = GetPeriodDates(period);
                 
-                var rankings = await _context.XepHang
+                var rankings = await _context.XepHangs
                     .Include(x => x.User)
                     .Where(x => x.ChuKy == period)
                     .OrderBy(x => x.ThuHang)
                     .Take(100)
                     .Select(x => new
                     {
-                        x.XepHangID,
-                        x.UserID,
+                        x.XepHangId,
+                        x.UserId,
                         Username = x.User != null ? x.User.Username : "Unknown",
                         HoTen = x.User != null ? x.User.HoTen : "Unknown",
                         AnhDaiDien = x.User != null ? x.User.AnhDaiDien : null,
@@ -156,8 +158,8 @@ namespace HealthWeb.Controllers
             var random = new Random();
             var rankings = users.Select((user, index) => new
             {
-                XepHangID = index + 1,
-                UserID = user.UserID,
+                XepHangId = index + 1,
+                UserId = user.UserId,
                 Username = user.Username,
                 HoTen = user.HoTen,
                 AnhDaiDien = user.AnhDaiDien,
@@ -168,8 +170,8 @@ namespace HealthWeb.Controllers
             .OrderByDescending(x => x.TongDiem)
             .Select((x, i) => new
             {
-                x.XepHangID,
-                x.UserID,
+                x.XepHangId,
+                x.UserId,
                 x.Username,
                 x.HoTen,
                 x.AnhDaiDien,

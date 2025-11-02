@@ -1,52 +1,48 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
-namespace HealthWeb.Models.Entities
+namespace HealthWeb.Models.Entities;
+
+public partial class LuuTruSucKhoe
 {
-    public class LuuTruSucKhoe
-    {
-        [Key]
-        [StringLength(20)]
-        public string MaBanGhi { get; set; } = string.Empty;
+    public string MaBanGhi { get; set; } = null!;
 
-        [Required]
-        [StringLength(20)]
-        public string UserID { get; set; } = string.Empty;
+    public string UserId { get; set; } = null!;
 
-        [Required]
-        [Column(TypeName = "Date")]
-        public DateTime NgayGhiNhan { get; set; }
+    public DateOnly NgayGhiNhan { get; set; }
 
-        public int SoBuoc { get; set; }
+    public int? SoBuoc { get; set; }
 
-        public float CaloTieuThu { get; set; }
+    public double? CaloTieuThu { get; set; }
 
-        public float SoGioNgu { get; set; }
+    public double? SoGioNgu { get; set; }
 
-        public float? CanNang { get; set; }
+    public double? CanNang { get; set; }
 
-        public float? ChieuCao { get; set; }
+    public double? ChieuCao { get; set; }
 
-        public float? BMI { get; set; }
+    public double? Bmi { get; set; }
 
-        public float? SoDoVong1 { get; set; }
-        public float? SoDoVong2 { get; set; }
-        public float? SoDoVong3 { get; set; }
-        public float? SoDoBapTay { get; set; }
-        public float? SoDoBapChan { get; set; }
-        public float? TiLeMo { get; set; }
+    public double? SoDoVong1 { get; set; }
 
-        [StringLength(20)]
-        public string? BenhID { get; set; }
+    public double? SoDoVong2 { get; set; }
 
-        public float LuongNuocUong { get; set; }
+    public double? SoDoVong3 { get; set; }
 
-        [StringLength(500)]
-        public string? GhiChu { get; set; }
+    public double? SoDoBapTay { get; set; }
 
-        // Navigation property
-        public User? User { get; set; }
-    }
+    public double? SoDoBapChan { get; set; }
+
+    public double? TiLeMo { get; set; }
+
+    public string? BenhId { get; set; }
+
+    public double? LuongNuocUong { get; set; }
+
+    public string? GhiChu { get; set; }
+
+    public virtual Benh? Benh { get; set; }
+
+    public virtual User User { get; set; } = null!;
 }
 

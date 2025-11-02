@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthWeb.Controllers
+
 {
     public class AccountController : Controller
     {
