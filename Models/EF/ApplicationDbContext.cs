@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HealthWeb.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +9,8 @@ public partial class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext()
     {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+        // Add DbSet<T> properties later when mapping your SQL tables
     }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
