@@ -1,5 +1,22 @@
 .vs/
 bin/
 obj/
-*.cache
+
+.BookReaderWebApp/
+.Healthtracker.sql/
+*.user
+*.suo
+
+# Logs
 *.log
+
+# Cache and temp files
+*.cache
+*.tmp
+
+# Publish output
+/Properties/PublishProfiles/
+
+# Misc
+*.swp
+

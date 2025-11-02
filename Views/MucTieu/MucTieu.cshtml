@@ -1,0 +1,229 @@
+﻿@{
+	Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Mục tiêu luyện tập</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap-grid.min.css" integrity="sha512-i1b/nzkVo97VN5WbEtaPebBG8REvjWeqNclJ6AItj7msdVcaveKrlIIByDpvjk5nwHjXkIqGZscVxOrTb9tsMA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<link rel="stylesheet" type="text/css" href="~/asset/css/mucTieu.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+	<div class="page">
+		<header class="app-header">
+			<button class="icon-btn" aria-label="Back">&#x2190;</button>
+			<h1 class="title">MỤC TIÊU LUYỆN TẬP</h1>
+			<a class="badge" href="#" id="openGymMap"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> GYM Map</a>
+		</header>
+
+		<!-- Inline expandable map at top -->
+		<section id="gymMapWrapper" class="gym-map-wrapper" hidden>
+			<div id="gymMap"></div>
+		</section>
+
+		<main class="screen" id="screenSetup">
+			<p class="subtitle">Thêm các mục tiêu luyện tập và sắp xếp thời gian địa điểm hợp lí</p>
+
+			<section class="card-group">
+				<div class="group-header">
+					<span class="group-icon">💪</span>
+					<h2>Danh Sách Các Bài Tập</h2>
+				</div>
+				<div class="row-list" id="list-exercises">
+					<div class="thumb" style="--img:url('@Url.Content("~/asset/image/tapVai.jpg")')"><span>VAI RỘNG</span></div>
+					<div class="thumb" style="--img:url('@Url.Content("~/asset/image/tapTay.jpg")')"><span>TAY KHỎE</span></div>
+					<div class="thumb" style="--img:url('@Url.Content("~/asset/image/tapChan.jpg")')"><span>CHÂN KHỎE</span></div>
+					<div class="thumb" style="--img:url('@Url.Content("~/asset/image/giamCan.jpg")')"><span>GIẢM CÂN</span></div>
+				</div>
+			</section>
+
+			<div class="two-col">
+				<section class="card-group">
+					<div class="group-header">
+						<span class="group-icon">📍</span>
+						<h2>Địa Điểm Tập Luyện</h2>
+					</div>
+					<div class="row-list">
+						<div class="chip selectable" role="button" tabindex="0" data-group="place" data-value="gym">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/phongGYM.jpg")')"><span>Phòng GYM</span></div>
+						</div>
+						<div class="chip selectable" role="button" tabindex="0" data-group="place" data-value="home">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/taiNha.jpg")')"><span>Tại Nhà</span></div>
+						</div>
+					</div>
+				</section>
+				<section class="card-group">
+					<div class="group-header">
+						<span class="group-icon">📊</span>
+						<h2>Trình Độ Hiện Tại Với Bài Tập</h2>
+					</div>
+					<div class="row-list">
+						<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="beginner">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/nguoiMoi.jpg")')"><span>Người Mới</span></div>
+						</div>
+						<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="experienced">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/nguoiCoKinhNghiem.jpg")')"><span>Người Có Kinh Nghiệm</span></div>
+						</div>
+					</div>
+				</section>
+			</div>
+
+			<section class="card-group equip-section hidden" data-place="gym">
+				<div class="group-header">
+					<span class="group-icon">🏋️</span>
+					<h2>Phòng GYM - Trang Thiết Bị</h2>
+				</div>
+				<div class="row-list">
+					<div class="chip selectable" role="button" tabindex="0" data-group="equip-gym">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/Gym-thietBiCoBan.jpg")')"><span>Thiết Bị Cơ Bản</span></div>
+					</div>
+					<div class="chip selectable" role="button" tabindex="0" data-group="equip-gym">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/Gym-thietBiDayDu.jpg")')"><span>Đầy Đủ Thiết Bị</span></div>
+					</div>
+				</div>
+			</section>
+
+			<section class="card-group equip-section hidden" data-place="home">
+				<div class="group-header">
+					<span class="group-icon">🏠</span>
+					<h2>Tại Nhà - Trang Thiết Bị</h2>
+				</div>
+				<div class="row-list">
+					<div class="chip selectable" role="button" tabindex="0" data-group="equip-home">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/Nha-thietBiCoBan.jpg")')"><span>Thiết Bị Cơ Bản</span></div>
+					</div>
+					<div class="chip selectable" role="button" tabindex="0" data-group="equip-home">
+						<div class="thumb small" style="--img:url('@Url.Content("~/asset/image/Nha-khongCoThietBi.jpg")')"><span>Không Có Thiết Bị</span></div>
+					</div>
+				</div>
+			</section>
+
+
+			<section class="card-group">
+				<div class="group-header">
+					<span class="group-icon">🗓️</span>
+					<h2>Xếp Lịch Cho Bạn</h2>
+				</div>
+				<div class="schedule">
+					<div class="schedule-col">
+						<h3>Buổi Tập</h3>
+						<div class="session-grid">
+							<div class="grid-head">Thứ</div>
+							<div class="grid-head">Buổi</div>
+							<div class="grid-head">Bắt đầu</div>
+							<div class="grid-head">Kết thúc</div>
+
+							<div class="grid-row">
+								<button class="pill schedule-picker" data-type="day">Thứ 2</button>
+								<button class="pill schedule-picker" data-type="session">Sáng</button>
+								<button class="pill schedule-picker" data-type="time-start">07:00</button>
+								<button class="pill schedule-picker" data-type="time-end">11:00</button>
+							</div>
+						</div>
+						<div class="session-actions"><button class="btn add-row" id="addSession">Thêm</button></div>
+					</div>
+					<div class="schedule-col off-days">
+						<h3>Ngày Không Tập</h3>
+						<div class="row-list" id="offDaysList"></div>
+						<div class="session-actions"><button class="btn add-row" id="addOffDay">Thêm</button></div>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<main class="screen" id="screenSummary">
+			<div class="summary-layout">
+				<div class="col-left">
+					<section class="card-group">
+						<div class="group-header">
+							<span class="group-icon">📝</span>
+							<h2>Danh Sách Các Bài Tập Được Đề Xuất</h2>
+						</div>
+						<div class="row-list">
+							<div class="tile with-action exercise-card"
+								 data-title="Nâng Tạ Tay Sau"
+								 data-sessions="45"
+								 data-time="30"
+								 data-effect="Tốt"
+								 data-calories="1200"
+								 data-scheme="15 / 3 - 5 / 1"
+								 data-difficulty="Khó"
+								 data-image="@Url.Content("~/asset/image/NangTaTaySau.jpg")"
+								 data-guide="1. Khởi động vai\n2. Nâng tạ tay sau 3x12\n3. Giãn cơ">
+								<div class="tile-media" style="--img:url('@Url.Content("~/asset/image/NangTaTaySau.jpg")')"></div>
+								<div class="tile-footer">
+									<span>Nâng Tạ Tay Sau</span>
+									<button class="btn danger">Thay đổi</button>
+								</div>
+							</div>
+							<div class="tile with-action exercise-card"
+								 data-title="Nâng Tạ Tay Trước"
+								 data-sessions="40"
+								 data-time="25"
+								 data-effect="Tốt"
+								 data-calories="900"
+								 data-scheme="12 / 3 - 4 / 1"
+								 data-difficulty="Trung bình"
+								 data-image="@Url.Content("~/asset/image/NangTaTayTruoc.jpg")"
+								 data-guide="1. Khởi động tay\n2. Nâng tạ tay trước 4x10\n3. Giãn cơ">
+								<div class="tile-media" style="--img:url('@Url.Content("~/asset/image/NangTaTayTruoc.jpg")')"></div>
+								<div class="tile-footer">
+									<span>Nâng Tạ Tay Trước</span>
+									<button class="btn danger">Thay đổi</button>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="card-group">
+						<div class="group-header">
+							<span class="group-icon">📈</span>
+							<h2>Thống Kê Các Bài Tập</h2>
+						</div>
+					<div class="stats">
+						<div class="stat-card pink"><i class="bi bi-clock-history"></i><strong>90</strong><span>Tổng thời gian</span></div>
+						<div class="stat-card yellow"><i class="bi bi-graph-up-arrow"></i><strong>45</strong><span>Buổi tập/tuần</span></div>
+						<div class="stat-card green"><i class="bi bi-trophy-fill"></i><strong>Tốt</strong><span>Hiệu suất</span></div>
+						<div class="stat-card blue"><i class="bi bi-star-fill"></i><strong>3000</strong><span>Điểm cá nhân</span></div>
+					</div>
+						<p class="date-range">10 9 2025 - 12 12 2025 • Dự kiến hoàn thành</p>
+						<div class="cta-row">
+							<button class="btn start-orange">Bắt Đầu</button>
+						</div>
+					</section>
+				</div>
+
+				<aside class="col-right">
+					<section class="card-group" id="exerciseDetail" hidden>
+						<div class="group-header">
+							<span class="group-icon">📋</span>
+							<h2>Chi Tiết Bài Tập</h2>
+						</div>
+					<div class="detail-badges">
+						<div class="badge-pill yellow"><i class="bi bi-graph-up-arrow"></i><strong id="dSessions">45</strong><span>Số buổi tập</span></div>
+						<div class="badge-pill pink"><i class="bi bi-clock"></i><strong id="dTime">30</strong><span>Thời gian dự kiến</span></div>
+						<div class="badge-pill blue"><i class="bi bi-bullseye"></i><strong id="dEffect">Tốt</strong><span>Hiệu quả</span></div>
+						<div class="badge-pill green"><i class="bi bi-fire"></i><strong id="dCalories">1200</strong><span>Calorie ĐT bình quân</span></div>
+						<div class="badge-pill purple"><i class="bi bi-activity"></i><strong id="dScheme">15 / 3 - 5 / 1</strong><span>Gài / Hiệp / Tăng / Tuần</span></div>
+						<div class="badge-pill lilac"><i class="bi bi-layers-fill"></i><strong id="dDiff">Khó</strong><span>Mức độ</span></div>
+					</div>
+
+						<h3 class="detail-subtitle">Nội dung bài tập</h3>
+						<div class="detail-media" id="dImage"></div>
+						<div class="detail-list" id="dGuide"></div>
+					</section>
+				</aside>
+			</div>
+		</main>
+	</div>
+
+	<script src="~/lib/jquery/jquery.min.js"></script>
+	<script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script src="~/asset/js/mucTieu.js" asp-append-version="true"></script>
+</body>
+</html>
