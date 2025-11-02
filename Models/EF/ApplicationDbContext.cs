@@ -7,17 +7,10 @@ namespace HealthWeb.Models.EF;
 
 public partial class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext()
-    {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-        // Add DbSet<T> properties later when mapping your SQL tables
-    }
-
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
-
     public virtual DbSet<AicanhBaoSucKhoe> AicanhBaoSucKhoes { get; set; }
 
     public virtual DbSet<AigoiY> AigoiYs { get; set; }
