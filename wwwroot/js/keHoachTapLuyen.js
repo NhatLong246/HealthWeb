@@ -201,13 +201,17 @@ function sameDate(a, b){
 }
 
 function switchRange(range, date = new Date()){
-  // explicitly control display to avoid layout stacking
-  const displays = {
-    week: () => { weekGrid.style.display = "flex"; monthGrid.style.display = "none"; yearGrid.style.display = "none"; renderWeek(date); },
-    month: () => { weekGrid.style.display = "none"; monthGrid.style.display = "grid"; yearGrid.style.display = "none"; renderMonth(date); },
-    year: () => { weekGrid.style.display = "none"; monthGrid.style.display = "none"; yearGrid.style.display = "grid"; renderYear(date); }
-  };
-  if (displays[range]) displays[range]();
+  // explicitly control visibility and the hidden attribute to avoid layout stacking
+  const show = (el, display) => { if (!el) return; el.hidden = false; el.style.display = display; };
+  const hide = (el) => { if (!el) return; el.hidden = true; el.style.display = "none"; };
+
+  if (range === 'week') {
+    show(weekGrid, 'flex'); hide(monthGrid); hide(yearGrid); renderWeek(date);
+  } else if (range === 'month') {
+    hide(weekGrid); show(monthGrid, 'grid'); hide(yearGrid); renderMonth(date);
+  } else if (range === 'year') {
+    hide(weekGrid); hide(monthGrid); show(yearGrid, 'grid'); renderYear(date);
+  }
   // animate newly visible range
   if (window.gsap) {
     const target = range === 'week' ? weekGrid : range === 'month' ? monthGrid : yearGrid;
