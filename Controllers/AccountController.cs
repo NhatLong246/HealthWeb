@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace BookReaderWebApp.Controllers
+namespace HealthWeb.Controllers
+
 {
     public class AccountController : Controller
     {

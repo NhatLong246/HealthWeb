@@ -1,6 +1,7 @@
 .vs/
 bin/
 obj/
+
 .BookReaderWebApp/
 .Healthtracker.sql/
 *.user
@@ -18,3 +19,4 @@ obj/
 
 # Misc
 *.swp
+

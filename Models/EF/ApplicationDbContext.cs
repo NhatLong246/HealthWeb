@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HealthWeb.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -7,10 +7,8 @@ namespace HealthWeb.Models.EF;
 
 public partial class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
     public virtual DbSet<AicanhBaoSucKhoe> AicanhBaoSucKhoes { get; set; }
 
     public virtual DbSet<AigoiY> AigoiYs { get; set; }

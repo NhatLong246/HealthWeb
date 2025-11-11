@@ -348,62 +348,74 @@ function initRegisterValidation() {
     const registerForm = document.querySelector('.auth-form');
     if (!registerForm) return;
     
+    // Kiểm tra xem có phải là form register không (có field firstName)
+    const firstNameInput = document.getElementById('firstName');
+    if (!firstNameInput) return; // Không phải form register, thoát
+    
     registerForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const firstName = document.getElementById('firstName').value.trim();
-        const lastName = document.getElementById('lastName').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        const birthDate = document.getElementById('birthDate').value;
+        const firstName = firstNameInput.value.trim();
+        const lastName = document.getElementById('lastName')?.value.trim() || '';
+        const email = document.getElementById('email')?.value.trim() || '';
+        const username = document.getElementById('username')?.value.trim() || '';
+        const password = document.getElementById('password')?.value || '';
+        const confirmPassword = document.getElementById('confirmPassword')?.value || '';
+        const birthDate = document.getElementById('birthDate')?.value || '';
         const agreeTerms = document.querySelector('input[name="agreeTerms"]')?.checked;
         
         // Validate all fields
         let isValid = true;
         
+        const firstNameEl = document.getElementById('firstName');
+        const lastNameEl = document.getElementById('lastName');
+        const emailEl = document.getElementById('email');
+        const usernameEl = document.getElementById('username');
+        const passwordEl = document.getElementById('password');
+        const confirmPasswordEl = document.getElementById('confirmPassword');
+        const birthDateEl = document.getElementById('birthDate');
+        
         if (!firstName) {
-            showFieldError(document.getElementById('firstName'), 'Họ là bắt buộc');
+            if (firstNameEl) showFieldError(firstNameEl, 'Họ là bắt buộc');
             isValid = false;
         }
         
         if (!lastName) {
-            showFieldError(document.getElementById('lastName'), 'Tên là bắt buộc');
+            if (lastNameEl) showFieldError(lastNameEl, 'Tên là bắt buộc');
             isValid = false;
         }
         
         if (!email) {
-            showFieldError(document.getElementById('email'), 'Email là bắt buộc');
+            if (emailEl) showFieldError(emailEl, 'Email là bắt buộc');
             isValid = false;
         } else if (!isValidEmail(email)) {
-            showFieldError(document.getElementById('email'), 'Email không hợp lệ');
+            if (emailEl) showFieldError(emailEl, 'Email không hợp lệ');
             isValid = false;
         }
         
         if (!username) {
-            showFieldError(document.getElementById('username'), 'Tên đăng nhập là bắt buộc');
+            if (usernameEl) showFieldError(usernameEl, 'Tên đăng nhập là bắt buộc');
             isValid = false;
         }
         
         if (!password) {
-            showFieldError(document.getElementById('password'), 'Mật khẩu là bắt buộc');
+            if (passwordEl) showFieldError(passwordEl, 'Mật khẩu là bắt buộc');
             isValid = false;
         } else if (password.length < 8) {
-            showFieldError(document.getElementById('password'), 'Mật khẩu phải có ít nhất 8 ký tự');
+            if (passwordEl) showFieldError(passwordEl, 'Mật khẩu phải có ít nhất 8 ký tự');
             isValid = false;
         }
         
         if (!confirmPassword) {
-            showFieldError(document.getElementById('confirmPassword'), 'Xác nhận mật khẩu là bắt buộc');
+            if (confirmPasswordEl) showFieldError(confirmPasswordEl, 'Xác nhận mật khẩu là bắt buộc');
             isValid = false;
         } else if (password !== confirmPassword) {
-            showFieldError(document.getElementById('confirmPassword'), 'Mật khẩu xác nhận không khớp');
+            if (confirmPasswordEl) showFieldError(confirmPasswordEl, 'Mật khẩu xác nhận không khớp');
             isValid = false;
         }
         
         if (!birthDate) {
-            showFieldError(document.getElementById('birthDate'), 'Ngày sinh là bắt buộc');
+            if (birthDateEl) showFieldError(birthDateEl, 'Ngày sinh là bắt buộc');
             isValid = false;
         }
         
@@ -440,19 +452,29 @@ function initForgotPasswordValidation() {
     const forgotPasswordForm = document.querySelector('.auth-form');
     if (!forgotPasswordForm) return;
     
+    // Kiểm tra xem có phải là form forgot password không
+    // Form forgot password có email nhưng không có username và firstName
+    const emailInput = document.getElementById('email');
+    const hasUsername = document.getElementById('username');
+    const hasFirstName = document.getElementById('firstName');
+    
+    // Chỉ chạy validation nếu có email và không phải là form login (có username) hoặc register (có firstName)
+    if (!emailInput || hasUsername || hasFirstName) return;
+    
     forgotPasswordForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const email = document.getElementById('email').value.trim();
+        const email = emailInput.value.trim();
+        const emailEl = emailInput;
         
         if (!email) {
-            showFieldError(document.getElementById('email'), 'Email là bắt buộc');
+            if (emailEl) showFieldError(emailEl, 'Email là bắt buộc');
             showNotification('Vui lòng nhập email', 'error');
             return;
         }
         
         if (!isValidEmail(email)) {
-            showFieldError(document.getElementById('email'), 'Email không hợp lệ');
+            if (emailEl) showFieldError(emailEl, 'Email không hợp lệ');
             showNotification('Email không hợp lệ', 'error');
             return;
         }

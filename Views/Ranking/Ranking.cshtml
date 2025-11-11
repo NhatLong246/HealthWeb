@@ -1,0 +1,695 @@
+@{
+    ViewData["Title"] = "Bảng Xếp Hạng - HealthWeb";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    /* Ranking/Leaderboard Styles */
+    .ranking-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .ranking-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .ranking-header h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .ranking-header p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+    }
+
+    /* Period tabs */
+    .period-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .period-tab {
+        padding: 0.8rem 2rem;
+        border: 2px solid currentColor;
+        border-radius: 50px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    body.light-mode .period-tab {
+        border-color: rgba(251, 146, 60, 0.4);
+        color: #7c2d12;
+    }
+
+    body.light-mode .period-tab:hover,
+    body.light-mode .period-tab.active {
+        background: rgba(251, 146, 60, 0.2);
+        border-color: #ea580c;
+    }
+
+    body.dark-mode .period-tab {
+        border-color: rgba(78, 222, 128, 0.4);
+        color: #ffffff;
+    }
+
+    body.dark-mode .period-tab:hover,
+    body.dark-mode .period-tab.active {
+        background: rgba(78, 222, 128, 0.2);
+        border-color: #4ade80;
+    }
+
+    /* Podium for top 3 */
+    .podium-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 1rem;
+        margin-bottom: 3rem;
+        min-height: 300px;
+    }
+
+    .podium-item {
+        flex: 0 1 200px;
+        text-align: center;
+        position: relative;
+        animation: fadeInUp 0.6s ease forwards;
+        opacity: 0;
+    }
+
+    .podium-item:nth-child(1) { animation-delay: 0.1s; }
+    .podium-item:nth-child(2) { animation-delay: 0.2s; }
+    .podium-item:nth-child(3) { animation-delay: 0.3s; }
+
+    .podium-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        position: relative;
+        z-index: 2;
+        border: 4px solid;
+    }
+
+    .podium-item:nth-child(2) .podium-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+
+    .podium-rank {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        z-index: 3;
+        border: 3px solid;
+    }
+
+    .podium-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .podium-points {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .podium-stand {
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        border-radius: 10px 10px 0 0;
+        padding: 2rem 1rem 1rem;
+        margin-top: -50px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .podium-item:nth-child(1) .podium-stand {
+        height: 120px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    }
+
+    .podium-item:nth-child(2) .podium-stand {
+        height: 150px;
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+    }
+
+    .podium-item:nth-child(3) .podium-stand {
+        height: 100px;
+        background: linear-gradient(135deg, #fb923c, #ea580c);
+    }
+
+    /* Leaderboard header */
+    .leaderboard-header {
+        margin-bottom: 1rem;
+    }
+
+    .leaderboard-header h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Stats header */
+    .stats-header {
+        margin-bottom: 1rem;
+    }
+
+    .stats-header h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Stats cards */
+    .stats-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: white;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    /* Leaderboard list */
+    .leaderboard-list {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    /* Custom scrollbar for leaderboard */
+    .leaderboard-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .leaderboard-list::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+    }
+
+    .leaderboard-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        border-radius: 10px;
+    }
+
+    .leaderboard-list::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #22c55e, #0ea5e9);
+    }
+
+    body.light-mode .leaderboard-list {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .leaderboard-item {
+        display: flex;
+        align-items: center;
+        padding: 1.2rem;
+        border-radius: 15px;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+
+    body.light-mode .leaderboard-item:hover {
+        background: rgba(251, 146, 60, 0.1);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    body.dark-mode .leaderboard-item:hover {
+        background: rgba(78, 222, 128, 0.1);
+        border-color: rgba(78, 222, 128, 0.3);
+    }
+
+    .leaderboard-rank {
+        width: 50px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .leaderboard-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+        border: 2px solid;
+    }
+
+    .leaderboard-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .leaderboard-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .leaderboard-username {
+        font-size: 0.9rem;
+        opacity: 0.7;
+    }
+
+    .leaderboard-points {
+        font-size: 1.3rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 3rem;
+        font-size: 1.5rem;
+        opacity: 0.6;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        opacity: 0.6;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Badge icons for top 3 */
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+    }
+
+    .rank-badge.rank-1 {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    }
+
+    .rank-badge.rank-2 {
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+    }
+
+    .rank-badge.rank-3 {
+        background: linear-gradient(135deg, #fb923c, #ea580c);
+    }
+
+    @@media (max-width: 768px) {
+        .ranking-container {
+            padding: 1rem;
+        }
+
+        .podium-container {
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .podium-item {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .leaderboard-item {
+            padding: 1rem;
+        }
+
+        .leaderboard-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 1.1rem;
+        }
+
+        .leaderboard-name {
+            font-size: 1rem;
+        }
+
+        .stats-cards {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="ranking-container">
+    <div class="ranking-header">
+        <h1><i class="fas fa-trophy"></i> Bảng Xếp Hạng</h1>
+        <p>Xem ai đang dẫn đầu trong cộng đồng HealthWeb</p>
+    </div>
+
+    <!-- Period Tabs -->
+    <div class="period-tabs">
+        <button class="period-tab" data-period="Daily">
+            <i class="fas fa-calendar-day"></i> Hôm nay
+        </button>
+        <button class="period-tab active" data-period="Weekly">
+            <i class="fas fa-calendar-week"></i> Tuần này
+        </button>
+        <button class="period-tab" data-period="Monthly">
+            <i class="fas fa-calendar-alt"></i> Tháng này
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i> Đang tải...
+    </div>
+
+    <!-- Section 1: Top 3 Podium (Full Width) -->
+    <div id="podiumContainer" style="display: none;">
+        <div class="podium-container" id="podiumContent"></div>
+    </div>
+
+    <!-- Section 2: Detailed Leaderboard List -->
+    <div id="leaderboardContainer" style="display: none;">
+        <div class="leaderboard-header">
+            <h3><i class="fas fa-list-ol"></i> Bảng Xếp Hạng Chi Tiết</h3>
+        </div>
+        <div class="leaderboard-list" id="leaderboardList"></div>
+    </div>
+
+    <!-- Section 3: Personal Stats (Full Width) -->
+    <div id="personalStatsContainer" style="display: none;">
+        <div class="stats-header">
+            <h3><i class="fas fa-chart-line"></i> Thống Kê Cá Nhân</h3>
+        </div>
+        <div class="stats-cards">
+            <div class="stat-card" style="background: linear-gradient(135deg, #7dd3fc, #38bdf8);">
+                <div class="stat-value" id="personalRank">#0</div>
+                <div class="stat-label">Hạng Cá Nhân</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #c4b5fd, #a78bfa);">
+                <div class="stat-value" id="personalPoints">0</div>
+                <div class="stat-label">Điểm Thành Tích</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f9a8d4, #f472b6);">
+                <div class="stat-value" id="personalTime">0h</div>
+                <div class="stat-label">Tổng Thời Gian</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fb923c, #f97316);">
+                <div class="stat-value" id="personalSessions">0</div>
+                <div class="stat-label">Buổi Tập</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="fas fa-chart-line"></i>
+        <p>Chưa có dữ liệu xếp hạng cho khoảng thời gian này.</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const periodTabs = document.querySelectorAll('.period-tab');
+    let currentPeriod = 'Weekly';
+
+    // Period tab click handler
+    periodTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            periodTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentPeriod = this.getAttribute('data-period');
+            loadLeaderboard(currentPeriod);
+        });
+    });
+
+    // Load initial leaderboard
+    loadLeaderboard(currentPeriod);
+});
+
+async function loadLeaderboard(period) {
+    const loadingState = document.getElementById('loadingState');
+    const podiumContainer = document.getElementById('podiumContainer');
+    const leaderboardContainer = document.getElementById('leaderboardContainer');
+    const emptyState = document.getElementById('emptyState');
+    const podiumContent = document.getElementById('podiumContent');
+    const leaderboardList = document.getElementById('leaderboardList');
+
+    // Show loading
+    loadingState.style.display = 'block';
+    podiumContainer.style.display = 'none';
+    leaderboardContainer.style.display = 'none';
+    emptyState.style.display = 'none';
+
+    try {
+        const response = await fetch(`/Ranking/GetLeaderboard?period=${period}`);
+        console.log('Response status:', response.status);
+        const result = await response.json();
+        console.log('Leaderboard data:', result); // Debug log
+        console.log('Result success:', result.success);
+        console.log('Result data:', result.data);
+        console.log('Result data length:', result.data?.length);
+
+        if (result.success && result.data && result.data.length > 0) {
+            const rankings = result.data;
+            console.log('First ranking item:', rankings[0]);
+            
+            // Display top 3 on podium
+            const top3 = rankings.slice(0, 3);
+            displayPodium(top3, podiumContent);
+            podiumContainer.style.display = 'block';
+
+            // Display rest in list
+            if (rankings.length > 3) {
+                displayLeaderboard(rankings.slice(3), leaderboardList);
+                leaderboardContainer.style.display = 'block';
+            }
+
+            // Load and display personal stats (TODO: get current user ID from auth)
+            // For now, assume user_0001 is current user
+            loadPersonalStats('user_0001', period);
+        } else {
+            console.log('No data or error:', result);
+            emptyState.style.display = 'block';
+            
+            // Hide personal stats when no data
+            document.getElementById('personalStatsContainer').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        console.error('Full error:', error);
+        emptyState.style.display = 'block';
+        
+        // Hide personal stats on error
+        document.getElementById('personalStatsContainer').style.display = 'none';
+    } finally {
+        loadingState.style.display = 'none';
+    }
+}
+
+// Debug: log response
+async function debugLoadLeaderboard(period) {
+    console.log('Fetching leaderboard for period:', period);
+    const response = await fetch(`/Ranking/GetLeaderboard?period=${period}`);
+    const result = await response.json();
+    console.log('Response:', result);
+    return result;
+}
+
+function displayPodium(top3, container) {
+    // top3 is already ordered by ThuHang ASC [1, 2, 3]
+    // We need to display them in podium order: [2, 1, 3] (2nd, 1st, 3rd)
+    const podiumOrder = [1, 0, 2]; // indexes: second, first, third
+    const medals = ['🥈', '🥇', '🥉'];
+    
+    container.innerHTML = podiumOrder.map((idx, podiumIdx) => {
+        const user = top3[idx];
+        const rank = user.ThuHang || user.thuHang || (idx + 1);
+        const medal = medals[podiumIdx];
+        
+        // Try both PascalCase and camelCase
+        const username = user.Username || user.username || 'Unknown';
+        const hoTen = user.HoTen || user.hoTen;
+        const tongDiem = user.TongDiem || user.tongDiem || 0;
+        const anhDaiDien = user.AnhDaiDien || user.anhDaiDien;
+        
+        const avatar = anhDaiDien ? `<img src="${anhDaiDien}" alt="${username}">` 
+                      : `<i class="fas fa-user"></i>`;
+        
+        return `
+            <div class="podium-item">
+                <div class="podium-rank" style="background: linear-gradient(135deg, ${getRankColor(rank)});">
+                    ${medal}
+                </div>
+                <div class="podium-avatar" style="background: linear-gradient(135deg, ${getRankColor(rank)});">
+                    ${avatar}
+                </div>
+                <div class="podium-stand">
+                    <div class="podium-name">${hoTen || username}</div>
+                    <div class="podium-points">${formatNumber(tongDiem)} điểm</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function displayLeaderboard(rankings, container) {
+    container.innerHTML = rankings.map((user, idx) => {
+        const rank = idx + 4; // Starting from 4th place
+        
+        // Try both PascalCase and camelCase
+        const username = user.Username || user.username || 'Unknown';
+        const hoTen = user.HoTen || user.hoTen;
+        const tongDiem = user.TongDiem || user.tongDiem || 0;
+        const anhDaiDien = user.AnhDaiDien || user.anhDaiDien;
+        
+        const avatar = anhDaiDien ? `<img src="${anhDaiDien}" alt="${username}">` 
+                      : `<i class="fas fa-user"></i>`;
+        
+        return `
+            <div class="leaderboard-item">
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-avatar" style="background: linear-gradient(135deg, #4ade80, #22d3ee);">
+                    ${avatar}
+                </div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">${hoTen || username}</div>
+                    <div class="leaderboard-username">@@${username}</div>
+                </div>
+                <div class="leaderboard-points">
+                    <i class="fas fa-fire"></i>
+                    ${formatNumber(tongDiem)}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getRankColor(rank) {
+    switch(rank) {
+        case 1: return '#fbbf24, #f59e0b';
+        case 2: return '#94a3b8, #64748b';
+        case 3: return '#fb923c, #ea580c';
+        default: return '#4ade80, #22d3ee';
+    }
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('vi-VN').format(num);
+}
+
+async function loadPersonalStats(userId, period) {
+    try {
+        const response = await fetch(`/Ranking/GetPersonalStats?userId=${userId}&period=${period}`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            displayPersonalStats(result.data);
+        } else {
+            document.getElementById('personalStatsContainer').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading personal stats:', error);
+        document.getElementById('personalStatsContainer').style.display = 'none';
+    }
+}
+
+function displayPersonalStats(data) {
+    const personalStatsContainer = document.getElementById('personalStatsContainer');
+    
+    // Update personal stats
+    document.getElementById('personalRank').textContent = `#${data.Rank || data.rank || 0}`;
+    document.getElementById('personalPoints').textContent = formatNumber(data.Points || data.points || 0);
+    document.getElementById('personalTime').textContent = `${data.TotalHours || data.totalHours || 0}h`;
+    document.getElementById('personalSessions').textContent = data.Sessions || data.sessions || 0;
+    
+    personalStatsContainer.style.display = 'block';
+}
+</script>
+

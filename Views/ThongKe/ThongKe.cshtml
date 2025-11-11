@@ -1,0 +1,246 @@
+﻿@{
+    ViewData["Title"] = "Thống Kê & Báo Cáo";
+}
+
+@section Styles {
+    <link rel="stylesheet" type="text/css" href="~/asset/css/thongKeUser.css?v=@DateTime.Now.Ticks" asp-append-version="true">
+}
+
+<section class="stats-section">
+    <div class="stats-header">
+        <div class="stats-header-content">
+            <div class="section-title with-icon">
+                <i class="fas fa-chart-line"></i>
+                Thống Kê & Báo Cáo
+            </div>
+        </div>
+        <div class="stats-export-section">
+            <p class="stats-subtitle">Xuất dữ liệu và phân tích hiệu suất tập luyện của bạn</p>
+            <div class="stats-export-actions">
+                <button class="btn btn-secondary btn-export" id="exportPdf" title="Xuất PDF">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button class="btn btn-primary btn-export" id="exportExcel" title="Xuất Excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+            <div class="stats-grid">
+                <div class="stat-card stat-card-green">
+                    <div class="stat-icon">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalSessions">0</div>
+                        <div class="stat-label">Tổng Buổi Tập</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-blue">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalTime">0h</div>
+                        <div class="stat-label">Tổng Thời Gian</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-purple">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalAchievements">0</div>
+                        <div class="stat-label">Thành Tựu</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-orange">
+                    <div class="stat-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="goalAchieved">0%</div>
+                        <div class="stat-label">Mục Tiêu Đạt Được</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="content-grid">
+                <!-- Left Column -->
+                <div class="col-left">
+                    <!-- Training Progress Chart -->
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-chart-line"></i></span>
+                            <h2>Tiến Độ Tập Luyện (7 Ngày)</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- Training Distribution Chart -->
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-chart-pie"></i></span>
+                            <h2>Phân Bố Loại Tập Luyện</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-right">
+                    <!-- Achievements -->
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-award"></i></span>
+                            <h2>Thành Tựu Đã Đạt Được</h2>
+                        </div>
+                        <div class="achievements-list" id="achievementsList">
+                            <div class="loading">Đang tải...</div>
+                        </div>
+                    </section>
+
+                    <!-- Detailed Statistics -->
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-chart-bar"></i></span>
+                            <h2>Thống Kê Chi Tiết</h2>
+                        </div>
+                        <div class="detailed-stats">
+                            <div class="detail-item">
+                                <span class="detail-label">TB Thời Gian/Buổi</span>
+                                <span class="detail-value" id="avgTimePerSession">0h</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Buổi/Tuần</span>
+                                <span class="detail-value" id="sessionsPerWeek">0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Calo Đã Đốt</span>
+                                <span class="detail-value" id="totalCalories">0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Ngày Liên Tiếp</span>
+                                <span class="detail-value" id="consecutiveDays">0</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Performance Comparison -->
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-balance-scale"></i></span>
+                            <h2>So Sánh Hiệu Suất</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Health Statistics Section -->
+            <div class="health-nutrition-section">
+                <h2 class="section-title with-icon">
+                    <i class="fas fa-heartbeat"></i>
+                    Sức Khỏe
+                </h2>
+                
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="7days">7 Ngày</button>
+                    <button class="period-btn" data-period="1month">1 Tháng</button>
+                    <button class="period-btn" data-period="3months">3 Tháng</button>
+                </div>
+
+                <div class="health-stats-grid">
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-weight"></i></span>
+                            <h2>Theo Dõi Cân Nặng & BMI</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="healthChart"></canvas>
+                        </div>
+                        <div class="health-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">Tốc độ thay đổi:</span>
+                                <span class="summary-value" id="avgChangePerWeek">0 kg/tuần</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-bullseye"></i></span>
+                            <h2>Mục Tiêu Cân Nặng</h2>
+                        </div>
+                        <div class="goals-list" id="weightGoalsList">
+                            <div class="loading">Đang tải...</div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Nutrition Statistics Section -->
+            <div class="health-nutrition-section">
+                <h2 class="section-title with-icon">
+                    <i class="fas fa-apple-alt"></i>
+                    Dinh Dưỡng
+                </h2>
+                
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="7days">7 Ngày</button>
+                    <button class="period-btn" data-period="1month">1 Tháng</button>
+                    <button class="period-btn" data-period="3months">3 Tháng</button>
+                </div>
+
+                <div class="nutrition-stats-grid">
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-fire"></i></span>
+                            <h2>Calo Tiêu Thụ vs Đốt Cháy</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="caloriesChart"></canvas>
+                        </div>
+                        <div class="nutrition-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">Tổng tiêu thụ:</span>
+                                <span class="summary-value" id="totalConsumed">0 calo</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Tổng đốt cháy:</span>
+                                <span class="summary-value" id="totalBurned">0 calo</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Deficit/Surplus:</span>
+                                <span class="summary-value" id="totalDeficit">0 calo</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card-group">
+                        <div class="group-header">
+                            <span class="group-icon"><i class="fas fa-chart-pie"></i></span>
+                            <h2>Tỷ Lệ Macro (Thực Tế vs Mục Tiêu)</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="macroChart"></canvas>
+                        </div>
+                        <div class="macro-legend" id="macroLegend"></div>
+                    </section>
+                </div>
+            </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="~/asset/js/thongKeUser.js?v=@DateTime.Now.Ticks" asp-append-version="true"></script>
+}
