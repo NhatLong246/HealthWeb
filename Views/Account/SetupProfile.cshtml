@@ -1,0 +1,233 @@
+@model HealthWeb.Controllers.SetupProfileViewModel
+@{
+    ViewData["Title"] = "Thiết lập thông tin cơ bản - HealthWeb";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-heart-pulse"></i>
+                <span>HealthWeb</span>
+            </div>
+            <h1>Thiết lập thông tin cơ bản</h1>
+            <p>Vui lòng nhập thông tin cơ bản để chúng tôi có thể theo dõi sức khỏe của bạn tốt hơn.</p>
+        </div>
+
+        <form class="auth-form" method="post" asp-action="SetupProfile" asp-controller="Account">
+            @Html.AntiForgeryToken()
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger" style="background-color: #fee; color: #c33; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fcc;">
+                    <strong>Vui lòng sửa các lỗi sau:</strong>
+                    <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            }
+            
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success" style="background-color: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                    @TempData["SuccessMessage"]
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="ChieuCao">Chiều cao (cm) <span style="color: #ef4444;">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-ruler-vertical"></i>
+                    <input type="number" id="ChieuCao" name="ChieuCao" 
+                           value="@Model?.ChieuCao" 
+                           placeholder="Ví dụ: 170" 
+                           min="80" max="250" step="0.1" required>
+                </div>
+                <span class="field-hint">Nhập chiều cao của bạn (từ 80 đến 250 cm)</span>
+            </div>
+
+            <div class="form-group">
+                <label for="CanNang">Cân nặng (kg) <span style="color: #ef4444;">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-weight-scale"></i>
+                    <input type="number" id="CanNang" name="CanNang" 
+                           value="@Model?.CanNang" 
+                           placeholder="Ví dụ: 65" 
+                           min="20" max="300" step="0.1" required>
+                </div>
+                <span class="field-hint">Nhập cân nặng hiện tại của bạn (từ 20 đến 300 kg)</span>
+            </div>
+
+            <div class="form-group">
+                <label for="NgaySinh">Ngày sinh</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-calendar"></i>
+                    <input type="date" id="NgaySinh" name="NgaySinh" 
+                           value="@(Model?.NgaySinh?.ToString("yyyy-MM-dd"))" 
+                           max="@DateTime.Now.AddYears(-13).ToString("yyyy-MM-dd")">
+                </div>
+                <span class="field-hint">Ngày sinh (bạn phải ít nhất 13 tuổi)</span>
+            </div>
+
+            <div class="form-group">
+                <label for="GioiTinh">Giới tính</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-venus-mars"></i>
+                    <select id="GioiTinh" name="GioiTinh">
+                        <option value="">-- Chọn giới tính --</option>
+                        <option value="Male" selected="@(Model?.GioiTinh == "Male")">Nam</option>
+                        <option value="Female" selected="@(Model?.GioiTinh == "Female")">Nữ</option>
+                        <option value="Other" selected="@(Model?.GioiTinh == "Other")">Khác</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="bmi-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0; color: white; display: none;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.1rem;">Chỉ số BMI dự kiến:</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="font-size: 2rem; font-weight: 700;" id="bmi-value">--</div>
+                    <div style="flex: 1;">
+                        <div id="bmi-label" style="font-size: 0.9rem; opacity: 0.9;">--</div>
+                        <div style="font-size: 0.85rem; opacity: 0.8; margin-top: 5px;" id="bmi-range">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="auth-btn">
+                <span>Hoàn tất thiết lập</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+    </div>
+
+    <div class="auth-illustration">
+        <div class="illustration-content">
+            <div class="floating-book book-1">
+                <i class="fas fa-heart-pulse"></i>
+            </div>
+            <div class="floating-book book-2">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+            <div class="floating-book book-3">
+                <i class="fas fa-apple-whole"></i>
+            </div>
+            <div class="floating-book book-4">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .field-hint {
+        display: block;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        margin-top: 5px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    /* Style cho select giống input */
+    .input-wrapper select {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.8);
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .input-wrapper select:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 20px rgba(78, 222, 128, 0.3);
+    }
+    
+    .input-wrapper select option {
+        background: #1e293b;
+        color: #fff;
+        padding: 0.5rem;
+    }
+    
+    /* Thêm icon mũi tên dropdown cho select */
+    .input-wrapper:has(select)::after {
+        content: '\f078';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        right: 1rem;
+        color: #94a3b8;
+        pointer-events: none;
+        z-index: 2;
+    }
+</style>
+
+<script>
+    // Tính BMI tự động khi nhập chiều cao và cân nặng
+    document.addEventListener('DOMContentLoaded', function() {
+        const chieuCaoInput = document.getElementById('ChieuCao');
+        const canNangInput = document.getElementById('CanNang');
+        const bmiPreview = document.getElementById('bmi-preview');
+        const bmiValue = document.getElementById('bmi-value');
+        const bmiLabel = document.getElementById('bmi-label');
+        const bmiRange = document.getElementById('bmi-range');
+
+        function calculateBMI() {
+            const chieuCao = parseFloat(chieuCaoInput.value);
+            const canNang = parseFloat(canNangInput.value);
+
+            if (chieuCao && canNang && chieuCao > 0 && canNang > 0) {
+                const bmi = canNang / Math.pow(chieuCao / 100, 2);
+                const roundedBMI = bmi.toFixed(1);
+
+                bmiValue.textContent = roundedBMI;
+                bmiPreview.style.display = 'block';
+
+                let label = '';
+                let range = '';
+                let color = '';
+
+                if (bmi < 18.5) {
+                    label = 'Thiếu cân';
+                    range = 'BMI < 18.5';
+                    color = '#3b82f6';
+                } else if (bmi < 25) {
+                    label = 'Bình thường';
+                    range = 'BMI: 18.5 - 24.9';
+                    color = '#10b981';
+                } else if (bmi < 30) {
+                    label = 'Thừa cân';
+                    range = 'BMI: 25 - 29.9';
+                    color = '#f59e0b';
+                } else {
+                    label = 'Béo phì';
+                    range = 'BMI ≥ 30';
+                    color = '#ef4444';
+                }
+
+                bmiLabel.textContent = label;
+                bmiRange.textContent = range;
+                bmiPreview.style.background = `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`;
+            } else {
+                bmiPreview.style.display = 'none';
+            }
+        }
+
+        chieuCaoInput.addEventListener('input', calculateBMI);
+        canNangInput.addEventListener('input', calculateBMI);
+    });
+</script>
+

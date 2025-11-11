@@ -187,13 +187,18 @@
                 toggleTheme();
             });
 
-            // Require-auth links: show notice if not logged in
-            function isAuthenticated(){
-                try { return localStorage.getItem('hw_is_auth') === 'true'; } catch { return false; }
+            // Kiểm tra xác thực dựa trên session server
+            async function fetchAuthStatus(){
+                try {
+                    const res = await fetch('/Account/IsAuthenticated', { credentials: 'same-origin' });
+                    if(!res.ok) return { isAuthenticated: false };
+                    return await res.json();
+                } catch { return { isAuthenticated: false }; }
             }
             document.querySelectorAll('.requires-auth').forEach(el => {
-                el.addEventListener('click', function(e){
-                    if (!isAuthenticated()) {
+                el.addEventListener('click', async function(e){
+                    const status = await fetchAuthStatus();
+                    if (!status?.isAuthenticated) {
                         e.preventDefault();
                         // lightweight inline notification
                         const n = document.createElement('div');
@@ -215,22 +220,23 @@
             // Swap auth buttons -> user menu when logged in (client-side)
             const loginBtn = document.getElementById('loginBtn');
             const registerBtn = document.getElementById('registerBtn');
-            function renderUserMenu(){
+            async function renderUserMenu(){
                 const actions = loginBtn?.parentElement;
                 if(!actions) return;
-                if(isAuthenticated()){
+                const status = await fetchAuthStatus();
+                if(status?.isAuthenticated){
                     if(loginBtn) loginBtn.style.display='none';
                     if(registerBtn) registerBtn.style.display='none';
                     if(!document.getElementById('userMenu')){
-                        const username = localStorage.getItem('hw_username') || 'User';
+                        const username = status.username || 'User';
                         const menu = document.createElement('div');
                         menu.id = 'userMenu';
                         menu.style.display = 'inline-flex';
                         menu.style.alignItems = 'center';
                         menu.style.gap = '.6rem';
-                        menu.innerHTML = `<span title="Tài khoản"><i class="fas fa-user"></i></span><span>${username}</span><button id="logoutBtn" class="btn btn-secondary">Đăng xuất</button>`;
+                        menu.innerHTML = `<span title="Tài khoản"><i class="fas fa-user"></i></span><span>${username}</span>
+                        <a href="/Account/LogoutGet" class="btn btn-secondary">Đăng xuất</a>`;
                         actions.appendChild(menu);
-                        document.getElementById('logoutBtn')?.addEventListener('click', function(){ try{ localStorage.removeItem('hw_is_auth'); localStorage.removeItem('hw_username'); }catch{} window.location.href='/'; });
                     }
                 } else {
                     if(loginBtn) loginBtn.style.display='inline-flex';
