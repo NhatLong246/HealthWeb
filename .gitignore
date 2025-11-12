@@ -20,3 +20,7 @@ obj/
 # Misc
 *.swp
 
+# User-specific settings (chứa connection string riêng của từng máy)
+appsettings.Development.json
+appsettings.Production.json
+

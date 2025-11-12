@@ -1,5 +1,48 @@
 ﻿@{
     ViewData["Title"] = "Trang chủ - HealthWeb";
+    var healthToday = ViewData["HealthToday"] as HealthWeb.Models.Entities.LuuTruSucKhoe;
+    var mucTieu = ViewData["MucTieu"] as HealthWeb.Models.Entities.MucTieu;
+    var tongCalo = ViewData["TongCalo"] as double? ?? 0;
+    var isAuthenticated = ViewData["IsAuthenticated"] as bool? ?? false;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="success-notification" style="position: fixed; top: 20px; right: 20px; background: rgba(16, 185, 129, 0.95); color: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); z-index: 10000; display: flex; align-items: center; gap: 0.75rem; max-width: 400px; animation: slideIn 0.3s ease;">
+        <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
+        <span>@TempData["SuccessMessage"]</span>
+    </div>
+    <script>
+        setTimeout(function() {
+            const notification = document.querySelector('.success-notification');
+            if (notification) {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
+    </script>
+    <style>
+        @@keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @@keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
 }
 
 <!-- Hero Section -->
@@ -82,6 +125,25 @@
         <div class="progress-ring"><span class="progress-percent">0%</span></div>
         <div class="progress-text">Hoàn thành mục tiêu trong ngày</div>
     </div>
+    @if (mucTieu != null)
+    {
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(78, 222, 128, 0.1); border-radius: 12px; border: 1px solid rgba(78, 222, 128, 0.3);">
+            <div style="font-weight: 600; margin-bottom: 0.5rem;">
+                <i class="fas fa-bullseye"></i> Mục tiêu hiện tại: @mucTieu.LoaiMucTieu
+            </div>
+            <div style="font-size: 0.9rem; opacity: 0.8;">
+                Mục tiêu: @mucTieu.GiaTriMucTieu
+                @if (mucTieu.TienDoHienTai.HasValue)
+                {
+                    <span> • Tiến độ: @mucTieu.TienDoHienTai</span>
+                }
+                @if (mucTieu.DaHoanThanh == true)
+                {
+                    <span style="color: #4ade80; font-weight: 600;"> • Đã hoàn thành!</span>
+                }
+            </div>
+        </div>
+    }
     <div class="goals-note">Mục tiêu sẽ tự động reset mỗi ngày. Dữ liệu lưu cục bộ trên trình duyệt.</div>
     <div class="goals-actions">
         <button class="btn btn-secondary goals-reset"><i class="fas fa-rotate"></i> Reset</button>
@@ -102,11 +164,11 @@
 <section class="bmi-section">
         <div class="bmi-row">
             <label>Chiều cao (cm)</label>
-            <input type="number" id="bmiHeight" min="80" max="250" placeholder="170">
+            <input type="number" id="bmiHeight" min="80" max="250" placeholder="170" value="@(healthToday?.ChieuCao?.ToString() ?? "")">
         </div>
         <div class="bmi-row">
             <label>Cân nặng (kg)</label>
-            <input type="number" id="bmiWeight" min="20" max="300" placeholder="65">
+            <input type="number" id="bmiWeight" min="20" max="300" placeholder="65" value="@(healthToday?.CanNang?.ToString() ?? "")">
         </div>
         <div class="bmi-row">
             <label>Tuổi</label>
@@ -133,8 +195,14 @@
             <button class="btn btn-primary bmi-calc"><i class="fas fa-equals"></i> Tính nhanh</button>
         </div>
         <div class="bmi-result">
-            <div><i class="fas fa-weight-scale"></i> BMI: <span id="bmiValue">—</span> <span id="bmiLabel" class="badge">—</span></div>
+            <div><i class="fas fa-weight-scale"></i> BMI: <span id="bmiValue">@(healthToday?.Bmi?.ToString("F1") ?? "—")</span> <span id="bmiLabel" class="badge">@(healthToday?.Bmi != null ? (healthToday.Bmi < 18.5 ? "Thiếu cân" : healthToday.Bmi < 25 ? "Bình thường" : healthToday.Bmi < 30 ? "Thừa cân" : "Béo phì") : "—")</span></div>
             <div><i class="fas fa-fire"></i> TDEE: <span id="tdeeValue">—</span> kcal/ngày</div>
+            @if (isAuthenticated && tongCalo > 0)
+            {
+                <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                    <i class="fas fa-utensils"></i> Đã nạp: <strong>@Math.Round(tongCalo, 0)</strong> kcal hôm nay
+                </div>
+            }
         </div>
 </section>
 
