@@ -384,7 +384,7 @@ public partial class ApplicationDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.TenMonAn)
                 .HasMaxLength(200)
-                .IsUnicode(false);
+                .IsUnicode(true); // Đổi thành true để hỗ trợ Unicode (tiếng Việt)
         });
 
         modelBuilder.Entity<GiaoBaiTapChoUser>(entity =>

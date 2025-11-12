@@ -1,0 +1,387 @@
+@model HealthWeb.Controllers.SettingsViewModel
+@{
+    ViewData["Title"] = "Cài đặt - HealthWeb";
+}
+
+<div class="container" style="max-width: 800px; margin: 0 auto; padding: 2rem; padding-top: calc(70px + 2rem);">
+    <div class="settings-card">
+        <div class="settings-header" style="margin-bottom: 4rem;">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-cog" style="color: #4ade80;"></i>
+                Cài đặt
+            </h1>
+            <p style="color: #94a3b8; font-size: 0.95rem;">Tùy chỉnh trải nghiệm của bạn</p>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success" style="background-color: rgba(16, 185, 129, 0.2); color: #10b981; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger" style="background-color: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <form method="post" asp-action="Index" asp-controller="Settings">
+            @Html.AntiForgeryToken()
+
+            <!-- Thông báo -->
+            <div class="settings-section notification-section" style="margin-bottom: 4rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #e2e8f0;">
+                    <i class="fas fa-bell"></i>
+                    Thông báo
+                </h2>
+                <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: rgba(30, 41, 59, 0.5); border-radius: 12px;">
+                    <div>
+                        <label style="font-weight: 600; color: #e2e8f0; cursor: pointer;">Cho phép thông báo</label>
+                        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">Nhận thông báo về mục tiêu, nhắc nhở và cập nhật</p>
+                    </div>
+                    <label class="toggle-switch" style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                        <input type="checkbox" name="EnableNotifications" value="true" @(Model.EnableNotifications ? "checked" : "") style="opacity: 0; width: 0; height: 0;">
+                        <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(148, 163, 184, 0.3); transition: 0.3s; border-radius: 26px;"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Giao diện -->
+            <div class="settings-section interface-section" style="margin-bottom: 4rem; padding-top: 2rem; padding-bottom: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #e2e8f0;">
+                    <i class="fas fa-palette"></i>
+                    Giao diện
+                </h2>
+                <div class="form-group">
+                    <label for="Theme" class="theme-label" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Chủ đề
+                    </label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <i class="fas fa-moon theme-icon" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 2;"></i>
+                        <select id="Theme" name="Theme" class="theme-select"
+                                style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; appearance: none; cursor: pointer;">
+                            <option value="Dark" selected="@(Model.Theme == "Dark")">Tối</option>
+                            <option value="Light" selected="@(Model.Theme == "Light")">Sáng</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lưu cài đặt -->
+            <div class="form-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <button type="submit" class="btn btn-primary" id="saveSettingsBtn" style="flex: 1; padding: 0.75rem 1.5rem; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i class="fas fa-save save-icon"></i>
+                    <span class="save-text">Lưu cài đặt</span>
+                </button>
+                <a href="/" class="btn btn-secondary cancel-btn" style="padding: 0.75rem 1.5rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;">
+                    <span class="cancel-text">Hủy</span>
+                </a>
+            </div>
+        </form>
+
+            <!-- Phản hồi -->
+        <div class="settings-section feedback-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <h2 class="feedback-title" style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #e2e8f0;">
+                <i class="fas fa-comment-dots"></i>
+                Phản hồi
+            </h2>
+            <form method="post" asp-action="SendFeedback" asp-controller="Settings" style="margin-top: 1rem;">
+                @Html.AntiForgeryToken()
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="feedback" class="feedback-label" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Gửi phản hồi của bạn
+                    </label>
+                    <textarea id="feedback" name="feedback" class="feedback-textarea" rows="4" 
+                              placeholder="Chia sẻ ý kiến, đề xuất hoặc báo lỗi..."
+                              style="width: 100%; padding: 0.75rem 1rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary feedback-btn" style="padding: 0.75rem 1.5rem; background: rgba(78, 222, 128, 0.1); color: #4ade80; border: 2px solid rgba(78, 222, 128, 0.3); border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    <i class="fas fa-paper-plane"></i> Gửi phản hồi
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Dark mode cho settings-card */
+    .settings-card {
+        background: rgba(15, 23, 42, 0.8);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Light mode - dựa theo form dinh dưỡng */
+    body.light-mode .settings-card {
+        background: rgba(255, 255, 255, 0.7) !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .settings-header h1 {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .settings-header p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .settings-section h2 {
+        color: #7c2d12 !important;
+    }
+
+    /* Override tất cả text màu trắng/xám trong light mode */
+    body.light-mode .settings-header h1:not([style*="color"]) {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .settings-header p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .settings-section h2 {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .setting-item label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .setting-item p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .settings-section {
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    /* Override tất cả text có inline style màu trắng/xám - dùng selector cụ thể */
+    body.light-mode .settings-section h2[style*="color"],
+    body.light-mode .settings-section h2 {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .setting-item label[style*="color"],
+    body.light-mode .setting-item label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .setting-item p[style*="color"],
+    body.light-mode .setting-item p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .settings-header p[style*="color"],
+    body.light-mode .settings-header p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .theme-label[style*="color"],
+    body.light-mode .theme-label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .feedback-title[style*="color"],
+    body.light-mode .feedback-title {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .feedback-label[style*="color"],
+    body.light-mode .feedback-label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .setting-item {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+
+    .toggle-switch input:checked + .slider {
+        background-color: #4ade80;
+    }
+
+    .toggle-switch input:checked + .slider:before {
+        transform: translateX(24px);
+    }
+
+    .toggle-switch .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    body.light-mode .toggle-switch input:checked + .slider {
+        background-color: #ea580c;
+    }
+
+    .input-wrapper select:focus,
+    textarea:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 20px rgba(78, 222, 128, 0.3);
+    }
+
+    body.light-mode .input-wrapper select,
+    body.light-mode textarea {
+        background: #fff;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    body.light-mode .input-wrapper select:focus,
+    body.light-mode textarea:focus {
+        border-color: #ea580c;
+        box-shadow: 0 0 20px rgba(234, 88, 12, 0.3);
+    }
+
+    body.light-mode .theme-label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .theme-icon {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .theme-select {
+        background: #fff !important;
+        color: #7c2d12 !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .theme-select:focus {
+        border-color: #ea580c !important;
+        box-shadow: 0 0 20px rgba(234, 88, 12, 0.3) !important;
+    }
+
+    body.light-mode .theme-select option {
+        background: #ffffff;
+        color: #7c2d12;
+    }
+
+    body.light-mode .btn-primary {
+        background: #ea580c !important;
+        color: #ffffff !important;
+    }
+
+    body.light-mode .btn-primary span {
+        color: #ffffff !important;
+    }
+
+    body.light-mode .btn-secondary {
+        color: #7c2d12 !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .btn-secondary span {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .form-actions {
+        border-top-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    /* Light mode cho section Phản hồi */
+    body.light-mode .feedback-section {
+        border-top-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .feedback-title {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .feedback-label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .feedback-textarea {
+        background: #fff !important;
+        color: #7c2d12 !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .feedback-textarea::placeholder {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .feedback-btn {
+        background: rgba(234, 88, 12, 0.1) !important;
+        color: #ea580c !important;
+        border-color: rgba(234, 88, 12, 0.3) !important;
+    }
+
+    body.light-mode .feedback-btn:hover {
+        background: rgba(234, 88, 12, 0.2) !important;
+    }
+
+    /* Đảm bảo tất cả icon trong light mode có màu phù hợp */
+    body.light-mode .settings-header h1 i.fa-cog {
+        color: #ea580c !important;
+    }
+
+    body.light-mode .settings-section h2 i {
+        color: #ea580c !important;
+    }
+
+    /* Icon trong button Lưu cài đặt */
+    body.light-mode .save-icon {
+        color: #ffffff !important;
+    }
+
+    /* Dark mode cho button */
+    .btn-primary {
+        background: #4ade80;
+        color: #0f172a;
+    }
+
+    /* Đảm bảo button Hủy cũng có màu sáng trong light mode */
+    body.light-mode .cancel-btn {
+        background: rgba(255, 255, 255, 0.5) !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .cancel-btn .cancel-text {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .cancel-btn:hover {
+        background: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    body.light-mode .save-text {
+        color: #ffffff !important;
+    }
+</style>
+
+<script>
+    // Đảm bảo form submit hoạt động đúng
+    document.addEventListener('DOMContentLoaded', function() {
+        const saveBtn = document.getElementById('saveSettingsBtn');
+        // Tìm form chứa nút lưu (form đầu tiên trong settings-card)
+        const settingsForm = saveBtn ? saveBtn.closest('form') : null;
+        
+        if (saveBtn && settingsForm) {
+            console.log('Đã tìm thấy nút lưu và form');
+            
+            saveBtn.addEventListener('click', function(e) {
+                console.log('Nút lưu được bấm');
+                // Không preventDefault, để form submit bình thường
+            });
+            
+            settingsForm.addEventListener('submit', function(e) {
+                console.log('Form đang được submit với theme:', document.getElementById('Theme')?.value);
+                // Không preventDefault, để form submit bình thường
+            });
+        } else {
+            console.error('Không tìm thấy nút lưu hoặc form');
+        }
+    });
+</script>
+
+

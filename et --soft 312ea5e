@@ -1,0 +1,26 @@
+[33md83d293[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mLoc[m[33m)[m Update subproject commit to indicate a dirty state
+[33m95efa4a[m Add OpenAI API key to appsettings, update user data schema, and enhance HomeController for health tracking
+[33m312ea5e[m[33m ([m[1;31morigin/Loc[m[33m)[m Fix loginForm and handle registerForm to enter personal infomation
+[33m494325b[m[33m ([m[1;31morigin/Ducanh[m[33m)[m merge code moi nhat
+[33m77a484b[m bo theo doi obj
+[33me19ca77[m merge tu main
+[33m403b534[m Merge branch 'Nhan' of https://github.com/NhatLong246/HealthWeb into Nhan
+[33m9d17e9b[m update gitignore
+[33md171977[m ranking
+[33ma689128[m bo theo doi bin obj
+[33me5bb162[m Merge tu nhanh Long
+[33m71d2c92[m bo theo doi bin obj
+[33m593245f[m merge tu nhanh Loc, bo theo doi bin obj
+[33m5f63ebb[m bo theo doi obj bin
+[33mea1c408[m update gitignore bin obj
+[33m4d44f7a[m Update .gitignore to exclude bin and obj directories; change page title in Index.cshtml; update subproject commit reference; add favicon link in _Layout.cshtml.
+[33m414b6e1[m nut GYM Map
+[33m7e083ed[m them bin obj vao gitignore
+[33m0ced2f3[m Muc Tieu
+[33m5d70401[m Update dashboard with account & register, Notifications & Notifications Controller
+[33m47b9ab3[m ke hoach luyen tap
+[33m137c32f[m complete  the first dashboard and controller
+[33mf371d52[m create models
+[33m6c3ae5f[m[33m ([m[1;32mmain[m[33m)[m Khoi tao project
+[33m3d3b199[m Create .gitignore
+[33md6c3fe0[m Initial commit
