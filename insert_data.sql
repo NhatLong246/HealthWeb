@@ -3,34 +3,96 @@ USE HealthTracker;
 GO
 
 /* ============================
-   USERS & BASE LOOKUPS
+   USERS (idempotent seed, rerunnable)
    ============================ */
-INSERT INTO Users (UserID, Username, PasswordHash, Role, Email, HoTen, NgaySinh, GioiTinh)
+DECLARE @SeedUsers TABLE(
+  UserID nvarchar(20),
+  Username nvarchar(50),
+  PlainPassword nvarchar(200),
+  Role nvarchar(20),
+  Email nvarchar(100),
+  HoTen nvarchar(100),
+  NgaySinh date NULL,
+  GioiTinh nvarchar(10)
+);
+
+INSERT INTO @SeedUsers(UserID, Username, PlainPassword, Role, Email, HoTen, NgaySinh, GioiTinh)
 VALUES
 ('user_0001','demo','demo12345','Client','demo@healthweb.test',N'Người dùng Demo','1995-05-12','Male'),
 ('user_0002','minhthu','mt@123456','Client','minhthu@healthweb.test',N'Nguyễn Minh Thư','1999-11-30','Female'),
-('admin_0001','admin','Admin@123','Admin','admin@healthweb.test',N'Quản trị viên','1990-01-01','Other');
+('admin_0001','admin','Admin@123','Admin','admin@healthweb.test',N'Quản trị viên','1990-01-01','Other'),
+('user_0003','quanghuy','qh@123456','Client','quanghuy@healthweb.test',N'Phạm Quang Huy','1992-02-02','Male'),
+('user_0004','linhchi','lc@123456','Client','linhchi@healthweb.test',N'Hoàng Linh Chi','2001-03-12','Female'),
+('user_0005','anhkhoa','ak@123456','Client','anhkhoa@healthweb.test',N'Lê Anh Khoa','1997-07-07','Male'),
+('user_0006','thutrang','tt@123456','Client','thutrang@healthweb.test',N'Đặng Thu Trang','1998-08-18','Female');
+
+;WITH Src AS (
+  SELECT 
+    su.UserID,
+    su.Username,
+    -- Tính SHA256 -> Base64
+    CAST('' as xml).value(
+      'xs:base64Binary(xs:hexBinary(sql:column("hb")))',
+      'varchar(max)'
+    ) as PasswordHashBase64,
+    su.Role,
+    su.Email,
+    su.HoTen,
+    su.NgaySinh,
+    su.GioiTinh
+  FROM @SeedUsers su
+  -- LƯU Ý: SQL Server HASHBYTES có thể dùng encoding khác với C# UTF-8
+  -- Hash tạm thời này sẽ được cập nhật bằng hash đúng ở cuối script
+  CROSS APPLY (SELECT CONVERT(varbinary(32), HASHBYTES('SHA2_256', su.PlainPassword)) as hb) H
+)
+MERGE dbo.Users AS t
+USING Src AS s
+ON t.UserID = s.UserID
+WHEN MATCHED THEN
+  UPDATE SET 
+    t.Username = s.Username,
+    t.Email = s.Email,
+    t.Role = s.Role,
+    t.HoTen = s.HoTen,
+    t.NgaySinh = s.NgaySinh,
+    t.GioiTinh = s.GioiTinh,
+    t.PasswordHash = s.PasswordHashBase64 -- đảm bảo đồng bộ mỗi lần seed
+WHEN NOT MATCHED THEN
+  INSERT (UserID, Username, PasswordHash, Role, Email, HoTen, NgaySinh, GioiTinh)
+  VALUES (s.UserID, s.Username, s.PasswordHashBase64, s.Role, s.Email, s.HoTen, s.NgaySinh, s.GioiTinh);
 
 INSERT INTO Benh (BenhID, TenBenh)
-VALUES ('benh_001', N'Tăng huyết áp'),('benh_002', N'Tiểu đường'),('benh_003', N'Béo phì');
+SELECT v.BenhID, v.TenBenh
+FROM (VALUES
+  ('benh_001', N'Tăng huyết áp'),
+  ('benh_002', N'Tiểu đường'),
+  ('benh_003', N'Béo phì')
+) v(BenhID, TenBenh)
+WHERE NOT EXISTS (SELECT 1 FROM Benh b WHERE b.BenhID = v.BenhID);
 
 /* ============================
    DAILY HEALTH LOGS
    ============================ */
 INSERT INTO LuuTruSucKhoe (MaBanGhi, UserID, NgayGhiNhan, SoBuoc, CaloTieuThu, SoGioNgu, CanNang, ChieuCao, BenhID, LuongNuocUong, GhiChu)
-VALUES
+SELECT v.MaBanGhi, v.UserID, v.NgayGhiNhan, v.SoBuoc, v.CaloTieuThu, v.SoGioNgu, v.CanNang, v.ChieuCao, v.BenhID, v.LuongNuocUong, v.GhiChu
+FROM (VALUES
 ('rec_0001','user_0001','2025-10-28',8500,2300,7.0,72,175,'benh_001',2.1,N'Ngày chạy bộ'),
 ('rec_0002','user_0001','2025-10-29',6500,2100,6.5,71.8,175,'benh_001',1.8,N'Nghỉ nhẹ'),
-('rec_0003','user_0002','2025-10-29',10200,2550,7.5,54.0,162,NULL,2.3,N'HIIT 20p');
+('rec_0003','user_0002','2025-10-29',10200,2550,7.5,54.0,162,NULL,2.3,N'HIIT 20p')
+) v(MaBanGhi,UserID,NgayGhiNhan,SoBuoc,CaloTieuThu,SoGioNgu,CanNang,ChieuCao,BenhID,LuongNuocUong,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM LuuTruSucKhoe l WHERE l.MaBanGhi = v.MaBanGhi);
 
 /* ============================
    GOALS / ACHIEVEMENTS / RANKING
    ============================ */
 INSERT INTO MucTieu (MucTieuID, UserID, LoaiMucTieu, GiaTriMucTieu, NgayBatDau, NgayKetThuc, TienDoHienTai, DaHoanThanh, ThuTuHienThi, GhiChu)
-VALUES
+SELECT v.MucTieuID, v.UserID, v.LoaiMucTieu, v.GiaTriMucTieu, v.NgayBatDau, v.NgayKetThuc, v.TienDoHienTai, v.DaHoanThanh, v.ThuTuHienThi, v.GhiChu
+FROM (VALUES
 ('goal_0001','user_0001','WeightLoss',68,'2025-10-01',NULL,71.8,0,1,N'Giảm cân lành mạnh'),
 ('goal_0002','user_0001','StepsTarget',10000,'2025-10-20','2025-11-20',8500,0,2,N'Đi bộ mỗi ngày'),
-('goal_0003','user_0002','SleepImprovement',8,'2025-10-10',NULL,7.2,0,1,N'Ngủ đủ 8 giờ');
+('goal_0003','user_0002','SleepImprovement',8,'2025-10-10',NULL,7.2,0,1,N'Ngủ đủ 8 giờ')
+) v(MucTieuID,UserID,LoaiMucTieu,GiaTriMucTieu,NgayBatDau,NgayKetThuc,TienDoHienTai,DaHoanThanh,ThuTuHienThi,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM MucTieu m WHERE m.MucTieuID = v.MucTieuID);
 
 INSERT INTO ThanhTuu (UserID, TenBadge, Diem, MoTa)
 VALUES
@@ -54,16 +116,22 @@ VALUES
    NUTRITION DATA
    ============================ */
 INSERT INTO DinhDuongMonAn (MonAnID, TenMonAn, DonViTinh, HinhAnh, LuongCalo, Protein, ChatBeo, Carbohydrate)
-VALUES
+SELECT v.MonAnID, v.TenMonAn, v.DonViTinh, v.HinhAnh, v.LuongCalo, v.Protein, v.ChatBeo, v.Carbohydrate
+FROM (VALUES
 ('food_001',N'Ức gà áp chảo',N'200g',NULL,330,60,5,0),
 ('food_002',N'Cơm gạo lứt',N'1 chén',NULL,216,5,2,45),
-('food_003',N'Táo',N'1 quả',NULL,95,0.5,0.3,25);
+('food_003',N'Táo',N'1 quả',NULL,95,0.5,0.3,25)
+) v(MonAnID,TenMonAn,DonViTinh,HinhAnh,LuongCalo,Protein,ChatBeo,Carbohydrate)
+WHERE NOT EXISTS (SELECT 1 FROM DinhDuongMonAn d WHERE d.MonAnID = v.MonAnID);
 
 INSERT INTO NhatKyDinhDuong (DinhDuongID, UserID, NgayGhiLog, MonAnID, LuongThucAn, GhiChu)
-VALUES
+SELECT v.DinhDuongID, v.UserID, v.NgayGhiLog, v.MonAnID, v.LuongThucAn, v.GhiChu
+FROM (VALUES
 ('nut_0001','user_0001','2025-10-29','food_001',200,N'Bữa trưa'),
 ('nut_0002','user_0001','2025-10-29','food_002',150,N'Bữa trưa'),
-('nut_0003','user_0002','2025-10-29','food_003',1,N'Bữa phụ');
+('nut_0003','user_0002','2025-10-29','food_003',1,N'Bữa phụ')
+) v(DinhDuongID,UserID,NgayGhiLog,MonAnID,LuongThucAn,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM NhatKyDinhDuong n WHERE n.DinhDuongID = v.DinhDuongID);
 
 /* ============================
    AI SUGGESTIONS / ANALYTICS / ALERTS
@@ -101,16 +169,25 @@ VALUES
    TRAINERS & BOOKINGS
    ============================ */
 INSERT INTO HuanLuyenVien (PTID, UserID, ChungChi, ChuyenMon, SoNamKinhNghiem, ThanhPho, GiaTheoGio, TieuSu, DaXacMinh)
-VALUES
-('pt_0001','user_0002',N'ACE Certified',N'Weight Loss, Yoga',3,N'Hà Nội',250000,N'PT nhiệt huyết',1);
+SELECT v.PTID, v.UserID, v.ChungChi, v.ChuyenMon, v.SoNamKinhNghiem, v.ThanhPho, v.GiaTheoGio, v.TieuSu, v.DaXacMinh
+FROM (VALUES
+('pt_0001','user_0002',N'ACE Certified',N'Weight Loss, Yoga',3,N'Hà Nội',250000,N'PT nhiệt huyết',1)
+) v(PTID,UserID,ChungChi,ChuyenMon,SoNamKinhNghiem,ThanhPho,GiaTheoGio,TieuSu,DaXacMinh)
+WHERE NOT EXISTS (SELECT 1 FROM HuanLuyenVien h WHERE h.PTID = v.PTID);
 
 INSERT INTO DatLichPT (DatLichID, KhacHangID, PTID, NgayGioDat, LoaiBuoiTap, TrangThai)
-VALUES
-('bkg_0001','user_0001','pt_0001','2025-11-02 07:30',N'Online',N'Confirmed');
+SELECT v.DatLichID, v.KhacHangID, v.PTID, v.NgayGioDat, v.LoaiBuoiTap, v.TrangThai
+FROM (VALUES
+('bkg_0001','user_0001','pt_0001','2025-11-02 07:30',N'Online',N'Confirmed')
+) v(DatLichID,KhacHangID,PTID,NgayGioDat,LoaiBuoiTap,TrangThai)
+WHERE NOT EXISTS (SELECT 1 FROM DatLichPT d WHERE d.DatLichID = v.DatLichID);
 
 INSERT INTO DanhGiaPT (KhachHangID, PTID, Diem, BinhLuan)
-VALUES
-('user_0001','pt_0001',5,N'PT rất nhiệt tình!');
+SELECT v.KhachHangID, v.PTID, v.Diem, v.BinhLuan
+FROM (VALUES
+('user_0001','pt_0001',5,N'PT rất nhiệt tình!')
+) v(KhachHangID,PTID,Diem,BinhLuan)
+WHERE NOT EXISTS (SELECT 1 FROM DanhGiaPT dg WHERE dg.KhachHangID = v.KhachHangID AND dg.PTID = v.PTID);
 
 INSERT INTO TinNhan (NguoiGuiID, NguoiNhanID, DatLichID, NoiDung)
 VALUES
@@ -118,16 +195,23 @@ VALUES
 ('user_0002','user_0001','bkg_0001',N'Chúng ta tập HIIT nhẹ nhé!');
 
 INSERT INTO QuyenPT_KhachHang (KhachHangID, PTID, DangHoatDong)
-VALUES ('user_0001','pt_0001',1);
+SELECT v.KhachHangID, v.PTID, v.DangHoatDong
+FROM (VALUES ('user_0001','pt_0001',1)) v(KhachHangID,PTID,DangHoatDong)
+WHERE NOT EXISTS (SELECT 1 FROM QuyenPT_KhachHang q WHERE q.KhachHangID = v.KhachHangID AND q.PTID = v.PTID);
 
 INSERT INTO GiaoDich (GiaoDichID, DatLichID, KhachHangID, PTID, SoTien, HoaHongApp, SoTienPTNhan, TrangThaiThanhToan, PhuongThucThanhToan)
-VALUES ('txn_20251029_001','bkg_0001','user_0001','pt_0001',500000,75000,425000,'Completed','Momo');
+SELECT v.GiaoDichID, v.DatLichID, v.KhachHangID, v.PTID, v.SoTien, v.HoaHongApp, v.SoTienPTNhan, v.TrangThaiThanhToan, v.PhuongThucThanhToan
+FROM (VALUES ('txn_20251029_001','bkg_0001','user_0001','pt_0001',500000,75000,425000,'Completed','Momo'))
+v(GiaoDichID,DatLichID,KhachHangID,PTID,SoTien,HoaHongApp,SoTienPTNhan,TrangThaiThanhToan,PhuongThucThanhToan)
+WHERE NOT EXISTS (SELECT 1 FROM GiaoDich g WHERE g.GiaoDichID = v.GiaoDichID);
 
 /* ============================
    SOCIAL
    ============================ */
 INSERT INTO BanBe (UserID, NguoiNhanID, TrangThai)
-VALUES ('user_0001','user_0002','Accepted');
+SELECT v.UserID, v.NguoiNhanID, v.TrangThai
+FROM (VALUES ('user_0001','user_0002','Accepted')) v(UserID,NguoiNhanID,TrangThai)
+WHERE NOT EXISTS (SELECT 1 FROM BanBe b WHERE b.UserID = v.UserID AND b.NguoiNhanID = v.NguoiNhanID);
 
 INSERT INTO ChiaSeThanhTuu (ThanhTuuID, NguoiChiaSe, DoiTuongXem, ChuThich)
 SELECT TOP 1 ThanhTuuID, 'user_0001', 'Public', N'Chia sẻ thành tích mới'
@@ -172,16 +256,27 @@ INSERT INTO GoiThanhVien (UserID, LoaiGoi, NgayBatDau, NgayKetThuc, TrangThai, S
 VALUES ('user_0001','Basic','2025-10-01','2025-11-01','Active',99000,'Monthly',1);
 
 INSERT INTO TinhNangGoi (TenTinhNang, GoiToiThieu, MoTa)
-VALUES ('AI_Suggestions','Basic',N'Nhận gợi ý AI hằng ngày'),('Unlimited_Goals','Free',N'Tạo mục tiêu không giới hạn');
+SELECT v.TenTinhNang, v.GoiToiThieu, v.MoTa
+FROM (VALUES
+('AI_Suggestions','Basic',N'Nhận gợi ý AI hằng ngày'),
+('Unlimited_Goals','Free',N'Tạo mục tiêu không giới hạn')
+) v(TenTinhNang,GoiToiThieu,MoTa)
+WHERE NOT EXISTS (SELECT 1 FROM TinhNangGoi t WHERE t.TenTinhNang = v.TenTinhNang);
 
 /* ============================
    FILE STORAGE & LOGS
    ============================ */
 INSERT INTO TapTin (UserID, TenTapTin, TenLuuTrenServer, DuongDan, KichThuoc, MimeType, LoaiFile, MucDich)
-VALUES ('user_0001','avatar.png','u1_avatar.png','/uploads/users/user_0001/',20480,'image/png','Image','AnhDaiDien');
+SELECT v.UserID, v.TenTapTin, v.TenLuuTrenServer, v.DuongDan, v.KichThuoc, v.MimeType, v.LoaiFile, v.MucDich
+FROM (VALUES ('user_0001','avatar.png','u1_avatar.png','/uploads/users/user_0001/',20480,'image/png','Image','AnhDaiDien'))
+v(UserID,TenTapTin,TenLuuTrenServer,DuongDan,KichThuoc,MimeType,LoaiFile,MucDich)
+WHERE NOT EXISTS (SELECT 1 FROM TapTin t WHERE t.TenLuuTrenServer = v.TenLuuTrenServer);
 
 INSERT INTO NhatKyTamTrang (UserID, NgayGhi, TamTrang, MucDoStress, GhiChu)
-VALUES ('user_0001','2025-10-29','Happy',3,N'Cảm thấy tràn đầy năng lượng');
+SELECT v.UserID, v.NgayGhi, v.TamTrang, v.MucDoStress, v.GhiChu
+FROM (VALUES ('user_0001','2025-10-29','Happy',3,N'Cảm thấy tràn đầy năng lượng'))
+v(UserID,NgayGhi,TamTrang,MucDoStress,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM NhatKyTamTrang t WHERE t.UserID = v.UserID AND t.NgayGhi = v.NgayGhi);
 
 INSERT INTO NhatKyDongBo (UserID, TrangThaiDongBo, NoiDongBo, ChiTiet)
 VALUES ('user_0001','Success','OneDrive',N'Đồng bộ 3 file');
@@ -192,30 +287,30 @@ VALUES ('user_0001','Success','OneDrive',N'Đồng bộ 3 file');
    EXTRA SEED PACK (x3 volume)
    ============================ */
 
--- More users
-INSERT INTO Users (UserID, Username, PasswordHash, Role, Email, HoTen, NgaySinh, GioiTinh)
-VALUES
-('user_0003','quanghuy','qh@123456','Client','quanghuy@healthweb.test',N'Phạm Quang Huy','1992-02-02','Male'),
-('user_0004','linhchi','lc@123456','Client','linhchi@healthweb.test',N'Hoàng Linh Chi','2001-03-12','Female'),
-('user_0005','anhkhoa','ak@123456','Client','anhkhoa@healthweb.test',N'Lê Anh Khoa','1997-07-07','Male'),
-('user_0006','thutrang','tt@123456','Client','thutrang@healthweb.test',N'Đặng Thu Trang','1998-08-18','Female');
+-- More users đã được đưa vào @SeedUsers bên trên (idempotent)
 
 -- Health logs
 INSERT INTO LuuTruSucKhoe (MaBanGhi, UserID, NgayGhiNhan, SoBuoc, CaloTieuThu, SoGioNgu, CanNang, ChieuCao, BenhID, LuongNuocUong)
-VALUES
+SELECT v.MaBanGhi, v.UserID, v.NgayGhiNhan, v.SoBuoc, v.CaloTieuThu, v.SoGioNgu, v.CanNang, v.ChieuCao, v.BenhID, v.LuongNuocUong
+FROM (VALUES
 ('rec_0101','user_0003','2025-10-28',9000,2400,7.2,68,172,NULL,2.0),
 ('rec_0102','user_0003','2025-10-29',12000,2700,7.9,67.6,172,NULL,2.5),
 ('rec_0103','user_0004','2025-10-29',7200,2000,6.8,50.5,160,NULL,1.9),
 ('rec_0104','user_0005','2025-10-29',5300,1950,6.2,80.1,178,'benh_003',1.5),
-('rec_0105','user_0006','2025-10-29',11000,2600,7.6,55.3,164,NULL,2.4);
+('rec_0105','user_0006','2025-10-29',11000,2600,7.6,55.3,164,NULL,2.4)
+) v(MaBanGhi,UserID,NgayGhiNhan,SoBuoc,CaloTieuThu,SoGioNgu,CanNang,ChieuCao,BenhID,LuongNuocUong)
+WHERE NOT EXISTS (SELECT 1 FROM LuuTruSucKhoe l WHERE l.MaBanGhi = v.MaBanGhi);
 
 -- Goals
 INSERT INTO MucTieu (MucTieuID, UserID, LoaiMucTieu, GiaTriMucTieu, NgayBatDau, NgayKetThuc, TienDoHienTai)
-VALUES
+SELECT v.MucTieuID, v.UserID, v.LoaiMucTieu, v.GiaTriMucTieu, v.NgayBatDau, v.NgayKetThuc, v.TienDoHienTai
+FROM (VALUES
 ('goal_0101','user_0003','StepsTarget',12000,'2025-10-20',NULL,9000),
 ('goal_0102','user_0004','WeightLoss',48,'2025-09-15',NULL,50.5),
 ('goal_0103','user_0005','WeightLoss',75,'2025-10-01',NULL,80.1),
-('goal_0104','user_0006','SleepImprovement',8,'2025-10-10',NULL,7.1);
+('goal_0104','user_0006','SleepImprovement',8,'2025-10-10',NULL,7.1)
+) v(MucTieuID,UserID,LoaiMucTieu,GiaTriMucTieu,NgayBatDau,NgayKetThuc,TienDoHienTai)
+WHERE NOT EXISTS (SELECT 1 FROM MucTieu m WHERE m.MucTieuID = v.MucTieuID);
 
 -- Achievements
 INSERT INTO ThanhTuu (UserID, TenBadge, Diem, MoTa)
@@ -241,12 +336,15 @@ VALUES
 
 -- Nutrition logs
 INSERT INTO NhatKyDinhDuong (DinhDuongID, UserID, NgayGhiLog, MonAnID, LuongThucAn, GhiChu)
-VALUES
+SELECT v.DinhDuongID, v.UserID, v.NgayGhiLog, v.MonAnID, v.LuongThucAn, v.GhiChu
+FROM (VALUES
 ('nut_0101','user_0003','2025-10-29','food_001',180,N'Bữa tối'),
 ('nut_0102','user_0003','2025-10-29','food_002',100,N'Bữa tối'),
 ('nut_0103','user_0004','2025-10-29','food_003',2,N'Bữa phụ'),
 ('nut_0104','user_0005','2025-10-29','food_001',220,N'Bữa trưa'),
-('nut_0105','user_0006','2025-10-29','food_002',150,N'Bữa tối');
+('nut_0105','user_0006','2025-10-29','food_002',150,N'Bữa tối')
+) v(DinhDuongID,UserID,NgayGhiLog,MonAnID,LuongThucAn,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM NhatKyDinhDuong n WHERE n.DinhDuongID = v.DinhDuongID);
 
 -- AI suggestions/analytics/alerts
 INSERT INTO AIGoiY (UserID, NgayGoiY, NoiDungGoiY, DaHoanThanh, DiemThuong)
@@ -282,15 +380,24 @@ VALUES
 
 -- Trainers & relations
 INSERT INTO HuanLuyenVien (PTID, UserID, ChungChi, ChuyenMon, SoNamKinhNghiem, ThanhPho, GiaTheoGio, TieuSu, DaXacMinh)
-VALUES
-('pt_0002','user_0003',N'NASM',N'Cardio, Endurance',4,N'Đà Nẵng',300000,N'Tập trung sức bền',1);
+SELECT v.PTID, v.UserID, v.ChungChi, v.ChuyenMon, v.SoNamKinhNghiem, v.ThanhPho, v.GiaTheoGio, v.TieuSu, v.DaXacMinh
+FROM (VALUES
+('pt_0002','user_0003',N'NASM',N'Cardio, Endurance',4,N'Đà Nẵng',300000,N'Tập trung sức bền',1)
+) v(PTID,UserID,ChungChi,ChuyenMon,SoNamKinhNghiem,ThanhPho,GiaTheoGio,TieuSu,DaXacMinh)
+WHERE NOT EXISTS (SELECT 1 FROM HuanLuyenVien h WHERE h.PTID = v.PTID);
 
 INSERT INTO DatLichPT (DatLichID, KhacHangID, PTID, NgayGioDat, LoaiBuoiTap, TrangThai)
-VALUES
-('bkg_0002','user_0003','pt_0002','2025-11-03 06:30',N'In-person',N'Pending');
+SELECT v.DatLichID, v.KhacHangID, v.PTID, v.NgayGioDat, v.LoaiBuoiTap, v.TrangThai
+FROM (VALUES
+('bkg_0002','user_0003','pt_0002','2025-11-03 06:30',N'In-person',N'Pending')
+) v(DatLichID,KhacHangID,PTID,NgayGioDat,LoaiBuoiTap,TrangThai)
+WHERE NOT EXISTS (SELECT 1 FROM DatLichPT d WHERE d.DatLichID = v.DatLichID);
 
 -- Social
-INSERT INTO BanBe (UserID, NguoiNhanID, TrangThai) VALUES ('user_0003','user_0004','Accepted');
+INSERT INTO BanBe (UserID, NguoiNhanID, TrangThai)
+SELECT v.UserID, v.NguoiNhanID, v.TrangThai
+FROM (VALUES ('user_0003','user_0004','Accepted')) v(UserID,NguoiNhanID,TrangThai)
+WHERE NOT EXISTS (SELECT 1 FROM BanBe b WHERE b.UserID = v.UserID AND b.NguoiNhanID = v.NguoiNhanID);
 
 -- Templates / assignments
 INSERT INTO MauTapLuyen (NguoiTao, TenMauTapLuyen, MoTa, DoKho, MucTieu, SoTuan, CaloUocTinh, ThietBiCan, CongKhai, DaXacThuc)
@@ -318,12 +425,44 @@ VALUES ('user_0003','Premium','2025-10-01','2025-11-01','Active',299000,'Monthly
 
 -- Files & logs
 INSERT INTO TapTin (UserID, TenTapTin, TenLuuTrenServer, DuongDan, KichThuoc, MimeType, LoaiFile, MucDich)
-VALUES ('user_0003','report.pdf','u3_report.pdf','/uploads/users/user_0003/',502400,'application/pdf','PDF','BaoCao');
+SELECT v.UserID, v.TenTapTin, v.TenLuuTrenServer, v.DuongDan, v.KichThuoc, v.MimeType, v.LoaiFile, v.MucDich
+FROM (VALUES ('user_0003','report.pdf','u3_report.pdf','/uploads/users/user_0003/',502400,'application/pdf','PDF','BaoCao'))
+v(UserID,TenTapTin,TenLuuTrenServer,DuongDan,KichThuoc,MimeType,LoaiFile,MucDich)
+WHERE NOT EXISTS (SELECT 1 FROM TapTin t WHERE t.TenLuuTrenServer = v.TenLuuTrenServer);
 
 INSERT INTO NhatKyTamTrang (UserID, NgayGhi, TamTrang, MucDoStress, GhiChu)
-VALUES ('user_0003','2025-10-29','Calm',2,N'Thư giãn tốt');
+SELECT v.UserID, v.NgayGhi, v.TamTrang, v.MucDoStress, v.GhiChu
+FROM (VALUES ('user_0003','2025-10-29','Calm',2,N'Thư giãn tốt'))
+v(UserID,NgayGhi,TamTrang,MucDoStress,GhiChu)
+WHERE NOT EXISTS (SELECT 1 FROM NhatKyTamTrang t WHERE t.UserID = v.UserID AND t.NgayGhi = v.NgayGhi);
 
 INSERT INTO NhatKyDongBo (UserID, TrangThaiDongBo, NoiDongBo, ChiTiet)
 VALUES ('user_0003','Failed','OneDrive',N'Lỗi kết nối tạm thời');
 
+
+/* ============================
+   FIX PASSWORDS - Hash đúng cách để khớp với C# (UTF-8)
+   ============================
+   LƯU Ý QUAN TRỌNG:
+   SQL Server HASHBYTES có thể dùng encoding khác với C# UTF-8.
+   Vì vậy cần chạy script fix_passwords_utf8.sql sau khi chạy insert_data.sql
+   để đảm bảo password hash khớp với cách verify trong C#.
+   
+   Hoặc dùng các hash đã được tính sẵn từ C# (xem bên dưới).
+   ============================ */
+
+-- Cách 1: Dùng hash đã tính sẵn từ C# (khuyến nghị)
+-- Các hash này được tính bằng: SHA256(UTF8(password)) -> Base64
+-- Để tính lại hash mới, chạy: powershell -File calculate_hashes.ps1
+UPDATE dbo.Users SET PasswordHash = 'UUWcI8qR684nFEndi1wmdRyZA5wq5MYoBniYyg4QQDk=' WHERE Username = 'demo';
+UPDATE dbo.Users SET PasswordHash = 'z45MivdOKrUIj6bPSxy/I/Q8kdMkdt5RkPUR44Z2BJI=' WHERE Username = 'minhthu';
+UPDATE dbo.Users SET PasswordHash = '6G94qKPK8LYNjnTllCqm2G3BUM08AzOK7yW30tfjrMc=' WHERE Username = 'admin';
+UPDATE dbo.Users SET PasswordHash = 'PGCziXf4tT8VcJrhJzipnk0pLgsvjWyIRHJycQ52iv8=' WHERE Username = 'quanghuy';
+UPDATE dbo.Users SET PasswordHash = '/incHhdkrDn25bDNHe5qV8DADX6KkmPyzLHLyt8KoRg=' WHERE Username = 'linhchi';
+UPDATE dbo.Users SET PasswordHash = 'gkKqfK0zTP55t80i3SqvAFKeURHJBaF90Mfk210JfUk=' WHERE Username = 'anhkhoa';
+UPDATE dbo.Users SET PasswordHash = 'BEry+ow0/W2HZ0Z0qigleZSVSiRn56tTianm0eAF6FE=' WHERE Username = 'thutrang';
+
+PRINT 'Đã cập nhật password hash bằng hash đã tính sẵn từ C# (UTF-8 SHA256 Base64)';
+PRINT 'Tất cả tài khoản giờ đã có password hash đúng để đăng nhập được!';
+GO
 

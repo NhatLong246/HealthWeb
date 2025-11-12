@@ -154,7 +154,7 @@ GO
 
 CREATE TABLE DinhDuongMonAn (
 	MonAnID VARCHAR(20) PRIMARY KEY, 
-	TenMonAn VARCHAR(200),
+	TenMonAn NVARCHAR(200),
 	DonViTinh NVARCHAR(20), 
 	HinhAnh VARCHAR(200),
 	LuongCalo FLOAT, -- Lượng calo

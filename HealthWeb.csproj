@@ -13,6 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="BookReaderWebApp\**" />
+    <Content Remove="BookReaderWebApp\**" />
+    <EmbeddedResource Remove="BookReaderWebApp\**" />
+    <None Remove="BookReaderWebApp\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EntityFramework" Version="6.5.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
