@@ -1,0 +1,305 @@
+@model HealthWeb.Controllers.EditProfileViewModel
+@{
+    ViewData["Title"] = "Thông tin cá nhân - HealthWeb";
+}
+
+<div class="container" style="max-width: 800px; margin: 0 auto; padding: 2rem; padding-top: calc(70px + 2rem);">
+    <div class="profile-card">
+        <div class="profile-header" style="margin-bottom: 4rem;">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-user-edit" style="color: #4ade80;"></i>
+                Thông tin cá nhân
+            </h1>
+            <p style="color: #94a3b8; font-size: 0.95rem;">Cập nhật thông tin cá nhân của bạn</p>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success" style="background-color: rgba(16, 185, 129, 0.2); color: #10b981; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" style="background-color: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                <strong>Vui lòng sửa các lỗi sau:</strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" asp-action="Edit" asp-controller="Profile">
+            @Html.AntiForgeryToken()
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="Username" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                    Tên đăng nhập <span style="color: #ef4444;">*</span>
+                </label>
+                <div class="input-wrapper" style="position: relative;">
+                    <i class="fas fa-at" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" id="Username" name="Username" 
+                           value="@Model?.Username" 
+                           placeholder="Nhập tên đăng nhập" 
+                           required
+                           style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; transition: all 0.3s ease;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="HoTen" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                    Họ tên
+                </label>
+                <div class="input-wrapper" style="position: relative;">
+                    <i class="fas fa-user" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" id="HoTen" name="HoTen" 
+                           value="@Model?.HoTen" 
+                           placeholder="Nhập họ tên của bạn"
+                           style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; transition: all 0.3s ease;">
+                </div>
+            </div>
+
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label for="NgaySinh" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Ngày sinh
+                    </label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <i class="fas fa-calendar" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                        <input type="date" id="NgaySinh" name="NgaySinh" 
+                               value="@(Model?.NgaySinh?.ToString("yyyy-MM-dd"))" 
+                               max="@DateTime.Now.AddYears(-13).ToString("yyyy-MM-dd")"
+                               style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; transition: all 0.3s ease;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="GioiTinh" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Giới tính
+                    </label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <i class="fas fa-venus-mars" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 2;"></i>
+                        <select id="GioiTinh" name="GioiTinh"
+                                style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; appearance: none; cursor: pointer;">
+                            <option value="">-- Chọn giới tính --</option>
+                            <option value="Male" selected="@(Model?.GioiTinh == "Male")">Nam</option>
+                            <option value="Female" selected="@(Model?.GioiTinh == "Female")">Nữ</option>
+                            <option value="Other" selected="@(Model?.GioiTinh == "Other")">Khác</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label for="ChieuCao" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Chiều cao (cm)
+                    </label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <i class="fas fa-ruler-vertical" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                        <input type="number" id="ChieuCao" name="ChieuCao" 
+                               value="@Model?.ChieuCao" 
+                               placeholder="170" 
+                               min="80" max="250" step="0.1"
+                               style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; transition: all 0.3s ease;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="CanNang" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #e2e8f0;">
+                        Cân nặng (kg)
+                    </label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <i class="fas fa-weight-scale" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                        <input type="number" id="CanNang" name="CanNang" 
+                               value="@Model?.CanNang" 
+                               placeholder="65" 
+                               min="20" max="300" step="0.1"
+                               style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; background: rgba(30, 41, 59, 0.8); color: #fff; font-size: 1rem; outline: none; transition: all 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="bmi-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0; color: white; display: none;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.1rem;">Chỉ số BMI:</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="font-size: 2rem; font-weight: 700;" id="bmi-value">--</div>
+                    <div style="flex: 1;">
+                        <div id="bmi-label" style="font-size: 0.9rem; opacity: 0.9;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.75rem 1.5rem; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i class="fas fa-save save-icon"></i>
+                    <span class="save-text">Lưu thay đổi</span>
+                </button>
+                <a href="/" class="btn btn-secondary cancel-btn" style="padding: 0.75rem 1.5rem; border: 2px solid rgba(148, 163, 184, 0.3); border-radius: 12px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;">
+                    <span class="cancel-text">Hủy</span>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Dark mode cho profile-card */
+    .profile-card {
+        background: rgba(15, 23, 42, 0.8);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Light mode - dựa theo form dinh dưỡng */
+    body.light-mode .profile-card {
+        background: rgba(255, 255, 255, 0.7) !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .profile-header h1 {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .profile-header p {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .profile-header h1 i {
+        color: #ea580c !important;
+    }
+
+    /* Override tất cả text màu trắng/xám trong light mode */
+    body.light-mode .form-group label[style*="color"],
+    body.light-mode .form-group label {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .profile-header p[style*="color"],
+    body.light-mode .profile-header p {
+        color: #9a3412 !important;
+    }
+
+    .input-wrapper input:focus,
+    .input-wrapper select:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 20px rgba(78, 222, 128, 0.3);
+    }
+
+    body.light-mode .input-wrapper input,
+    body.light-mode .input-wrapper select {
+        background: #fff !important;
+        color: #7c2d12 !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .input-wrapper input:focus,
+    body.light-mode .input-wrapper select:focus {
+        border-color: #ea580c !important;
+        box-shadow: 0 0 20px rgba(234, 88, 12, 0.3) !important;
+    }
+
+    body.light-mode .input-wrapper i {
+        color: #9a3412 !important;
+    }
+
+    body.light-mode .input-wrapper input::placeholder,
+    body.light-mode .input-wrapper select::placeholder {
+        color: #9a3412 !important;
+    }
+
+    /* Dark mode cho button */
+    .btn-primary {
+        background: #4ade80;
+        color: #0f172a;
+    }
+
+    body.light-mode .btn-primary {
+        background: #ea580c !important;
+        color: #ffffff !important;
+    }
+
+    body.light-mode .save-text {
+        color: #ffffff !important;
+    }
+
+    body.light-mode .save-icon {
+        color: #ffffff !important;
+    }
+
+    body.light-mode .cancel-btn {
+        background: rgba(255, 255, 255, 0.5) !important;
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+
+    body.light-mode .cancel-btn .cancel-text {
+        color: #7c2d12 !important;
+    }
+
+    body.light-mode .cancel-btn:hover {
+        background: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    @@media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chieuCaoInput = document.getElementById('ChieuCao');
+        const canNangInput = document.getElementById('CanNang');
+        const bmiPreview = document.getElementById('bmi-preview');
+        const bmiValue = document.getElementById('bmi-value');
+        const bmiLabel = document.getElementById('bmi-label');
+
+        function calculateBMI() {
+            const chieuCao = parseFloat(chieuCaoInput.value);
+            const canNang = parseFloat(canNangInput.value);
+
+            if (chieuCao && canNang && chieuCao > 0 && canNang > 0) {
+                const bmi = canNang / Math.pow(chieuCao / 100, 2);
+                const roundedBMI = bmi.toFixed(1);
+
+                bmiValue.textContent = roundedBMI;
+                bmiPreview.style.display = 'block';
+
+                let label = '';
+                let color = '';
+
+                if (bmi < 18.5) {
+                    label = 'Thiếu cân';
+                    color = '#3b82f6';
+                } else if (bmi < 25) {
+                    label = 'Bình thường';
+                    color = '#10b981';
+                } else if (bmi < 30) {
+                    label = 'Thừa cân';
+                    color = '#f59e0b';
+                } else {
+                    label = 'Béo phì';
+                    color = '#ef4444';
+                }
+
+                bmiLabel.textContent = label;
+                bmiPreview.style.background = `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`;
+            } else {
+                bmiPreview.style.display = 'none';
+            }
+        }
+
+        chieuCaoInput?.addEventListener('input', calculateBMI);
+        canNangInput?.addEventListener('input', calculateBMI);
+        
+        // Tính BMI ban đầu nếu có giá trị
+        calculateBMI();
+    });
+</script>
+

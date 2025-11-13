@@ -1,0 +1,1182 @@
+@{
+    ViewData["Title"] = "Dinh dưỡng - HealthWeb";
+    var selectedDate = ViewData["SelectedDate"] as DateTime? ?? DateTime.Today;
+    var nhatKyDinhDuong = ViewData["NhatKyDinhDuong"] as List<HealthWeb.Models.Entities.NhatKyDinhDuong> ?? new List<HealthWeb.Models.Entities.NhatKyDinhDuong>();
+    var tongCalo = ViewData["TongCalo"] as double? ?? 0;
+    var tongProtein = ViewData["TongProtein"] as double? ?? 0;
+    var tongCarbs = ViewData["TongCarbs"] as double? ?? 0;
+    var tongChatBeo = ViewData["TongChatBeo"] as double? ?? 0;
+    var keHoachAnUong = ViewData["KeHoachAnUong"] as HealthWeb.Models.Entities.KeHoachAnUong;
+    var monAnPhoBien = ViewData["MonAnPhoBien"] as List<HealthWeb.Models.Entities.DinhDuongMonAn> ?? new List<HealthWeb.Models.Entities.DinhDuongMonAn>();
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .nutrition-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        padding-top: calc(70px + 2rem);
+    }
+
+    .nutrition-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .nutrition-header h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .date-selector {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .date-selector button {
+        background: transparent;
+        border: 2px solid currentColor;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: inherit;
+    }
+
+    .date-selector button:hover {
+        background: rgba(78, 222, 128, 0.2);
+        border-color: #4ade80;
+    }
+
+    .date-selector input[type="date"] {
+        padding: 0.8rem 1.5rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.8);
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .date-selector input[type="date"] {
+        background: #fff;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .date-selector input[type="date"]:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 20px rgba(78, 222, 128, 0.3);
+    }
+
+    .nutrition-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .summary-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .summary-card {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .summary-card .icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .summary-card .value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-card .label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .nutrition-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    @@media (max-width: 968px) {
+        .nutrition-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .meal-log {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body.light-mode .meal-log {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .meal-log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .meal-log-header h3 {
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .add-meal-btn {
+        padding: 0.8rem 1.5rem;
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        border: none;
+        border-radius: 12px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .add-meal-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(78, 222, 128, 0.4);
+    }
+
+    .meal-item {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .meal-item {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .meal-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+    }
+
+    .meal-info {
+        flex: 1;
+    }
+
+    .meal-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .meal-details {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .meal-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .meal-actions button {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 0.5rem;
+        cursor: pointer;
+        color: inherit;
+        transition: all 0.3s ease;
+    }
+
+    .meal-actions button:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: #ef4444;
+    }
+
+    .popular-foods {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body.light-mode .popular-foods {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .popular-foods h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .food-item {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .food-item {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .food-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+    }
+
+    .food-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .food-macros {
+        font-size: 0.85rem;
+        opacity: 0.7;
+    }
+
+    .meal-plan-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    body.light-mode .meal-plan-card {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .meal-plan-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        opacity: 0.6;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Modal for adding meal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background: rgba(30, 41, 59, 0.95);
+        margin: 5% auto;
+        padding: 2rem;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    body.light-mode .modal-content {
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .close-modal {
+        background: transparent;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: inherit;
+        line-height: 1;
+    }
+
+    .search-food {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-food input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    body.light-mode .search-food input {
+        background: #fff;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .food-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .food-list-item {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .food-list-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .food-list-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Stats Section */
+    .stats-section {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .stat-card-large {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .stat-card-large {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .stat-card-large:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-sub {
+        font-size: 0.85rem;
+        opacity: 0.7;
+    }
+
+    /* Chart Section */
+    .chart-section {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .chart-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body.light-mode .chart-container {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .chart-bars {
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-end;
+        gap: 1rem;
+        min-height: 300px;
+        padding: 1rem 0;
+    }
+
+    .chart-bar-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-bar {
+        width: 100%;
+        background: linear-gradient(180deg, #4ade80, #22d3ee);
+        border-radius: 8px 8px 0 0;
+        min-height: 20px;
+        position: relative;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 0.5rem;
+    }
+
+    .chart-bar:hover {
+        opacity: 0.8;
+        transform: scaleY(1.05);
+    }
+
+    .chart-value {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .chart-label {
+        font-size: 0.85rem;
+        opacity: 0.8;
+        text-align: center;
+    }
+
+    /* Macro Section */
+    .macro-section {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .macro-analysis {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    body.light-mode .macro-analysis {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .macro-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .macro-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .macro-bar {
+        width: 100%;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    body.light-mode .macro-bar {
+        background: rgba(251, 146, 60, 0.1);
+    }
+
+    .macro-fill {
+        height: 100%;
+        border-radius: 15px;
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 0.5rem;
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .macro-value {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        text-align: right;
+    }
+
+    /* History Section */
+    .history-section {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .history-list {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    body.light-mode .history-list {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .history-date-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid rgba(78, 222, 128, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .history-date-header:first-child {
+        margin-top: 0;
+    }
+
+    .history-item {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .history-item {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .history-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+    }
+
+    .history-meal-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .history-meal-details {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-bars {
+            gap: 0.5rem;
+        }
+
+        .chart-value {
+            font-size: 0.65rem;
+        }
+    }
+</style>
+
+<div class="nutrition-container">
+    <div class="nutrition-header">
+        <h1><i class="fas fa-apple-whole"></i> Dinh Dưỡng</h1>
+        <p>Theo dõi và quản lý dinh dưỡng hàng ngày của bạn</p>
+    </div>
+
+    <!-- Date Selector -->
+    <div class="date-selector">
+        <button onclick="changeDate(-1)" title="Ngày trước">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <input type="date" id="selectedDate" value="@selectedDate.ToString("yyyy-MM-dd")" onchange="loadNutritionData()">
+        <button onclick="changeDate(1)" title="Ngày sau">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- Nutrition Summary -->
+    <div class="nutrition-summary">
+        <div class="summary-card">
+            <div class="icon"><i class="fas fa-fire"></i></div>
+            <div class="value" id="totalCalo">@Math.Round(tongCalo, 0)</div>
+            <div class="label">Calo (kcal)</div>
+        </div>
+        <div class="summary-card">
+            <div class="icon"><i class="fas fa-dumbbell"></i></div>
+            <div class="value" id="totalProtein">@Math.Round(tongProtein, 1)</div>
+            <div class="label">Protein (g)</div>
+        </div>
+        <div class="summary-card">
+            <div class="icon"><i class="fas fa-bread-slice"></i></div>
+            <div class="value" id="totalCarbs">@Math.Round(tongCarbs, 1)</div>
+            <div class="label">Carbs (g)</div>
+        </div>
+        <div class="summary-card">
+            <div class="icon"><i class="fas fa-oil-can"></i></div>
+            <div class="value" id="totalFat">@Math.Round(tongChatBeo, 1)</div>
+            <div class="label">Chất béo (g)</div>
+        </div>
+    </div>
+
+    <!-- Meal Plan Card -->
+    @if (keHoachAnUong != null)
+    {
+        <div class="meal-plan-card">
+            <h3><i class="fas fa-calendar-check"></i> Kế hoạch ăn uống</h3>
+            <p><strong>@keHoachAnUong.TenKeHoach</strong></p>
+            @if (!string.IsNullOrEmpty(keHoachAnUong.MoTa))
+            {
+                <p>@keHoachAnUong.MoTa</p>
+            }
+            @if (keHoachAnUong.LuongCaloMucTieu.HasValue)
+            {
+                <p>Mục tiêu: @keHoachAnUong.LuongCaloMucTieu kcal/ngày</p>
+            }
+        </div>
+    }
+
+    <!-- Main Content -->
+    <div class="nutrition-content">
+        <!-- Meal Log -->
+        <div class="meal-log">
+            <div class="meal-log-header">
+                <h3><i class="fas fa-utensils"></i> Nhật ký bữa ăn</h3>
+                <button class="add-meal-btn" onclick="openAddMealModal()">
+                    <i class="fas fa-plus"></i> Thêm món
+                </button>
+            </div>
+            <div id="mealList">
+                @if (nhatKyDinhDuong.Any())
+                {
+                    @foreach (var item in nhatKyDinhDuong)
+                    {
+                        var monAn = item.MonAn;
+                        var luong = item.LuongThucAn ?? 0;
+                        var calo = (monAn?.LuongCalo ?? 0) * luong / 100;
+                        var protein = (monAn?.Protein ?? 0) * luong / 100;
+                        var carbs = (monAn?.Carbohydrate ?? 0) * luong / 100;
+                        var fat = (monAn?.ChatBeo ?? 0) * luong / 100;
+                        
+                        <div class="meal-item" data-id="@item.DinhDuongId">
+                            <div class="meal-info">
+                                <div class="meal-name">@monAn?.TenMonAn</div>
+                                <div class="meal-details">
+                                    <span>@luong @monAn?.DonViTinh</span>
+                                    <span>•</span>
+                                    <span>@Math.Round(calo, 0) kcal</span>
+                                    <span>•</span>
+                                    <span>P: @Math.Round(protein, 1)g</span>
+                                    <span>•</span>
+                                    <span>C: @Math.Round(carbs, 1)g</span>
+                                    <span>•</span>
+                                    <span>F: @Math.Round(fat, 1)g</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(item.GhiChu))
+                                {
+                                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem;">
+                                        <i class="fas fa-tag"></i> @item.GhiChu
+                                    </div>
+                                }
+                            </div>
+                            <div class="meal-actions">
+                                <button onclick="removeMeal('@item.DinhDuongId')" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-utensils"></i>
+                        <p>Chưa có món ăn nào được thêm vào hôm nay</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Popular Foods -->
+        <div class="popular-foods">
+            <h3><i class="fas fa-star"></i> Món ăn phổ biến</h3>
+            <div id="popularFoodsList">
+                @foreach (var monAn in monAnPhoBien.Take(10))
+                {
+                    <div class="food-item" onclick="addMealFromPopular('@monAn.MonAnId', '@monAn.TenMonAn')">
+                        <div class="food-name">@monAn.TenMonAn</div>
+                        <div class="food-macros">
+                            @if (monAn.LuongCalo.HasValue)
+                            {
+                                <span>@Math.Round(monAn.LuongCalo.Value, 0) kcal</span>
+                            }
+                            @if (monAn.Protein.HasValue)
+                            {
+                                <span> • P: @Math.Round(monAn.Protein.Value, 1)g</span>
+                            }
+                            @if (monAn.Carbohydrate.HasValue)
+                            {
+                                <span> • C: @Math.Round(monAn.Carbohydrate.Value, 1)g</span>
+                            }
+                            @if (monAn.ChatBeo.HasValue)
+                            {
+                                <span> • F: @Math.Round(monAn.ChatBeo.Value, 1)g</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly/Monthly Statistics -->
+    @{
+        var tongCaloTuan = ViewData["TongCaloTuan"] as double? ?? 0;
+        var tongCaloThang = ViewData["TongCaloThang"] as double? ?? 0;
+        var nhatKy7Ngay = ViewData["NhatKy7Ngay"] as dynamic;
+        var lichSu7Ngay = ViewData["LichSu7Ngay"] as List<HealthWeb.Models.Entities.NhatKyDinhDuong> ?? new List<HealthWeb.Models.Entities.NhatKyDinhDuong>();
+    }
+    
+    <div class="stats-section">
+        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-chart-line"></i> Thống kê dinh dưỡng
+        </h3>
+        <div class="stats-grid">
+            <div class="stat-card-large">
+                <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Tuần này</div>
+                    <div class="stat-value">@Math.Round(tongCaloTuan, 0) kcal</div>
+                    <div class="stat-sub">Trung bình: @Math.Round(tongCaloTuan / 7, 0) kcal/ngày</div>
+                </div>
+            </div>
+            <div class="stat-card-large">
+                <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Tháng này</div>
+                    <div class="stat-value">@Math.Round(tongCaloThang, 0) kcal</div>
+                    <div class="stat-sub">Trung bình: @Math.Round(tongCaloThang / DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month), 0) kcal/ngày</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calo Chart 7 Days -->
+    <div class="chart-section">
+        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-chart-bar"></i> Biểu đồ calo 7 ngày gần nhất
+        </h3>
+        <div class="chart-container">
+            <div class="chart-bars">
+                @{
+                    var maxCalo = nhatKy7Ngay != null && ((IEnumerable<dynamic>)nhatKy7Ngay).Any() 
+                        ? ((IEnumerable<dynamic>)nhatKy7Ngay).Max(x => (double?)x.TongCalo) ?? 2000 
+                        : 2000;
+                    var days = new[] { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+                    var dayIndex = 0;
+                }
+                @if (nhatKy7Ngay != null)
+                {
+                    @foreach (var item in (IEnumerable<dynamic>)nhatKy7Ngay)
+                    {
+                        var height = maxCalo > 0 ? ((double)item.TongCalo / maxCalo * 100) : 0;
+                        <div class="chart-bar-item">
+                            <div class="chart-bar" style="height: @(height)%">
+                                <span class="chart-value">@Math.Round((double)item.TongCalo, 0)</span>
+                            </div>
+                            <div class="chart-label">@item.Ngay.ToString("dd/MM")</div>
+                        </div>
+                        dayIndex++;
+                    }
+                }
+                @for (int i = dayIndex; i < 7; i++)
+                {
+                    <div class="chart-bar-item">
+                        <div class="chart-bar" style="height: 0%">
+                            <span class="chart-value">0</span>
+                        </div>
+                        <div class="chart-label">—</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Macro Analysis -->
+    <div class="macro-section">
+        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-pie-chart"></i> Phân tích Macro
+        </h3>
+        <div class="macro-analysis">
+            @{
+                var totalMacro = tongProtein + tongCarbs + tongChatBeo;
+                var proteinPercent = totalMacro > 0 ? (tongProtein / totalMacro * 100) : 0;
+                var carbsPercent = totalMacro > 0 ? (tongCarbs / totalMacro * 100) : 0;
+                var fatPercent = totalMacro > 0 ? (tongChatBeo / totalMacro * 100) : 0;
+            }
+            <div class="macro-item">
+                <div class="macro-label">
+                    <i class="fas fa-dumbbell" style="color: #4ade80;"></i>
+                    <span>Protein</span>
+                </div>
+                <div class="macro-bar">
+                    <div class="macro-fill" style="width: @(proteinPercent)%; background: linear-gradient(135deg, #4ade80, #22c55e);"></div>
+                </div>
+                <div class="macro-value">@Math.Round(tongProtein, 1)g (@Math.Round(proteinPercent, 1)%)</div>
+            </div>
+            <div class="macro-item">
+                <div class="macro-label">
+                    <i class="fas fa-bread-slice" style="color: #22d3ee;"></i>
+                    <span>Carbs</span>
+                </div>
+                <div class="macro-bar">
+                    <div class="macro-fill" style="width: @(carbsPercent)%; background: linear-gradient(135deg, #22d3ee, #06b6d4);"></div>
+                </div>
+                <div class="macro-value">@Math.Round(tongCarbs, 1)g (@Math.Round(carbsPercent, 1)%)</div>
+            </div>
+            <div class="macro-item">
+                <div class="macro-label">
+                    <i class="fas fa-oil-can" style="color: #fbbf24;"></i>
+                    <span>Chất béo</span>
+                </div>
+                <div class="macro-bar">
+                    <div class="macro-fill" style="width: @(fatPercent)%; background: linear-gradient(135deg, #fbbf24, #f59e0b);"></div>
+                </div>
+                <div class="macro-value">@Math.Round(tongChatBeo, 1)g (@Math.Round(fatPercent, 1)%)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal History -->
+    <div class="history-section">
+        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-history"></i> Lịch sử ăn uống 7 ngày gần nhất
+        </h3>
+        <div class="history-list">
+            @if (lichSu7Ngay.Any())
+            {
+                var currentDate = DateOnly.MinValue;
+                @foreach (var item in lichSu7Ngay)
+                {
+                    if (item.NgayGhiLog != currentDate)
+                    {
+                        currentDate = item.NgayGhiLog;
+                        <div class="history-date-header">
+                            <i class="fas fa-calendar-day"></i>
+                            @currentDate.ToString("dd/MM/yyyy") - @{
+                                var dayName = currentDate.DayOfWeek switch
+                                {
+                                    DayOfWeek.Monday => "Thứ Hai",
+                                    DayOfWeek.Tuesday => "Thứ Ba",
+                                    DayOfWeek.Wednesday => "Thứ Tư",
+                                    DayOfWeek.Thursday => "Thứ Năm",
+                                    DayOfWeek.Friday => "Thứ Sáu",
+                                    DayOfWeek.Saturday => "Thứ Bảy",
+                                    DayOfWeek.Sunday => "Chủ Nhật",
+                                    _ => ""
+                                };
+                            }@dayName
+                        </div>
+                    }
+                    var monAn = item.MonAn;
+                    var luong = item.LuongThucAn ?? 0;
+                    var calo = (monAn?.LuongCalo ?? 0) * luong / 100;
+                    <div class="history-item">
+                        <div class="history-meal-name">@monAn?.TenMonAn</div>
+                        <div class="history-meal-details">
+                            <span>@luong @monAn?.DonViTinh</span>
+                            <span>•</span>
+                            <span>@Math.Round(calo, 0) kcal</span>
+                            @if (!string.IsNullOrEmpty(item.GhiChu))
+                            {
+                                <span>•</span>
+                                <span><i class="fas fa-tag"></i> @item.GhiChu</span>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>Chưa có lịch sử ăn uống</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div id="addMealModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Thêm món ăn</h2>
+            <button class="close-modal" onclick="closeAddMealModal()">&times;</button>
+        </div>
+        <div class="search-food">
+            <input type="text" id="searchFoodInput" placeholder="Tìm kiếm món ăn..." onkeyup="searchFood()">
+        </div>
+        <div class="food-list" id="foodList">
+            <!-- Food items will be loaded here -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allFoods = [];
+
+        function changeDate(days) {
+            const dateInput = document.getElementById('selectedDate');
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + days);
+            dateInput.value = currentDate.toISOString().split('T')[0];
+            loadNutritionData();
+        }
+
+        function loadNutritionData() {
+            const date = document.getElementById('selectedDate').value;
+            window.location.href = `/DinhDuong?selectedDate=${date}`;
+        }
+
+        function openAddMealModal() {
+            document.getElementById('addMealModal').style.display = 'block';
+            loadFoods();
+        }
+
+        function closeAddMealModal() {
+            document.getElementById('addMealModal').style.display = 'none';
+            document.getElementById('searchFoodInput').value = '';
+        }
+
+        async function loadFoods(search = '') {
+            try {
+                const response = await fetch(`/DinhDuong/GetMonAn?search=${encodeURIComponent(search)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    allFoods = result.data;
+                    displayFoods(allFoods);
+                }
+            } catch (error) {
+                console.error('Error loading foods:', error);
+            }
+        }
+
+        function searchFood() {
+            const search = document.getElementById('searchFoodInput').value;
+            loadFoods(search);
+        }
+
+        function displayFoods(foods) {
+            const foodList = document.getElementById('foodList');
+            foodList.innerHTML = foods.map(food => `
+                <div class="food-list-item" onclick="selectFood('${food.monAnId}', '${food.tenMonAn || ''}')">
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${food.tenMonAn || 'N/A'}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7;">
+                        ${food.luongCalo ? Math.round(food.luongCalo) + ' kcal' : ''}
+                        ${food.protein ? ' • P: ' + Math.round(food.protein * 10) / 10 + 'g' : ''}
+                        ${food.carbohydrate ? ' • C: ' + Math.round(food.carbohydrate * 10) / 10 + 'g' : ''}
+                        ${food.chatBeo ? ' • F: ' + Math.round(food.chatBeo * 10) / 10 + 'g' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectFood(monAnId, tenMonAn) {
+            const luong = prompt(`Nhập lượng ${tenMonAn} (${prompt('Đơn vị (g/ml):') || 'g'}):`);
+            if (!luong || isNaN(luong)) return;
+            
+            const ghiChu = prompt('Ghi chú (Bữa sáng/trưa/tối):') || 'Bữa ăn';
+            
+            addMeal(monAnId, parseFloat(luong), ghiChu);
+        }
+
+        async function addMeal(monAnId, luongThucAn, ghiChu) {
+            try {
+                const date = document.getElementById('selectedDate').value;
+                const response = await fetch('/DinhDuong/AddToNhatKy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        monAnId: monAnId,
+                        luongThucAn: luongThucAn,
+                        ghiChu: ghiChu,
+                        ngayGhiLog: date
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    closeAddMealModal();
+                    loadNutritionData();
+                } else {
+                    alert(result.message || 'Có lỗi xảy ra');
+                }
+            } catch (error) {
+                console.error('Error adding meal:', error);
+                alert('Có lỗi xảy ra khi thêm món ăn');
+            }
+        }
+
+        function addMealFromPopular(monAnId, tenMonAn) {
+            selectFood(monAnId, tenMonAn);
+        }
+
+        async function removeMeal(dinhDuongId) {
+            if (!confirm('Bạn có chắc muốn xóa món ăn này?')) return;
+            
+            try {
+                const response = await fetch('/DinhDuong/RemoveFromNhatKy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dinhDuongId: dinhDuongId
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadNutritionData();
+                } else {
+                    alert(result.message || 'Có lỗi xảy ra');
+                }
+            } catch (error) {
+                console.error('Error removing meal:', error);
+                alert('Có lỗi xảy ra khi xóa món ăn');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addMealModal');
+            if (event.target == modal) {
+                closeAddMealModal();
+            }
+        }
+    </script>
+}
+

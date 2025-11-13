@@ -44,28 +44,31 @@
     
     <!-- Header -->
     <header class="header">
-        <div class="logo">
-            <i class="fas fa-heart-pulse"></i>
-            <span>HealthWeb</span>
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-heart-pulse"></i>
+                <span>HealthWeb</span>
+            </div>
+            
+            <!-- Home button for non-home pages -->
+            @if (ViewContext.RouteData.Values["controller"]?.ToString() != "Home" || ViewContext.RouteData.Values["action"]?.ToString() != "Index")
+            {
+                <a href="/" class="home-btn" title="Về trang chủ">
+                    <i class="fas fa-home"></i>
+                </a>
+            }
         </div>
         
-        <!-- Home button for non-home pages -->
-        @if (ViewContext.RouteData.Values["controller"]?.ToString() != "Home" || ViewContext.RouteData.Values["action"]?.ToString() != "Index")
-        {
-            <a href="/" class="home-btn" title="Về trang chủ">
-                <i class="fas fa-home"></i>
-            </a>
-        }
-        
         <nav class="nav-links">
-            <a href="" class="requires-auth">Sức khỏe chung</a>
+            <a href="/" class="requires-auth">Sức khỏe chung</a>
             <a href="/Ranking" class="requires-auth">Bảng xếp hạng</a>
-            <a href="" class="requires-auth">Dinh dưỡng</a>
+            <a href="/DinhDuong" class="requires-auth">Dinh dưỡng</a>
             <a href="" class="requires-auth">Thống kê</a>
         </nav>
         
         <div class="header-actions">
             <i class="fas fa-bell requires-auth" id="notifBtn"></i>
+            <i class="fas fa-robot requires-auth" id="chatBtn" title="Trợ lý AI"></i>
             <i class="fas fa-search"></i>
             <i class="fas fa-moon" id="theme-toggle"></i>
             <a href="/Account/Login" id="loginBtn" class="btn btn-secondary">Đăng nhập</a>
@@ -133,48 +136,104 @@
             </ul>
         </div>
     </aside>
+
+    <!-- AI Chat Panel -->
+    <div class="chat-overlay" id="chatOverlay" style="display:none;"></div>
+    <aside class="chat-panel" id="chatPanel" aria-hidden="true">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fas fa-robot"></i>
+                <span>Trợ lý AI</span>
+            </div>
+            <button class="chat-close" id="chatClose" aria-label="Đóng"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message bot-message">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p>Xin chào! Tôi là trợ lý AI của HealthWeb. Tôi có thể giúp bạn về:</p>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Dinh dưỡng và chế độ ăn uống</li>
+                        <li>Luyện tập và thể dục</li>
+                        <li>Sức khỏe tổng quát</li>
+                        <li>Mục tiêu sức khỏe</li>
+                    </ul>
+                    <p style="margin-top: 0.5rem;">Bạn muốn hỏi gì hôm nay?</p>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Nhập câu hỏi của bạn..." autocomplete="off">
+                <button id="chatSend" class="chat-send-btn" title="Gửi">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="chat-loading" id="chatLoading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>AI đang suy nghĩ...</span>
+            </div>
+        </div>
+    </aside>
     <script>
         // Manual theme toggle only
         function toggleTheme() {
             const body = document.body;
-            const themeToggle = document.getElementById('theme-toggle');
             
             if (body.classList.contains('light-mode')) {
-                // Switch to dark mode
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-                localStorage.setItem('theme', 'dark');
-                themeToggle.className = 'fas fa-moon';
+                applyTheme('dark');
             } else {
-                // Switch to light mode
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-                localStorage.setItem('theme', 'light');
-                themeToggle.className = 'fas fa-sun';
+                applyTheme('light');
             }
         }
         
         // Initialize theme
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme');
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
             
+            // Ưu tiên 1: Theme từ server (ViewData["UserTheme"] - đã được HomeController xử lý từ TempData hoặc database)
+            @if (ViewData["UserTheme"] != null)
+            {
+                <text>
+                const serverTheme = '@ViewData["UserTheme"]';
+                console.log('Applying theme from server:', serverTheme);
+                applyTheme(serverTheme);
+                localStorage.setItem('theme', serverTheme);
+                return;
+                </text>
+            }
+            
+            // Ưu tiên 2: localStorage
+            const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
-                // Use saved theme
-                if (savedTheme === 'light') {
-                    body.classList.remove('dark-mode');
-                    body.classList.add('light-mode');
-                    themeToggle.className = 'fas fa-sun';
-                } else {
-                    body.classList.remove('light-mode');
-                    body.classList.add('dark-mode');
-                    themeToggle.className = 'fas fa-moon';
-                }
+                console.log('Applying theme from localStorage:', savedTheme);
+                applyTheme(savedTheme);
             } else {
                 // Default to dark mode
+                console.log('Applying default dark theme');
+                applyTheme('dark');
+            }
+        }
+        
+        function applyTheme(theme) {
+            const body = document.body;
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            console.log('applyTheme called with:', theme);
+            
+            if (theme === 'Light' || theme === 'light') {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                if (themeToggle) themeToggle.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
                 body.classList.add('dark-mode');
-                themeToggle.className = 'fas fa-moon';
+                if (themeToggle) themeToggle.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'dark');
             }
         }
         
@@ -187,13 +246,18 @@
                 toggleTheme();
             });
 
-            // Require-auth links: show notice if not logged in
-            function isAuthenticated(){
-                try { return localStorage.getItem('hw_is_auth') === 'true'; } catch { return false; }
+            // Kiểm tra xác thực dựa trên session server
+            async function fetchAuthStatus(){
+                try {
+                    const res = await fetch('/Account/IsAuthenticated', { credentials: 'same-origin' });
+                    if(!res.ok) return { isAuthenticated: false };
+                    return await res.json();
+                } catch { return { isAuthenticated: false }; }
             }
             document.querySelectorAll('.requires-auth').forEach(el => {
-                el.addEventListener('click', function(e){
-                    if (!isAuthenticated()) {
+                el.addEventListener('click', async function(e){
+                    const status = await fetchAuthStatus();
+                    if (!status?.isAuthenticated) {
                         e.preventDefault();
                         // lightweight inline notification
                         const n = document.createElement('div');
@@ -215,27 +279,70 @@
             // Swap auth buttons -> user menu when logged in (client-side)
             const loginBtn = document.getElementById('loginBtn');
             const registerBtn = document.getElementById('registerBtn');
-            function renderUserMenu(){
+            async function renderUserMenu(){
                 const actions = loginBtn?.parentElement;
                 if(!actions) return;
-                if(isAuthenticated()){
+                const status = await fetchAuthStatus();
+                if(status?.isAuthenticated){
                     if(loginBtn) loginBtn.style.display='none';
                     if(registerBtn) registerBtn.style.display='none';
-                    if(!document.getElementById('userMenu')){
-                        const username = localStorage.getItem('hw_username') || 'User';
-                        const menu = document.createElement('div');
-                        menu.id = 'userMenu';
-                        menu.style.display = 'inline-flex';
-                        menu.style.alignItems = 'center';
-                        menu.style.gap = '.6rem';
-                        menu.innerHTML = `<span title="Tài khoản"><i class="fas fa-user"></i></span><span>${username}</span><button id="logoutBtn" class="btn btn-secondary">Đăng xuất</button>`;
-                        actions.appendChild(menu);
-                        document.getElementById('logoutBtn')?.addEventListener('click', function(){ try{ localStorage.removeItem('hw_is_auth'); localStorage.removeItem('hw_username'); }catch{} window.location.href='/'; });
+                    if(!document.getElementById('userMenuContainer')){
+                        const username = status.username || 'User';
+                        const container = document.createElement('div');
+                        container.id = 'userMenuContainer';
+                        container.className = 'user-menu-container';
+                        container.innerHTML = `
+                            <button class="user-menu-btn" id="userMenuBtn" title="Tài khoản">
+                                <i class="fas fa-user"></i>
+                                <span>${username}</span>
+                                <i class="fas fa-chevron-down" id="chevronIcon"></i>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="/Profile/Edit" class="dropdown-item">
+                                    <i class="fas fa-user-edit"></i>
+                                    <span>Thông tin cá nhân</span>
+                                </a>
+                                <a href="/Settings" class="dropdown-item">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Cài đặt</span>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="/Account/LogoutGet" class="dropdown-item">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Đăng xuất</span>
+                                </a>
+                            </div>
+                        `;
+                        actions.appendChild(container);
+                        
+                        // Toggle dropdown
+                        const userMenuBtn = document.getElementById('userMenuBtn');
+                        const userDropdown = document.getElementById('userDropdown');
+                        const chevronIcon = document.getElementById('chevronIcon');
+                        userMenuBtn?.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const isOpen = userDropdown?.classList.contains('show');
+                            if (isOpen) {
+                                userDropdown?.classList.remove('show');
+                                chevronIcon?.style.setProperty('transform', 'rotate(0deg)');
+                            } else {
+                                userDropdown?.classList.add('show');
+                                chevronIcon?.style.setProperty('transform', 'rotate(180deg)');
+                            }
+                        });
+                        
+                        // Close dropdown when clicking outside
+                        document.addEventListener('click', function(e) {
+                            if (!container.contains(e.target)) {
+                                userDropdown?.classList.remove('show');
+                                chevronIcon?.style.setProperty('transform', 'rotate(0deg)');
+                            }
+                        });
                     }
                 } else {
                     if(loginBtn) loginBtn.style.display='inline-flex';
                     if(registerBtn) registerBtn.style.display='inline-flex';
-                    const existing = document.getElementById('userMenu');
+                    const existing = document.getElementById('userMenuContainer');
                     if(existing) existing.remove();
                 }
             }
@@ -272,6 +379,138 @@
                     list.innerHTML = '<li class="muted">Không thể tải thông báo.</li>';
                 }
             }
+
+            // AI Chat Panel
+            const chatBtn = document.getElementById('chatBtn');
+            const chatOverlay = document.getElementById('chatOverlay');
+            const chatPanel = document.getElementById('chatPanel');
+            const chatClose = document.getElementById('chatClose');
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatLoading = document.getElementById('chatLoading');
+
+            async function openChatPanel() {
+                // Kiểm tra authentication trước khi mở chat
+                const status = await fetchAuthStatus();
+                if (!status?.isAuthenticated) {
+                    const n = document.createElement('div');
+                    n.textContent = 'Vui lòng đăng nhập để sử dụng trợ lý AI.';
+                    n.style.cssText = 'position:fixed;top:20px;right:20px;background:#ef4444;color:#fff;padding:12px 16px;border-radius:10px;z-index:10000;box-shadow:0 10px 30px rgba(0,0,0,.3)';
+                    document.body.appendChild(n);
+                    setTimeout(()=>{ n.remove(); }, 2500);
+                    return;
+                }
+                
+                chatPanel.classList.add('open');
+                chatOverlay.classList.add('open');
+                chatOverlay.style.display = 'block';
+                chatInput.focus();
+            }
+
+            function closeChatPanel() {
+                chatPanel.classList.remove('open');
+                chatOverlay.classList.remove('open');
+                setTimeout(() => {
+                    chatOverlay.style.display = 'none';
+                }, 250);
+            }
+
+            chatBtn?.addEventListener('click', async function(e) {
+                e.preventDefault();
+                await openChatPanel();
+            });
+            chatClose?.addEventListener('click', closeChatPanel);
+            chatOverlay?.addEventListener('click', closeChatPanel);
+
+            function addMessage(content, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">
+                        <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
+                    </div>
+                    <div class="message-content">
+                        ${content}
+                    </div>
+                `;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function formatMessage(text) {
+                // Convert markdown-like formatting to HTML
+                text = escapeHtml(text);
+                // Convert newlines to <br>
+                text = text.replace(/\n/g, '<br>');
+                // Convert **bold** to <strong>
+                text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Convert *italic* to <em>
+                text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                // Convert numbered lists
+                text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+                // Wrap consecutive <li> in <ol>
+                text = text.replace(/(<li>.*?<\/li>\n?)+/g, '<ol>$&</ol>');
+                // Convert bullet points
+                text = text.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+                // Wrap consecutive <li> in <ul>
+                text = text.replace(/(<li>.*?<\/li>\n?)+/g, '<ul>$&</ul>');
+                return `<p>${text}</p>`;
+            }
+
+            async function sendMessage() {
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                addMessage(`<p>${escapeHtml(message)}</p>`, true);
+                chatInput.value = '';
+                chatSend.disabled = true;
+                chatLoading.style.display = 'flex';
+
+                try {
+                    const response = await fetch('/Chat/SendMessage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get response');
+                    }
+
+                    const data = await response.json();
+                    chatLoading.style.display = 'none';
+                    chatSend.disabled = false;
+
+                    if (data.success && data.response) {
+                        addMessage(formatMessage(data.response), false);
+                    } else {
+                        addMessage('<p>Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại.</p>', false);
+                    }
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    chatLoading.style.display = 'none';
+                    chatSend.disabled = false;
+                    addMessage('<p>Không thể kết nối đến server. Vui lòng kiểm tra kết nối và thử lại.</p>', false);
+                }
+            }
+
+            chatSend?.addEventListener('click', sendMessage);
+            chatInput?.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
