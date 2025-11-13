@@ -1,0 +1,48 @@
+@{
+    ViewData["Title"] = "Lịch Trình - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/schedulePT.css">
+
+<div class="schedule-container">
+    <div class="schedule-header">
+        <h1><i class="fas fa-calendar-alt"></i> Lịch Trình</h1>
+        <div class="schedule-controls">
+            <div class="date-nav">
+                <button class="date-nav-btn" onclick="previousWeek()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="current-date" id="currentDate">Tuần này</div>
+                <button class="date-nav-btn" onclick="nextWeek()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="switchView('grid')" id="gridViewBtn">
+                    <i class="fas fa-th"></i> Lưới
+                </button>
+                <button class="view-btn" onclick="switchView('list')" id="listViewBtn">
+                    <i class="fas fa-list"></i> Danh sách
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Grid View -->
+    <div class="calendar-grid" id="calendarGrid">
+        <!-- Time column header -->
+        <div></div>
+        <!-- Day headers will be generated here -->
+    </div>
+
+    <!-- List View -->
+    <div class="schedule-list" id="scheduleList">
+        <!-- Schedule days will be generated here -->
+    </div>
+</div>
+
+<script src="~/js/pt/schedulePT.js"></script>
+

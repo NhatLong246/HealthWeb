@@ -1,0 +1,107 @@
+@{
+    ViewData["Title"] = "Tìm Kiếm Khách Hàng - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/searchClientsPT.css">
+
+<div class="search-clients-container">
+    <div class="search-header">
+        <h1><i class="fas fa-search"></i> Tìm Kiếm Khách Hàng Tiềm Năng</h1>
+        <p>Khám phá và kết nối với những khách hàng phù hợp với chuyên môn của bạn</p>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-bar">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-input" id="searchInput" placeholder="Tìm kiếm theo tên, username, mục tiêu...">
+            </div>
+            <button class="search-btn" onclick="searchClients()">
+                <i class="fas fa-search"></i> Tìm kiếm
+            </button>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label><i class="fas fa-filter"></i> Mục tiêu</label>
+                <select id="goalFilter">
+                    <option value="">Tất cả</option>
+                    <option value="weight-loss">Giảm cân</option>
+                    <option value="muscle-gain">Tăng cơ</option>
+                    <option value="cardio">Cardio</option>
+                    <option value="flexibility">Dẻo dai</option>
+                    <option value="rehabilitation">Phục hồi</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-map-marker-alt"></i> Khu vực</label>
+                <select id="locationFilter">
+                    <option value="">Tất cả</option>
+                    <option value="hanoi">Hà Nội</option>
+                    <option value="hcm">TP.HCM</option>
+                    <option value="danang">Đà Nẵng</option>
+                    <option value="online">Online</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-clock"></i> Khung giờ</label>
+                <select id="timeFilter">
+                    <option value="">Tất cả</option>
+                    <option value="morning">Sáng (6h-12h)</option>
+                    <option value="afternoon">Chiều (12h-18h)</option>
+                    <option value="evening">Tối (18h-22h)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-dollar-sign"></i> Ngân sách</label>
+                <select id="budgetFilter">
+                    <option value="">Tất cả</option>
+                    <option value="low">Dưới 500k/buổi</option>
+                    <option value="medium">500k-1tr/buổi</option>
+                    <option value="high">Trên 1tr/buổi</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-header">
+        <div class="results-count" id="resultsCount">Tìm thấy <span id="resultNumber">0</span> khách hàng</div>
+        <div class="sort-options">
+            <span class="sort-label">Sắp xếp:</span>
+            <select class="sort-select" id="sortSelect" onchange="sortClients()">
+                <option value="relevance">Liên quan nhất</option>
+                <option value="newest">Mới nhất</option>
+                <option value="activity">Hoạt động gần đây</option>
+                <option value="goals">Phù hợp mục tiêu</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Clients Grid -->
+    <div class="clients-grid" id="clientsGrid">
+        <div class="empty-results">
+            <i class="fas fa-search"></i>
+            <p>Nhập từ khóa hoặc chọn bộ lọc để tìm kiếm khách hàng</p>
+        </div>
+    </div>
+
+    <div class="client-profile-modal" id="clientProfileModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="client-profile-card" role="document">
+            <button type="button" class="client-profile-close" id="closeClientProfile" aria-label="Đóng bảng thông tin">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="clientProfileContent"></div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/pt/searchClientsPT.js"></script>
+

@@ -1,0 +1,92 @@
+@{
+    ViewData["Title"] = "Thanh Toán - HealthWeb";
+    Layout = "_Layout";
+}
+@Html.AntiForgeryToken()
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/payment/payment.css">
+
+<div class="payment-container">
+    <div class="payment-header">
+        <h1><i class="fas fa-credit-card"></i> Thanh Toán</h1>
+        <p>Hoàn tất thanh toán để xác nhận buổi tập với huấn luyện viên</p>
+    </div>
+
+    <div class="payment-content">
+        <!-- Booking Summary -->
+        <div class="payment-card booking-summary">
+            <div class="card-header">
+                <h2><i class="fas fa-calendar-check"></i> Thông Tin Booking</h2>
+            </div>
+            <div class="card-body" id="bookingSummary">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải thông tin...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Details -->
+        <div class="payment-card payment-details">
+            <div class="card-header">
+                <h2><i class="fas fa-receipt"></i> Chi Tiết Thanh Toán</h2>
+            </div>
+            <div class="card-body" id="paymentDetails">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải thông tin...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="payment-card payment-method">
+            <div class="card-header">
+                <h2><i class="fas fa-wallet"></i> Phương Thức Thanh Toán</h2>
+            </div>
+            <div class="card-body">
+                <div class="payment-method-selection">
+                    <div class="payment-option active" data-method="momo">
+                        <div class="payment-option-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="payment-option-info">
+                            <h3>Ví MoMo</h3>
+                            <p>Thanh toán nhanh chóng và an toàn</p>
+                        </div>
+                        <div class="payment-option-check">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-actions">
+                    <button class="btn-payment" id="payButton" onclick="processPayment()">
+                        <i class="fas fa-lock"></i>
+                        <span>Thanh Toán Ngay</span>
+                    </button>
+                    <button class="btn-cancel" onclick="cancelPayment()">
+                        <i class="fas fa-times"></i>
+                        <span>Hủy</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/payment/payment.js"></script>
+<script>
+    // Pass booking info from server to JavaScript
+    const bookingInfo = @Html.Raw(Json.Serialize(ViewBag.BookingInfo));
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        if (bookingInfo) {
+            renderBookingInfo(bookingInfo);
+        } else {
+            showError('Không thể tải thông tin booking');
+        }
+    });
+</script>
+

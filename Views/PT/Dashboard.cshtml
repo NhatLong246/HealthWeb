@@ -1,0 +1,121 @@
+@{
+    ViewData["Title"] = "Dashboard PT - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/dashboardPT.css">
+
+<div class="pt-dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-chart-line"></i> Dashboard PT</h1>
+        <p>Chào mừng trở lại! Đây là tổng quan hoạt động của bạn</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon" style="background: linear-gradient(135deg, #7dd3fc, #38bdf8);">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="totalClients">0</div>
+            <div class="stat-card-label">Tổng Khách Hàng</div>
+            <div class="stat-card-trend trend-up">
+                <i class="fas fa-user-check"></i>
+                <span id="totalClientsSummary">0 khách đang hoạt động</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon" style="background: linear-gradient(135deg, #c4b5fd, #a78bfa);">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="todayBookings">0</div>
+            <div class="stat-card-label">Lịch Hôm Nay</div>
+            <div class="stat-card-trend">
+                <i class="fas fa-clock"></i>
+                <span id="todayBookingsSummary">0 buổi trong hôm nay</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon" style="background: linear-gradient(135deg, #f9a8d4, #f472b6);">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="monthlyRevenue">0đ</div>
+            <div class="stat-card-label">Thu Nhập Tháng Này</div>
+            <div class="stat-card-trend trend-up">
+                <i class="fas fa-coins"></i>
+                <span id="monthlyRevenueSummary">0đ trong tháng này</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon" style="background: linear-gradient(135deg, #fb923c, #f97316);">
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="rating">0.0</div>
+            <div class="stat-card-label">Đánh Giá Trung Bình</div>
+            <div class="stat-card-trend">
+                <i class="fas fa-comments"></i>
+                <span id="ratingReviews">0 đánh giá</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
+        <!-- Left Column: Recent Bookings -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h3><i class="fas fa-calendar-alt"></i> Lịch Hẹn Gần Đây</h3>
+                <a href="/PT/SchedulePT" class="section-action">
+                    <i class="fas fa-eye"></i> Xem tất cả
+                </a>
+            </div>
+            <div class="bookings-list" id="bookingsList">
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Đang tải lịch hẹn...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quick Actions -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h3><i class="fas fa-bolt"></i> Thao Tác Nhanh</h3>
+            </div>
+            <div class="quick-actions">
+                <a href="/PT/SchedulePT" class="action-btn">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Xem Lịch Trình</span>
+                </a>
+                <a href="/PT/SearchClients" class="action-btn">
+                    <i class="fas fa-search"></i>
+                    <span>Tìm Khách Hàng</span>
+                </a>
+                <a href="/PT/ManageClients" class="action-btn">
+                    <i class="fas fa-users"></i>
+                    <span>Quản Lý Khách</span>
+                </a>
+                <a href="/PT/Settings" class="action-btn">
+                    <i class="fas fa-cog"></i>
+                    <span>Cài Đặt</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/pt/dashboardPT.js"></script>
+

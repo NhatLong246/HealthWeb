@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HealthWeb.Models.EF;
+using HealthWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,24 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("HealthTracker"))
 );
+
+// Add session support
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Add HttpContextAccessor for services
+builder.Services.AddHttpContextAccessor();
+
+// Register application services
+builder.Services.AddScoped<IRankingService, RankingService>();
+builder.Services.AddScoped<IPTService, PTService>();
+builder.Services.AddScoped<IFindPTService, FindPTService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 var app = builder.Build();
 
@@ -20,8 +39,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
-
+app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();
