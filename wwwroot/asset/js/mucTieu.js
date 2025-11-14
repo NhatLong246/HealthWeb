@@ -43,6 +43,53 @@ async function loadMauTapLuyenByMucTieu(mucTieu) {
     }
 }
 
+// Hàm lấy YouTube video ID từ URL
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    
+    // Nếu đã là embed URL
+    if (url.includes('youtube.com/embed/')) {
+        const match = url.match(/embed\/([^?&#]+)/);
+        return match ? match[1] : null;
+    }
+    
+    // Format: https://www.youtube.com/watch?v=VIDEO_ID hoặc youtu.be/VIDEO_ID
+    const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    if (watchMatch) {
+        return watchMatch[1];
+    }
+    
+    return null;
+}
+
+// Hàm chuyển đổi YouTube URL sang embed URL với các tham số tối ưu
+function getYouTubeEmbedUrl(url, useNoCookie = true) {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) return null;
+    
+    // Sử dụng youtube-nocookie.com để tránh một số vấn đề với cookies và permissions
+    // Thêm các tham số để tắt JavaScript API và tránh lỗi Permissions API
+    const baseUrl = useNoCookie 
+        ? `https://www.youtube-nocookie.com/embed/${videoId}`
+        : `https://www.youtube.com/embed/${videoId}`;
+    
+    // Tham số quan trọng:
+    // - enablejsapi=0: Tắt JavaScript API (tránh lỗi Permissions API)
+    // - rel=0: Không hiển thị video liên quan
+    // - modestbranding=1: Giảm branding
+    // - playsinline=1: Phát inline trên mobile
+    return `${baseUrl}?enablejsapi=0&rel=0&modestbranding=1&playsinline=1&origin=${window.location.origin}`;
+}
+
+// Hàm lấy YouTube thumbnail URL
+function getYouTubeThumbnail(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) return null;
+    
+    // Sử dụng thumbnail chất lượng cao
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+}
+
 // Render danh sách bài tập được đề xuất
 function renderSuggestedExercises(exercises) {
     const container = document.getElementById('suggestedExercisesList');
@@ -67,28 +114,55 @@ function renderSuggestedExercises(exercises) {
         card.setAttribute('data-scheme', `${exercise.SoTuan || 0} tuần`);
         card.setAttribute('data-difficulty', exercise.DoKho === 'Beginner' ? 'Dễ' : exercise.DoKho === 'Intermediate' ? 'Trung bình' : 'Khó');
         
-        // Chọn icon phù hợp dựa trên tên bài tập
+        // CHỈ hiển thị icon, KHÔNG hiển thị video thumbnail ở danh sách đề xuất
+        // Video chỉ xem được ở phần Chi Tiết Bài Tập
+        let mediaContent = '';
+        
+        // Chọn icon phù hợp dựa trên tên bài tập hoặc mục tiêu
         let iconClass = 'fas fa-dumbbell';
         const tenBaiTap = (exercise.TenMauTapLuyen || '').toLowerCase();
-        if (tenBaiTap.includes('yoga') || tenBaiTap.includes('dẻo')) {
+        
+        if (tenBaiTap.includes('yoga') || tenBaiTap.includes('dẻo') || tenBaiTap.includes('stretch')) {
             iconClass = 'fas fa-spa';
-        } else if (tenBaiTap.includes('chạy') || tenBaiTap.includes('cardio')) {
+        } else if (tenBaiTap.includes('chạy') || tenBaiTap.includes('cardio') || tenBaiTap.includes('running')) {
             iconClass = 'fas fa-running';
-        } else if (tenBaiTap.includes('bụng') || tenBaiTap.includes('core')) {
+        } else if (tenBaiTap.includes('bụng') || tenBaiTap.includes('core') || tenBaiTap.includes('abs') || tenBaiTap.includes('crunch') || tenBaiTap.includes('plank')) {
             iconClass = 'fas fa-circle';
-        } else if (tenBaiTap.includes('chân') || tenBaiTap.includes('đùi')) {
+        } else if (tenBaiTap.includes('chân') || tenBaiTap.includes('đùi') || tenBaiTap.includes('leg') || tenBaiTap.includes('squat') || tenBaiTap.includes('lunge')) {
             iconClass = 'fas fa-walking';
+        } else if (tenBaiTap.includes('tay') || tenBaiTap.includes('arm') || tenBaiTap.includes('bicep') || tenBaiTap.includes('tricep') || tenBaiTap.includes('curl')) {
+            iconClass = 'fas fa-hand-fist';
+        } else if (tenBaiTap.includes('ngực') || tenBaiTap.includes('chest') || tenBaiTap.includes('push')) {
+            iconClass = 'fas fa-heart';
+        } else if (tenBaiTap.includes('vai') || tenBaiTap.includes('shoulder') || tenBaiTap.includes('press')) {
+            iconClass = 'fas fa-dumbbell';
+        } else if (tenBaiTap.includes('lưng') || tenBaiTap.includes('back') || tenBaiTap.includes('pull')) {
+            iconClass = 'fas fa-dumbbell';
+        } else if (tenBaiTap.includes('mông') || tenBaiTap.includes('glute') || tenBaiTap.includes('hip')) {
+            iconClass = 'fas fa-running';
         }
         
+        mediaContent = `<div class="tile-media"><i class="${iconClass}"></i></div>`;
+        
+        const exerciseName = exercise.TenMauTapLuyen || 'Chưa có tên';
+        // Tạo HTML với tên bài tập riêng biệt - không dùng tile-footer để tránh conflict
         card.innerHTML = `
-            <div class="tile-media">
-                <i class="${iconClass}"></i>
+            ${mediaContent}
+            <div class="exercise-title-wrapper" style="padding: 0.75rem; padding-bottom: 0.5rem; width: 100%; box-sizing: border-box; background: inherit;">
+                <div class="exercise-title-text" style="font-weight: 600; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; width: 100%; text-align: left; display: block; margin: 0; padding: 0;">${exerciseName}</div>
             </div>
-            <div class="tile-footer">
-                <span>${exercise.TenMauTapLuyen || 'Chưa có tên'}</span>
+            <div class="tile-footer" style="display: flex; justify-content: flex-end; align-items: center; padding: 0.5rem 0.75rem 0.75rem 0.75rem; width: 100%; box-sizing: border-box;">
                 <button class="btn danger">Thay đổi</button>
             </div>
         `;
+        
+        // Debug: Log để kiểm tra
+        console.log('Exercise card created:', {
+            name: exerciseName,
+            hasName: !!exerciseName,
+            cardElement: card,
+            innerHTML: card.innerHTML.substring(0, 200)
+        });
         
         container.appendChild(card);
     });
@@ -165,9 +239,103 @@ function populateDetailFromData(data) {
     setText('dScheme', data.Scheme || '');
     setText('dDiff', data.DoKho || 'Trung bình');
 
+    // Hiển thị video trong phần detail-media (dImage) - đây là phần riêng cho video
+    const mediaEl = document.getElementById('dImage');
+    if (mediaEl) {
+        // Lấy video từ bài tập đầu tiên
+        if (data.ChiTietBaiTap && data.ChiTietBaiTap.length > 0) {
+            const firstExercise = data.ChiTietBaiTap[0];
+            if (firstExercise && firstExercise.VideoUrl) {
+                const videoId = getYouTubeVideoId(firstExercise.VideoUrl);
+                const thumbnailUrl = getYouTubeThumbnail(firstExercise.VideoUrl);
+                if (videoId && thumbnailUrl) {
+                    // Hiển thị video trong phần detail-media
+                    mediaEl.innerHTML = `
+                        <div class="video-wrapper" 
+                             style="cursor: pointer;" 
+                             data-video-id="${videoId}" 
+                             data-video-url="${firstExercise.VideoUrl}"
+                             onclick="loadYouTubeVideo(this)">
+                            <img src="${thumbnailUrl}" 
+                                 alt="${firstExercise.TenbaiTap || 'Exercise video'}" 
+                                 style="object-fit: cover;"
+                                 loading="lazy"
+                                 onerror="this.src='https://img.youtube.com/vi/${videoId}/mqdefault.jpg'">
+                            <div class="play-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: background 0.3s;">
+                                <i class="fas fa-play" style="color: white; font-size: 32px; margin-left: 5px;"></i>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    mediaEl.innerHTML = '<i class="fas fa-dumbbell"></i>';
+                }
+            } else {
+                mediaEl.innerHTML = '<i class="fas fa-dumbbell"></i>';
+            }
+        } else {
+            mediaEl.innerHTML = '<i class="fas fa-dumbbell"></i>';
+        }
+    }
+
+    // Hiển thị danh sách bài tập trong phần "Nội dung bài tập" (dGuide)
     const guideEl = document.getElementById('dGuide');
     if (guideEl) {
-        guideEl.textContent = data.HuongDan || data.MoTa || '';
+        if (data.ChiTietBaiTap && data.ChiTietBaiTap.length > 0) {
+            let guideHtml = '<div class="exercise-list">';
+            
+            // Hiển thị danh sách các bài tập (không hiển thị lại video đầu tiên vì đã hiển thị ở dImage)
+            data.ChiTietBaiTap.forEach((bt, index) => {
+                const exerciseInfo = `${index + 1}. ${bt.TenbaiTap}` + 
+                    (bt.SoSets && bt.SoReps ? ` - ${bt.SoSets}x${bt.SoReps}` : '') +
+                    (bt.ThoiLuongPhut ? ` - ${bt.ThoiLuongPhut} phút` : '');
+                
+                // Hiển thị video cho các bài tập khác (không phải bài đầu tiên)
+                if (index > 0 && bt.VideoUrl) {
+                    const videoId = getYouTubeVideoId(bt.VideoUrl);
+                    const thumbnailUrl = getYouTubeThumbnail(bt.VideoUrl);
+                    if (videoId && thumbnailUrl) {
+                        guideHtml += `
+                            <div class="exercise-item" style="margin-bottom: 1.5rem;">
+                                <p style="margin-bottom: 0.5rem; font-weight: 500;">${exerciseInfo}</p>
+                                <div class="video-wrapper" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000; cursor: pointer;" 
+                                     data-video-id="${videoId}" 
+                                     data-video-url="${bt.VideoUrl}"
+                                     onclick="loadYouTubeVideo(this)">
+                                    <img src="${thumbnailUrl}" 
+                                         alt="${bt.TenbaiTap || 'Exercise video'}" 
+                                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"
+                                         loading="lazy"
+                                         onerror="this.src='https://img.youtube.com/vi/${videoId}/mqdefault.jpg'">
+                                    <div class="play-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: background 0.3s;">
+                                        <i class="fas fa-play" style="color: white; font-size: 24px; margin-left: 4px;"></i>
+                                    </div>
+                                </div>
+                                ${bt.GhiChu ? `<p style="margin-top: 0.5rem; font-size: 0.9rem; color: #94a3b8;">${bt.GhiChu}</p>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        guideHtml += `
+                            <div class="exercise-item" style="margin-bottom: 1.5rem;">
+                                <p style="margin-bottom: 0.5rem; font-weight: 500;">${exerciseInfo}</p>
+                                ${bt.GhiChu ? `<p style="margin-top: 0.5rem; font-size: 0.9rem; color: #94a3b8;">${bt.GhiChu}</p>` : ''}
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Hiển thị thông tin bài tập không có video hoặc bài tập đầu tiên (video đã hiển thị ở dImage)
+                    guideHtml += `
+                        <div class="exercise-item" style="margin-bottom: 1.5rem;">
+                            <p style="margin-bottom: 0.5rem; font-weight: 500;">${exerciseInfo}</p>
+                            ${bt.GhiChu ? `<p style="margin-top: 0.5rem; font-size: 0.9rem; color: #94a3b8;">${bt.GhiChu}</p>` : ''}
+                        </div>
+                    `;
+                }
+            });
+            guideHtml += '</div>';
+            guideEl.innerHTML = guideHtml;
+        } else {
+            guideEl.textContent = data.HuongDan || data.MoTa || '';
+        }
     }
 
     const header = panel.querySelector('h2');
@@ -245,8 +413,15 @@ function updateStatsSummary(data) {
         // Bỏ qua nếu click vào button "Thay đổi"
         if(rawTarget.closest('.btn.danger')) return;
         
+        // Bỏ qua nếu click vào iframe hoặc video element (tránh trigger YouTube player)
+        if(rawTarget.closest('iframe') || rawTarget.closest('video')) return;
+        
         const card = rawTarget.closest('.exercise-card');
         if(!card) return;
+        
+        // Ngăn chặn event propagation để tránh trigger YouTube player
+        // Không preventDefault để vẫn có thể load detail
+        e.stopPropagation();
         
         // Highlight card được chọn
         document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('selected'));
@@ -438,20 +613,58 @@ function updateStatsSummary(data) {
         if(!wrapper) return;
         wrapper.hidden = false;
         const fallback = [21.028511, 105.804817];
-        if(navigator.geolocation){
-            navigator.geolocation.getCurrentPosition(function(pos){
-                const center = [pos.coords.latitude, pos.coords.longitude];
-                initMap(center);
-                setTimeout(() => mapInstance.invalidateSize(), 50);
-                fetchNearbyGyms(center);
-            }, function(){
+        
+        // Sử dụng try-catch và bind đúng context để tránh lỗi Illegal invocation
+        try {
+            if(navigator && navigator.geolocation && typeof navigator.geolocation.getCurrentPosition === 'function'){
+                // Bind đúng context để tránh lỗi Illegal invocation
+                const getCurrentPosition = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+                
+                getCurrentPosition(
+                    function(pos){
+                        try {
+                            const center = [pos.coords.latitude, pos.coords.longitude];
+                            initMap(center);
+                            setTimeout(() => {
+                                if(mapInstance) mapInstance.invalidateSize();
+                            }, 50);
+                            fetchNearbyGyms(center);
+                        } catch(err) {
+                            console.error('Error initializing map with user location:', err);
+                            initMap(fallback);
+                            setTimeout(() => {
+                                if(mapInstance) mapInstance.invalidateSize();
+                            }, 50);
+                            fetchNearbyGyms(fallback);
+                        }
+                    }, 
+                    function(error){
+                        console.warn('Geolocation error:', error);
+                        initMap(fallback);
+                        setTimeout(() => {
+                            if(mapInstance) mapInstance.invalidateSize();
+                        }, 50);
+                        fetchNearbyGyms(fallback);
+                    }, 
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 8000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
                 initMap(fallback);
-                setTimeout(() => mapInstance.invalidateSize(), 50);
+                setTimeout(() => {
+                    if(mapInstance) mapInstance.invalidateSize();
+                }, 50);
                 fetchNearbyGyms(fallback);
-            }, { enableHighAccuracy: true, timeout: 8000 });
-        }else{
+            }
+        } catch(err) {
+            console.error('Error accessing geolocation:', err);
             initMap(fallback);
-            setTimeout(() => mapInstance.invalidateSize(), 50);
+            setTimeout(() => {
+                if(mapInstance) mapInstance.invalidateSize();
+            }, 50);
             fetchNearbyGyms(fallback);
         }
     }
@@ -471,6 +684,103 @@ function updateStatsSummary(data) {
             });
         }
     });
+})();
+
+// Hàm load YouTube video khi click vào thumbnail (tránh lỗi Permissions API)
+window.loadYouTubeVideo = function(wrapper) {
+    if (!wrapper) return;
+    
+    // Kiểm tra xem đã load video chưa
+    if (wrapper.querySelector('iframe')) {
+        return; // Đã load rồi, không load lại
+    }
+    
+    const videoId = wrapper.getAttribute('data-video-id');
+    const videoUrl = wrapper.getAttribute('data-video-url');
+    
+    if (!videoId && !videoUrl) return;
+    
+    // Tạo embed URL với các tham số tối ưu
+    const embedUrl = getYouTubeEmbedUrl(videoUrl || `https://www.youtube.com/watch?v=${videoId}`, true);
+    if (!embedUrl) return;
+    
+    // Thay thế thumbnail bằng iframe
+    wrapper.innerHTML = `
+        <iframe 
+            src="${embedUrl}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen
+            sandbox="allow-scripts allow-same-origin allow-presentation"
+            title="Exercise video">
+        </iframe>
+    `;
+    
+    // Thêm class để đánh dấu đã load
+    wrapper.classList.add('video-loaded');
+};
+
+// Global error handler để bắt và xử lý lỗi "Illegal invocation" từ Permissions API
+// Lỗi này thường xảy ra khi YouTube player script hoặc extension sử dụng Permissions API không đúng cách
+(function(){
+    // Bắt lỗi unhandled promise rejection
+    window.addEventListener('unhandledrejection', function(event) {
+        const errorMsg = event.reason?.message || event.reason?.toString() || '';
+        const errorStack = event.reason?.stack || '';
+        
+        // Bắt lỗi từ YouTube player hoặc Permissions API
+        if(errorMsg.includes('Illegal invocation') || 
+           errorMsg.includes('Permissions') ||
+           errorStack.includes('youtube.com') ||
+           errorStack.includes('google.com/js')){
+            console.warn('Caught Illegal invocation error (likely from YouTube player or browser extension):', event.reason);
+            event.preventDefault(); // Ngăn lỗi hiển thị trong console
+            return false;
+        }
+    }, true);
+
+    // Bắt lỗi global - chỉ log warning, không ngăn chặn hoàn toàn
+    const originalErrorHandler = window.onerror;
+    window.onerror = function(message, source, lineno, colno, error) {
+        const errorMsg = message || '';
+        const errorSource = source || '';
+        const errorStack = error?.stack || '';
+        
+        // Bắt lỗi từ YouTube player hoặc Permissions API
+        if((errorMsg.includes('Illegal invocation') || errorMsg.includes('Permissions')) &&
+           (errorSource.includes('youtube.com') || errorSource.includes('google.com') || errorStack.includes('youtube'))){
+            console.warn('Caught Illegal invocation error (likely from YouTube player):', message);
+            return true; // Ngăn lỗi hiển thị mặc định
+        }
+        // Gọi error handler gốc nếu có
+        if(originalErrorHandler) {
+            return originalErrorHandler.call(this, message, source, lineno, colno, error);
+        }
+        return false;
+    };
+
+    // Wrap Permissions API nếu có để tránh lỗi từ YouTube player
+    if(navigator && navigator.permissions && typeof navigator.permissions.query === 'function'){
+        try {
+            const originalQuery = navigator.permissions.query.bind(navigator.permissions);
+            navigator.permissions.query = function(descriptor) {
+                try {
+                    return originalQuery(descriptor);
+                } catch(err) {
+                    const errorMsg = err?.message || err?.toString() || '';
+                    if(errorMsg.includes('Illegal invocation')){
+                        console.warn('Permissions API query error caught and handled (likely from YouTube player):', err);
+                        // Trả về một promise rejected nhưng không throw error
+                        return Promise.reject(err);
+                    }
+                    throw err;
+                }
+            };
+        } catch(e) {
+            // Nếu không thể wrap, bỏ qua
+            console.warn('Could not wrap Permissions API:', e);
+        }
+    }
 })();
 
 // Reveal on scroll animations
