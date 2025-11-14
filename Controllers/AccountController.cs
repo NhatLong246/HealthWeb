@@ -144,6 +144,12 @@ namespace HealthWeb.Controllers
                     authProperties
                 );
 
+                // Kiểm tra Role: Nếu là Admin, redirect đến trang Admin
+                if (user.Role == "Admin")
+                {
+                    return RedirectToAction("ThongKe", "Admin");
+                }
+
                 // Kiểm tra xem user đã có thông tin cơ bản chưa
                 var hasBasicInfo = await _context.LuuTruSucKhoes
                     .AnyAsync(l => l.UserId == user.UserId && l.ChieuCao.HasValue && l.CanNang.HasValue);

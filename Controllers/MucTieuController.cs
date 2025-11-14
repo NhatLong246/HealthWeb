@@ -35,24 +35,27 @@ namespace HealthWeb.Controllers
 
                 _logger.LogInformation("GetMauTapLuyenByMucTieu called with mucTieu: {MucTieu}", mucTieu);
 
-                var mauTapLuyens = await _context.MauTapLuyens
+                var mauTapLuyensQuery = await _context.MauTapLuyens
                     .Where(m => m.MucTieu == mucTieu && (m.CongKhai == true || m.DaXacThuc == true))
+                    .Include(m => m.ChiTietMauTapLuyens.OrderBy(c => c.ThuTuHienThi).ThenBy(c => c.Tuan).ThenBy(c => c.NgayTrongTuan))
                     .OrderByDescending(m => m.DiemTrungBinh ?? 0)
                     .ThenByDescending(m => m.SoLanSuDung ?? 0)
-                    .Select(m => new
-                    {
-                        MauTapLuyenId = m.MauTapLuyenId,
-                        TenMauTapLuyen = m.TenMauTapLuyen,
-                        MoTa = m.MoTa,
-                        DoKho = m.DoKho,
-                        SoTuan = m.SoTuan,
-                        CaloUocTinh = m.CaloUocTinh,
-                        ThietBiCan = m.ThietBiCan,
-                        DiemTrungBinh = m.DiemTrungBinh,
-                        SoLanSuDung = m.SoLanSuDung,
-                        SoBaiTap = m.ChiTietMauTapLuyens.Count
-                    })
                     .ToListAsync();
+
+                var mauTapLuyens = mauTapLuyensQuery.Select(m => new
+                {
+                    MauTapLuyenId = m.MauTapLuyenId,
+                    TenMauTapLuyen = m.TenMauTapLuyen,
+                    MoTa = m.MoTa,
+                    DoKho = m.DoKho,
+                    SoTuan = m.SoTuan,
+                    CaloUocTinh = m.CaloUocTinh,
+                    ThietBiCan = m.ThietBiCan,
+                    DiemTrungBinh = m.DiemTrungBinh,
+                    SoLanSuDung = m.SoLanSuDung,
+                    SoBaiTap = m.ChiTietMauTapLuyens.Count,
+                    VideoUrl = m.ChiTietMauTapLuyens.FirstOrDefault()?.VideoUrl
+                }).ToList();
 
                 _logger.LogInformation("Found {Count} workout templates for mucTieu: {MucTieu}", mauTapLuyens.Count, mucTieu);
 

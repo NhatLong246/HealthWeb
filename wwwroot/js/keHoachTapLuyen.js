@@ -1,26 +1,7 @@
-﻿// Data mẫu các bài tập
-const exercises = [
-  {
-    id: 1,
-    title: "Bài tập thứ nhất: Deadlift",
-    desc: "Tập trung nhóm cơ lưng và đùi sau.",
-    guide: "Giữ lưng thẳng, nâng tạ gần thân người.",
-    sets: 45,
-    rest: 30,
-    kcal: 320,
-    thumb: "images/ex1.jpg"
-  },
-  {
-    id: 2,
-    title: "Bài tập thứ hai: Bench Press",
-    desc: "Tác động ngực, vai trước và tay sau.",
-    guide: "Hạ tạ chậm, thở đều và đẩy mạnh lên.",
-    sets: 36,
-    rest: 45,
-    kcal: 280,
-    thumb: "images/ex2.jpg"
-  }
-];
+﻿// Dữ liệu từ database
+let currentPlan = null;
+let exercises = [];
+let currentWeek = 1; // Tuần hiện tại
 
 // Tham chiếu DOM
 const listContainer = document.getElementById("exercise-list");
@@ -68,21 +49,44 @@ function createExerciseItem(ex) {
     });
   }
 
+  // Tạo thumbnail từ video URL hoặc icon mặc định
   const img = document.createElement("img");
-  img.alt = ex.title;
-  img.src = ex.thumb;
+  if (ex.videoUrl) {
+    // Lấy thumbnail từ YouTube nếu có
+    const videoId = getYouTubeVideoId(ex.videoUrl);
+    if (videoId) {
+      img.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      img.alt = ex.tenBaiTap;
+    } else {
+      img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Crect fill='%23e0e0e0' width='220' height='120'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+      img.alt = ex.tenBaiTap;
+    }
+  } else {
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Crect fill='%23e0e0e0' width='220' height='120'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+    img.alt = ex.tenBaiTap;
+  }
+  img.onerror = function() {
+    this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Crect fill='%23e0e0e0' width='220' height='120'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+  };
 
   const content = document.createElement("div");
   content.className = "content";
   const h4 = document.createElement("h4");
-  h4.textContent = ex.title;
+  h4.textContent = ex.tenBaiTap;
   const p = document.createElement("p");
-  p.textContent = "Nội dung bài tập";
+  const exerciseInfo = [];
+  if (ex.soHiep && ex.soLan) {
+    exerciseInfo.push(`${ex.soHiep} hiệp x ${ex.soLan} lần`);
+  }
+  if (ex.thoiGianPhut) {
+    exerciseInfo.push(`${ex.thoiGianPhut} phút`);
+  }
+  p.textContent = exerciseInfo.length > 0 ? exerciseInfo.join(" • ") : "Nội dung bài tập";
 
   const open = document.createElement("button");
   open.className = "btn primary open-btn";
   open.textContent = "Bắt đầu bài tập";
-  open.addEventListener("click", () => openDetail(ex.id));
+  open.addEventListener("click", () => openDetail(ex.chiTietId));
 
   content.appendChild(h4);
   content.appendChild(p);
@@ -93,9 +97,24 @@ function createExerciseItem(ex) {
   return wrapper;
 }
 
+// Helper: Lấy video ID từ YouTube URL
+function getYouTubeVideoId(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
 // Render danh sách bài tập
 function renderList() {
+  if (!listContainer) return;
   listContainer.innerHTML = "";
+  
+  if (exercises.length === 0) {
+    listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Chưa có bài tập nào trong kế hoạch</div>';
+    return;
+  }
+  
   exercises.forEach(ex => listContainer.appendChild(createExerciseItem(ex)));
 }
 
@@ -113,6 +132,7 @@ function formatDate(d) {
 }
 
 function renderWeek(now = new Date()) {
+  if (!weekGrid) return;
   weekGrid.innerHTML = "";
   const start = startOfWeek(now);
   const names = ["Th2","Th3","Th4","Th5","Th6","Th7","CN"];
@@ -120,13 +140,22 @@ function renderWeek(now = new Date()) {
     const dayDate = new Date(start);
     dayDate.setDate(start.getDate() + i);
     const node = document.createElement("div");
+    const dayOfWeek = i + 1; // 1 = Monday, 7 = Sunday
     node.className = "day" + (sameDate(dayDate, now) ? " now" : "");
     node.innerHTML = `<span>${names[i]}</span><b>${dayDate.getDate()}</b>`;
+    node.style.cursor = "pointer";
+    node.addEventListener("click", () => {
+      // Load bài tập cho ngày được chọn
+      loadExercisesForDay(currentWeek, dayOfWeek);
+      // Highlight ngày được chọn
+      weekGrid.querySelectorAll(".day").forEach(d => d.classList.remove("selected"));
+      node.classList.add("selected");
+    });
     weekGrid.appendChild(node);
   }
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
-  rangeLabel.textContent = `${formatDate(start)} - ${formatDate(end)}`;
+  if (rangeLabel) rangeLabel.textContent = `${formatDate(start)} - ${formatDate(end)}`;
 }
 
 let selectedMonthCell = null;
@@ -253,23 +282,51 @@ function showView(id) {
   }
 }
 
-function openDetail(id) {
-  const ex = exercises.find(e => e.id === id);
+function openDetail(chiTietId) {
+  const ex = exercises.find(e => e.chiTietId === chiTietId);
   if (!ex) return;
-  // Extract exercise name from title (e.g., "Bài tập thứ nhất: Deadlift" -> "Deadlift")
-  const nameMatch = ex.title.match(/:\s*(.+)/);
-  dTitle.textContent = nameMatch ? nameMatch[1].trim() : ex.title;
-  dThumb.src = ex.thumb;
-  dDesc.textContent = ex.desc;
-  dGuide.textContent = ex.guide;
-  const byId = (x)=>document.getElementById(x);
-  byId("m-sets").textContent = ex.sets;
-  byId("m-rest").textContent = ex.rest;
-  byId("m-quality").textContent = ex.quality || "Tốt";
-  byId("m-kcal").textContent = ex.kcal;
-  byId("m-ratio").textContent = ex.ratio || "15 / 3 - 5 / 1";
-  byId("m-level").textContent = ex.level || "Khó";
-  currentExerciseId = ex.id;
+  
+  if (dTitle) dTitle.textContent = ex.tenBaiTap;
+  
+  // Hiển thị thumbnail từ video URL
+  if (dThumb) {
+    if (ex.videoUrl) {
+      const videoId = getYouTubeVideoId(ex.videoUrl);
+      if (videoId) {
+        dThumb.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        dThumb.alt = ex.tenBaiTap;
+      } else {
+        dThumb.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='180'%3E%3Crect fill='%23e0e0e0' width='100%25' height='180'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+      }
+    } else {
+      dThumb.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='180'%3E%3Crect fill='%23e0e0e0' width='100%25' height='180'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+    }
+    dThumb.onerror = function() {
+      this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='180'%3E%3Crect fill='%23e0e0e0' width='100%25' height='180'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EKhông có ảnh%3C/text%3E%3C/svg%3E";
+    };
+  }
+  
+  if (dDesc) dDesc.textContent = ex.noiDung || "Nội dung bài tập";
+  if (dGuide) dGuide.textContent = ex.huongDan || "Hướng dẫn bài tập";
+  
+  const byId = (x) => document.getElementById(x);
+  if (byId("m-sets")) byId("m-sets").textContent = ex.soHiep || 0;
+  if (byId("m-rest")) byId("m-rest").textContent = ex.thoiGianPhut ? `${ex.thoiGianPhut} phút` : "30 giây";
+  if (byId("m-quality")) {
+    const quality = ex.danhGiaHieuQua >= 4 ? "Tốt" : ex.danhGiaHieuQua >= 3 ? "Khá" : "Trung bình";
+    byId("m-quality").textContent = quality;
+  }
+  if (byId("m-kcal")) byId("m-kcal").textContent = Math.round(ex.caloTieuHaoDuKien || 0);
+  if (byId("m-ratio")) {
+    const ratio = ex.soHiep && ex.soLan ? `${ex.soLan} / ${ex.soHiep}` : "N/A";
+    byId("m-ratio").textContent = ratio;
+  }
+  if (byId("m-level")) {
+    const level = ex.danhGiaDoKho >= 4 ? "Khó" : ex.danhGiaDoKho >= 3 ? "Trung bình" : "Dễ";
+    byId("m-level").textContent = level;
+  }
+  
+  currentExerciseId = ex.chiTietId;
   showView("detail");
   renderSessions(currentExerciseId);
 }
@@ -482,10 +539,164 @@ function drawSpark(svgEl, series){
   svgEl.innerHTML = `<polyline fill="none" stroke="#2d7ef7" stroke-width="2" points="${pts}" />`;
 }
 
+// Load dữ liệu từ database
+async function loadPlanData() {
+  try {
+    const response = await fetch('/KeHoachTapLuyen/GetCurrentPlan');
+    const data = await response.json();
+    
+    if (data.success && data.keHoach) {
+      currentPlan = data.keHoach;
+      exercises = data.keHoach.chiTietBaiTap || [];
+      
+      // Cập nhật thông tin chi tiết
+      updatePlanDetails();
+      
+      // Render danh sách bài tập
+      renderList();
+      
+      // Load bài tập cho tuần hiện tại
+      loadExercisesForCurrentWeek();
+    } else {
+      // Không có kế hoạch
+      if (listContainer) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Chưa có kế hoạch tập luyện. Vui lòng tạo kế hoạch từ trang Mục tiêu.</div>';
+      }
+    }
+  } catch (error) {
+    console.error('Error loading plan data:', error);
+    if (listContainer) {
+      listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);">Lỗi khi tải dữ liệu. Vui lòng thử lại sau.</div>';
+    }
+  }
+}
+
+// Cập nhật thông tin chi tiết kế hoạch
+function updatePlanDetails() {
+  if (!currentPlan) return;
+  
+  // Cập nhật thông tin trong details-grid
+  const detailsGrid = document.querySelector('.details-grid');
+  if (detailsGrid && currentPlan.mucTieu) {
+    const ngayBatDau = new Date(currentPlan.mucTieu.ngayBatDau);
+    const ngayKetThuc = currentPlan.mucTieu.ngayKetThuc ? new Date(currentPlan.mucTieu.ngayKetThuc) : null;
+    const today = new Date();
+    
+    // Tính số ngày còn lại
+    let soNgayConLai = 0;
+    if (ngayKetThuc) {
+      const diffTime = ngayKetThuc - today;
+      soNgayConLai = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (soNgayConLai < 0) soNgayConLai = 0;
+    }
+    
+    // Cập nhật các thông tin
+    const details = detailsGrid.querySelectorAll('div');
+    if (details.length >= 4) {
+      if (details[0]) {
+        const strong = details[0].querySelector('strong');
+        if (strong) strong.textContent = ngayBatDau.toLocaleDateString('vi-VN');
+      }
+      if (details[1]) {
+        const strong = details[1].querySelector('strong');
+        if (strong) strong.textContent = soNgayConLai;
+      }
+      if (details[2]) {
+        const strong = details[2].querySelector('strong');
+        if (strong) {
+          // Xác định buổi tập dựa trên thời gian
+          const hour = today.getHours();
+          if (hour < 12) strong.textContent = "Sáng";
+          else if (hour < 18) strong.textContent = "Chiều";
+          else strong.textContent = "Tối";
+        }
+      }
+      if (details[3]) {
+        const strong = details[3].querySelector('strong');
+        if (strong && ngayKetThuc) {
+          strong.textContent = ngayKetThuc.toLocaleDateString('vi-VN');
+        }
+      }
+    }
+  }
+  
+  // Cập nhật stats
+  const stats = document.querySelector('.stats');
+  if (stats && currentPlan) {
+    const statCards = stats.querySelectorAll('.stat');
+    if (statCards.length >= 3) {
+      // Kcal ước tính
+      if (statCards[0]) {
+        const badge = statCards[0].querySelector('.badge');
+        if (badge) {
+          const totalKcal = (currentPlan.caloTieuHaoMoiBuoi || 0) * (currentPlan.soBuoi || 0);
+          badge.textContent = Math.round(totalKcal);
+        }
+      }
+      // Hiệu quả
+      if (statCards[1]) {
+        const badge = statCards[1].querySelector('.badge');
+        if (badge && currentPlan.soBuoi && currentPlan.soTuan) {
+          const completed = Math.floor((currentPlan.soBuoi * currentPlan.soTuan) * 0.7); // Giả sử 70% hoàn thành
+          badge.textContent = `${completed}/${currentPlan.soBuoi * currentPlan.soTuan}`;
+        }
+      }
+      // Mức độ
+      if (statCards[2]) {
+        const badge = statCards[2].querySelector('.badge');
+        if (badge) {
+          const mucDo = currentPlan.mucDo === 'Beginner' ? 'Dễ' : 
+                       currentPlan.mucDo === 'Intermediate' ? 'Trung bình' : 'Khó';
+          badge.textContent = mucDo;
+        }
+      }
+    }
+  }
+}
+
+// Load bài tập cho tuần hiện tại
+async function loadExercisesForCurrentWeek() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const ngayTrongTuan = dayOfWeek === 0 ? 7 : dayOfWeek; // Chuyển sang 1-7 (Monday-Sunday)
+  await loadExercisesForDay(currentWeek, ngayTrongTuan);
+  
+  // Highlight ngày hôm nay trong lịch
+  if (weekGrid) {
+    const days = weekGrid.querySelectorAll('.day');
+    if (days[ngayTrongTuan - 1]) {
+      days.forEach(d => d.classList.remove('selected'));
+      days[ngayTrongTuan - 1].classList.add('selected');
+    }
+  }
+}
+
+// Load bài tập cho ngày cụ thể
+async function loadExercisesForDay(tuan, ngayTrongTuan) {
+  try {
+    const response = await fetch(`/KeHoachTapLuyen/GetExercisesByDay?tuan=${tuan}&ngayTrongTuan=${ngayTrongTuan}`);
+    const data = await response.json();
+    
+    if (data.success && data.exercises) {
+      exercises = data.exercises;
+      renderList();
+    } else {
+      exercises = [];
+      renderList();
+    }
+  } catch (error) {
+    console.error('Error loading exercises for day:', error);
+    exercises = [];
+    renderList();
+  }
+}
+
 // Khởi tạo
-renderList();
-// init schedule
-switchRange("week");
+document.addEventListener('DOMContentLoaded', () => {
+  loadPlanData();
+  // init schedule
+  if (rangeTabs) switchRange("week");
+});
 
 // ---------- ANIMATIONS (GSAP) ----------
 window.addEventListener("load", () => {
