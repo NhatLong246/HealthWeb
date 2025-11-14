@@ -138,6 +138,8 @@ body.light-mode .subtitle {
     padding: 1.25rem;
     border: 1px solid;
     transition: all 0.3s ease;
+    overflow: visible;
+    position: relative;
     min-height: auto;
     display: flex;
     flex-direction: column;
@@ -473,22 +475,18 @@ body.light-mode .pill.selectable.selected {
 .equip-section.hidden{display:none !important}
 
 .schedule {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 12px;
-}
-
-@media (max-width: 900px) {
-    .schedule {
-        grid-template-columns: 1fr;
-    }
+    display: block;
+    width: 100%;
 }
 
 .schedule-col {
     background: #f7fbff;
     border: 1px dashed #d8e7fb;
     border-radius: 12px;
-    padding: 12px;
+    padding: 16px;
+    width: 100%;
+    overflow: visible;
+    position: relative;
 }
 
 body.dark-mode .schedule-col {
@@ -517,20 +515,22 @@ body.light-mode .schedule-col h3 {
 /* Schedule pickers */
 .schedule-picker {
     position: relative;
+    display: inline-block;
+    width: 100%;
 }
 
 .dropdown-menu {
-    position: absolute;
-    z-index: 50;
+    position: fixed !important;
+    z-index: 9999 !important;
     min-width: 140px;
+    max-width: 300px;
     max-height: 240px;
     overflow: auto;
     background: #fff;
     border: 1px solid #d8e7fb;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     border-radius: 10px;
     padding: 6px;
-    margin-top: 6px;
 }
 
 body.dark-mode .dropdown-menu {
@@ -578,9 +578,43 @@ body.light-mode .dropdown-menu button:hover {
 /* Session grid */
 .session-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    gap: 12px;
     align-items: start;
+    width: 100%;
+    overflow: visible;
+    position: relative;
+}
+
+@media (max-width: 1200px) {
+    .session-grid {
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        gap: 10px;
+    }
+}
+
+@media (max-width: 900px) {
+    .session-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .session-grid .grid-head:nth-child(4),
+    .session-grid .grid-head:nth-child(5),
+    .session-grid .grid-row > *:nth-child(4),
+    .session-grid .grid-row > *:nth-child(5) {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 600px) {
+    .session-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .session-grid .grid-head,
+    .session-grid .grid-row > * {
+        grid-column: 1;
+    }
 }
 
 .session-grid .grid-head {
@@ -599,6 +633,8 @@ body.light-mode .session-grid .grid-head {
 
 .grid-row {
     display: contents;
+    position: relative;
+    overflow: visible;
 }
 
 .session-actions {
@@ -973,14 +1009,17 @@ body.light-mode .date-range {
 /* Summary two-column layout */
 .summary-layout{
     display:grid;
-    grid-template-columns:2fr 1fr;
-    gap:1rem;
+    grid-template-columns:1fr 400px; /* col-left rộng hơn, col-right cố định */
+    gap:2rem;
     width: 100%;
     max-width: 100%;
 }
 @media (max-width:1100px){
     .summary-layout{
         grid-template-columns:1fr;
+    }
+    .col-right {
+        order: -1; /* Move detail panel to top on mobile */
     }
 }
 .col-left,.col-right{
