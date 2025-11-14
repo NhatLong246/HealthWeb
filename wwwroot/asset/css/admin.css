@@ -2585,7 +2585,7 @@ input:checked + .slider {
 
 .analytics-tabs-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
     margin-bottom: 30px;
 }
