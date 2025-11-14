@@ -1,0 +1,589 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý người dùng - WebHealthy</title>
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="~/asset/css/admin.css" asp-append-version="true">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- JavaScript Files -->
+    <script src="~/asset/js/quanLiUser.js" asp-append-version="true"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar will be loaded by sidebar.js -->
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="page-title">Quản lý người dùng</h1>
+                <div class="header-actions">
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="notifications-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-menu">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Users Management Section -->
+            <section id="users" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Quản lý người dùng (Client)</h2>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-cards-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng người dùng</h3>
+                            <p class="kpi-value" id="total-users">0</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>% Hoàn thành mục tiêu</h3>
+                            <p class="kpi-value" id="goal-completion">0</p>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng cảnh báo sức khỏe</h3>
+                            <p class="kpi-value" id="total-health-alerts">0</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng bài tập</h3>
+                            <p class="kpi-value" id="total-exercises">0</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Cảnh báo bỏ lỡ tập luyện</h3>
+                            <p class="kpi-value" id="missed-workout-alerts">0</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng thực đơn</h3>
+                            <p class="kpi-value" id="total-menus">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filter Bar -->
+                <div class="advanced-filter-bar">
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label><i class="fas fa-search"></i> Tìm kiếm</label>
+                            <input type="text" id="search-keyword" class="filter-input" placeholder="Username/Email/UserID...">
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Ngày tạo</label>
+                            <div class="date-range-picker" id="filter-date-range-picker">
+                                <button type="button" class="date-range-btn" id="filter-date-range-btn">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span id="filter-date-range-text">Chọn khoảng thời gian</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="date-range-dropdown" id="filter-date-range-dropdown">
+                                    <!-- Date picker content will be generated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-filter" id="btn-apply-filter">
+                            <i class="fas fa-filter"></i> Áp dụng lọc
+                        </button>
+                        <button class="btn-reset" id="btn-reset-filter">
+                            <i class="fas fa-redo"></i> Đặt lại
+                        </button>
+                        <button class="btn-action" id="btn-export" title="Xuất dữ liệu">
+                            <i class="fas fa-download"></i> Xuất Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Users Cards Grid -->
+                <div class="users-cards-wrapper">
+                    <div class="users-header">
+                        <div class="users-info">
+                            <span id="users-count">0</span> người dùng
+                        </div>
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="grid" title="Grid view">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-btn" data-view="list" title="List view">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Users Cards Grid -->
+                    <div class="users-cards-grid" id="users-cards-grid">
+                        <!-- Loading state - shown by default until data loads -->
+                        <div class="loading-state" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: #667eea; margin-bottom: 20px;"></i>
+                            <p style="font-size: 16px; color: #7f8c8d; margin: 0;">Đang tải dữ liệu người dùng...</p>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="users-empty-state" id="users-empty-state" style="display: none;">
+                        <div class="empty-icon">
+                            <i class="fas fa-users-slash"></i>
+                        </div>
+                        <h3>Không tìm thấy người dùng nào</h3>
+                        <p>Thử điều chỉnh bộ lọc của bạn</p>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="table-pagination" id="users-pagination">
+                        <!-- Pagination will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Table View (hidden by default) -->
+                <div class="table-container" id="users-table-container" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="users-select-all"></th>
+                                <th>UserID</th>
+                                <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>Số điện thoại</th>
+                                <th>Role</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals for User Management -->
+    <!-- Profile 360° Modal -->
+    <div id="profile360-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-circle"></i> Hồ sơ 360° - <span id="profile360-username">-</span></h2>
+                <button class="modal-close" onclick="closeModal('profile360-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile360-tabs">
+                    <button class="profile360-tab active" data-tab="profile">
+                        <i class="fas fa-user"></i> Hồ sơ
+                    </button>
+                    <button class="profile360-tab" data-tab="health">
+                        <i class="fas fa-heartbeat"></i> Lưu trữ sức khỏe
+                    </button>
+                    <button class="profile360-tab" data-tab="goals">
+                        <i class="fas fa-bullseye"></i> Mục tiêu
+                    </button>
+                    <button class="profile360-tab" data-tab="plans">
+                        <i class="fas fa-calendar-check"></i> Kế hoạch tập/ăn
+                    </button>
+                    <button class="profile360-tab" data-tab="achievements">
+                        <i class="fas fa-trophy"></i> Thành tựu
+                    </button>
+                    <button class="profile360-tab" data-tab="notifications">
+                        <i class="fas fa-bell"></i> Thông báo/Nhắc nhở
+                    </button>
+                    <button class="profile360-tab" data-tab="transactions">
+                        <i class="fas fa-money-bill-wave"></i> Giao dịch
+                    </button>
+                </div>
+
+                <div class="profile360-content">
+                    <!-- Profile Tab -->
+                    <div class="profile360-tab-content active" id="tab-profile">
+                        <div class="profile-info-grid">
+                            <div class="info-card">
+                                <h3><i class="fas fa-id-card"></i> Thông tin cơ bản</h3>
+                                <div class="info-item">
+                                    <label>UserID:</label>
+                                    <span id="profile-userid">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Username:</label>
+                                    <span id="profile-username">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email:</label>
+                                    <span id="profile-email">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Họ tên:</label>
+                                    <span id="profile-fullname">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số điện thoại:</label>
+                                    <span id="profile-phone">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ngày sinh:</label>
+                                    <span id="profile-dob">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Giới tính:</label>
+                                    <span id="profile-gender">-</span>
+                                </div>
+                            </div>
+                            <div class="info-card">
+                                <h3><i class="fas fa-cog"></i> Cài đặt tài khoản</h3>
+                                <div class="info-item">
+                                    <label>Trạng thái:</label>
+                                    <span id="profile-status" class="status-badge">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Role:</label>
+                                    <span id="profile-role">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ngôn ngữ:</label>
+                                    <span id="profile-language">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Timezone:</label>
+                                    <span id="profile-timezone">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ngày tạo:</label>
+                                    <span id="profile-created">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Lần đăng nhập cuối:</label>
+                                    <span id="profile-lastlogin">-</span>
+                                </div>
+                            </div>
+                            <div class="info-card">
+                                <h3><i class="fas fa-chart-line"></i> KPI cá nhân</h3>
+                                <div class="info-item">
+                                    <label>Streak hiện tại:</label>
+                                    <span id="profile-streak" class="kpi-value">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số ngày có log gần nhất:</label>
+                                    <span id="profile-lastlog">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>% Hoàn thành mục tiêu:</label>
+                                    <span id="profile-goalcompletion">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số mục tiêu đang mở:</label>
+                                    <span id="profile-opengoals">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Tuân thủ kế hoạch ăn (tuần):</label>
+                                    <span id="profile-nutritioncompliance">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Tuân thủ kế hoạch tập (tuần):</label>
+                                    <span id="profile-workoutcompliance">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Cảnh báo sức khỏe:</label>
+                                    <span id="profile-healthalerts" class="alert-badge">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Records Tab -->
+                    <div class="profile360-tab-content" id="tab-health">
+                        <div class="health-records-container">
+                            <div class="health-records-grid" id="health-records-list">
+                                <!-- Health records will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goals Tab -->
+                    <div class="profile360-tab-content" id="tab-goals">
+                        <div class="goals-container" id="goals-list">
+                            <!-- Goals will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Plans Tab -->
+                    <div class="profile360-tab-content" id="tab-plans">
+                        <div class="plans-layout" data-layout-version="plans-v2">
+                            <div class="plan-section">
+                                <div class="plan-section-header">
+                                    <h3><i class="fas fa-dumbbell"></i> Kế hoạch tập luyện</h3>
+                                    <span class="plan-summary" id="workout-plan-count">0 kế hoạch</span>
+                                </div>
+                                <div class="plan-grid" id="workout-plans-list">
+                                    <!-- Workout plans will be loaded here -->
+                                </div>
+                            </div>
+                            <div class="plan-section">
+                                <div class="plan-section-header">
+                                    <h3><i class="fas fa-utensils"></i> Kế hoạch dinh dưỡng</h3>
+                                    <span class="plan-summary" id="nutrition-plan-count">0 kế hoạch</span>
+                                </div>
+                                <div class="plan-grid" id="nutrition-plans-list">
+                                    <!-- Nutrition plans will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Tab -->
+                    <div class="profile360-tab-content" id="tab-achievements">
+                        <div class="achievements-container" id="achievements-list">
+                            <!-- Achievements will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Notifications Tab -->
+                    <div class="profile360-tab-content" id="tab-notifications">
+                        <div class="notifications-container" id="notifications-list">
+                            <!-- Notifications will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Transactions Tab -->
+                    <div class="profile360-tab-content" id="tab-transactions">
+                        <div class="transactions-container" data-layout-version="transactions-v2">
+                            <div class="transactions-header">
+                                <h3><i class="fas fa-receipt"></i> Lịch sử giao dịch</h3>
+                                <span class="transactions-count" id="transactions-count">0 giao dịch</span>
+                            </div>
+                            <div class="transactions-list" id="transactions-list">
+                                <!-- Transactions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div id="status-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Cập nhật trạng thái</h2>
+                <button class="modal-close" onclick="closeModal('status-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Trạng thái mới:</label>
+                    <select id="new-status" class="form-input">
+                        <option value="">Chọn trạng thái...</option>
+                        <option value="Active">Active</option>
+                        <option value="Locked">Locked</option>
+                        <option value="PendingVerify">Pending Verify</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lý do (tùy chọn):</label>
+                    <textarea id="status-reason" class="form-input" rows="3" placeholder="Nhập lý do thay đổi trạng thái..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal('status-modal')">Hủy</button>
+                    <button class="btn-primary" id="btn-confirm-status">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="reset-password-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-key"></i> Đặt lại mật khẩu</h2>
+                <button class="modal-close" onclick="closeModal('reset-password-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>UserID:</label>
+                    <input type="text" id="reset-userid" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="reset-email" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Chọn phương thức:</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="reset-method" value="email" checked>
+                            <span>Gửi email reset link</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="reset-method" value="token">
+                            <span>Tạo reset token (hiển thị)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" id="reset-token-display" style="display: none;">
+                    <label>Reset Token:</label>
+                    <div class="token-display">
+                        <input type="text" id="reset-token" class="form-input" readonly>
+                        <button class="btn-copy" onclick="copyToClipboard('reset-token')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <small>Token hết hạn sau 24 giờ</small>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal('reset-password-modal')">Hủy</button>
+                    <button class="btn-primary" id="btn-confirm-reset">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revoke PT Access Modal -->
+    <div id="revoke-pt-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-slash"></i> Thu hồi quyền PT</h2>
+                <button class="modal-close" onclick="closeModal('revoke-pt-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>UserID:</label>
+                    <input type="text" id="revoke-userid" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Danh sách PT đang có quyền:</label>
+                    <div id="pt-access-list" class="pt-list">
+                        <!-- PT list will be loaded here -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Lý do:</label>
+                    <textarea id="revoke-reason" class="form-input" rows="3" placeholder="Nhập lý do cấp/thu hồi quyền..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel btn-cancel-small" onclick="closeModal('revoke-pt-modal')">Hủy</button>
+                    <button class="btn-grant-pt-modal" id="btn-grant-pt-modal" style="display: none;" onclick="handleGrantPTFromModal()">
+                        <i class="fas fa-user-check"></i> Cấp quyền lại
+                    </button>
+                    <button class="btn-revoke-pt-modal" id="btn-revoke-pt-modal" style="display: none;" onclick="handleRevokePTFromModal()">
+                        <i class="fas fa-user-slash"></i> Thu hồi quyền
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Modal -->
+    <div id="delete-user-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-trash-alt"></i> Xóa người dùng</h2>
+                <button class="modal-close" onclick="closeModal('delete-user-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>UserID:</label>
+                    <input type="text" id="delete-userid" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="delete-username" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="delete-email" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Loại xóa:</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="delete-type" value="soft" checked>
+                            <span>Xóa mềm (ẩn khỏi UI)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="delete-type" value="hard">
+                            <span>Xóa cứng (cascade - không thể hoàn tác)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Lý do xóa:</label>
+                    <textarea id="delete-reason" class="form-input" rows="3" placeholder="Nhập lý do xóa..." required></textarea>
+                </div>
+                <div class="warning-box" id="hard-delete-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Cảnh báo:</strong> Xóa cứng sẽ xóa vĩnh viễn tất cả dữ liệu liên quan và không thể hoàn tác!
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal('delete-user-modal')">Hủy</button>
+                    <button class="btn-danger" id="btn-confirm-delete">Xác nhận xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/asset/js/sidebar.js" asp-append-version="true"></script>
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeUsersManagement === 'function') {
+                initializeUsersManagement();
+            }
+        });
+    </script>
+</body>
+</html>
+

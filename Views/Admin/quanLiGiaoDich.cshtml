@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý giao dịch - WebHealthy</title>
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="~/asset/css/admin.css" asp-append-version="true">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- JavaScript Files -->
+    <script src="~/asset/js/quanLiGiaoDich.js" asp-append-version="true"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar will be loaded by sidebar.js -->
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="page-title">Quản lý giao dịch</h1>
+                <div class="header-actions">
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="notifications-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-menu">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Transactions Management Section -->
+            <section id="transactions" class="content-section active">
+                <div class="section-header">
+                    <h2>Quản lý gói thành viên & giao dịch</h2>
+                    <div class="header-actions-group">
+                        <button class="btn-primary" id="btn-export-transactions">
+                            <i class="fas fa-download"></i> Xuất báo cáo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-cards-grid" id="transactions-kpi-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng doanh thu</h3>
+                            <p class="kpi-value" id="total-revenue-kpi">0</p>
+                            <span class="kpi-unit">VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Hoa hồng App</h3>
+                            <p class="kpi-value" id="total-commission-kpi">0</p>
+                            <span class="kpi-unit">VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Doanh thu PT</h3>
+                            <p class="kpi-value" id="total-pt-revenue-kpi">0</p>
+                            <span class="kpi-unit">VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng giao dịch</h3>
+                            <p class="kpi-value" id="total-transactions-kpi">0</p>
+                            <span class="kpi-unit">giao dịch</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filter Bar -->
+                <div class="advanced-filter-bar-enhanced">
+                    <div class="filter-section">
+                        <div class="filter-section-header">
+                            <i class="fas fa-search"></i>
+                            <span>TÌM KIẾM</span>
+                        </div>
+                        <div class="filter-input-wrapper">
+                            <i class="fas fa-search filter-input-icon"></i>
+                            <input type="text" class="filter-input-enhanced" id="transaction-search" placeholder="Mã GD, tên người dùng...">
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="filter-section-header">
+                            <i class="fas fa-credit-card"></i>
+                            <span>PHƯƠNG THỨC</span>
+                        </div>
+                        <div class="filter-select-wrapper">
+                            <i class="fas fa-chevron-down filter-select-icon"></i>
+                            <select class="filter-select-enhanced" id="filter-payment-method">
+                                <option value="">Tất cả</option>
+                                <option value="Momo">Momo</option>
+                                <option value="ZaloPay">ZaloPay</option>
+                                <option value="VNPay">VNPay</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-section filter-section-date">
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Lọc ngày</label>
+                            <div class="date-range-picker" id="filter-date-range-picker">
+                                <button type="button" class="date-range-btn" id="filter-date-range-btn">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span id="filter-date-range-text">Chọn khoảng thời gian</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="date-range-dropdown" id="filter-date-range-dropdown">
+                                    <!-- Date picker content will be generated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions-enhanced">
+                        <button class="btn-filter-apply" id="btn-apply-filter">
+                            <i class="fas fa-filter"></i>
+                            <span>Áp dụng</span>
+                        </button>
+                        <button class="btn-filter-reset" id="btn-reset-filter">
+                            <i class="fas fa-redo-alt"></i>
+                            <span>Đặt lại</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Revenue Analysis Chart -->
+                <div class="revenue-analysis-section">
+                    <div class="section-header-small">
+                        <h3><i class="fas fa-chart-bar"></i> Phân tích doanh thu thuê PT</h3>
+                    </div>
+                    <div class="revenue-chart-container" id="revenue-chart">
+                        <!-- Loading state - shown by default until data loads -->
+                        <div style="text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: #667eea; margin-bottom: 20px;"></i>
+                            <p style="color: #7f8c8d; font-size: 16px;">Đang tải dữ liệu...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mã GD</th>
+                                <th>Người mua</th>
+                                <th>Người nhận (PT)</th>
+                                <th>Tổng tiền</th>
+                                <th>Hoa hồng</th>
+                                <th>PT nhận</th>
+                                <th>Phương thức</th>
+                                <th>Ngày giờ</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table-body">
+                            <!-- Loading state - shown by default until data loads -->
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 60px 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: #667eea; margin-bottom: 20px; display: block;"></i>
+                                    <p style="color: #7f8c8d; font-size: 16px; margin: 0;">Đang tải dữ liệu giao dịch...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="table-pagination" id="transaction-pagination">
+                    <!-- Pagination will be dynamically generated -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <div id="modal-transaction-detail" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 1000px; max-height: 95vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-receipt"></i> Chi tiết giao dịch</h2>
+                <button class="modal-close" onclick="closeTransactionDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div id="transaction-detail-content" style="padding: 0;">
+                    <!-- Transaction details will be loaded here -->
+                </div>
+                <div class="modal-actions" style="padding: 24px 30px; border-top: 1px solid #f0f0f0; background: white; margin-top: 0;">
+                    <button class="btn-cancel" onclick="closeTransactionDetailModal()">
+                        <i class="fas fa-times"></i> Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/asset/js/sidebar.js" asp-append-version="true"></script>
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeTransactions === 'function') {
+                initializeTransactions();
+            }
+        });
+    </script>
+</body>
+</html>
+
