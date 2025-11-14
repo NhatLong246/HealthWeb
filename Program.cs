@@ -5,7 +5,13 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // Giữ nguyên PascalCase cho JSON (không convert sang camelCase)
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        options.JsonSerializerOptions.WriteIndented = false;
+    });
 
 // Add HttpClient for OpenAI API
 builder.Services.AddHttpClient();

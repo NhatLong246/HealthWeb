@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using HealthWeb.Models.EF;
 using HealthWeb.Models.Entities;
+using System.Security.Claims;
 
 namespace HealthWeb.Controllers
 {
@@ -22,21 +23,56 @@ namespace HealthWeb.Controllers
             return View("ThongKe");
         }
 
+        // Helper: Lấy userId từ session
+        private string? GetUserId()
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId) && HttpContext.User?.Identity?.IsAuthenticated == true)
+            {
+                userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
+            return userId;
+        }
+
+        // API: Lấy userId hiện tại
+        [HttpGet("ThongKe/GetCurrentUserId")]
+        public IActionResult GetCurrentUserId()
+        {
+            var userId = GetUserId();
+            _logger.LogInformation("GetCurrentUserId API called, userId: {UserId}", userId ?? "null");
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Chưa đăng nhập" });
+            }
+            return Json(new { success = true, userId = userId });
+        }
+
         // API: Lấy thống kê tổng quan
         [HttpGet("ThongKe/GetOverview")]
-        public async Task<IActionResult> GetOverview(string userId)
+        public async Task<IActionResult> GetOverview()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetOverview: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
+                _logger.LogInformation("GetOverview: Loading data for userId: {UserId}", userId);
+
                 // Tổng số buổi tập
                 var totalSessions = await _context.NhatKyHoanThanhBaiTaps
                     .Where(x => x.UserId == userId)
                     .CountAsync();
 
-                // Tổng thời gian (giờ)
-                var totalTimeHours = await _context.NhatKyHoanThanhBaiTaps
-                    .Where(x => x.UserId == userId && x.ThoiLuongThucTePhut != null)
-                    .SumAsync(x => x.ThoiLuongThucTePhut ?? 0) / 60.0;
+                // Tổng thời gian (giờ) - tính cả NULL (coi như 0)
+                var totalTimeMinutes = await _context.NhatKyHoanThanhBaiTaps
+                    .Where(x => x.UserId == userId)
+                    .SumAsync(x => x.ThoiLuongThucTePhut ?? 0);
+                var totalTimeHours = totalTimeMinutes / 60.0;
 
                 // Tổng số thành tựu
                 var totalAchievements = await _context.ThanhTuus
@@ -51,6 +87,9 @@ namespace HealthWeb.Controllers
                     .Where(x => x.UserId == userId && x.DaHoanThanh == true)
                     .CountAsync();
                 var goalAchievedPercent = totalGoals > 0 ? (completedGoals * 100.0 / totalGoals) : 0;
+
+                _logger.LogInformation("GetOverview: Results - Sessions: {Sessions}, Time: {Time}h, Achievements: {Achievements}, Goals: {Goals}%", 
+                    totalSessions, totalTimeHours, totalAchievements, goalAchievedPercent);
 
                 return Json(new
                 {
@@ -73,12 +112,22 @@ namespace HealthWeb.Controllers
 
         // API: Lấy tiến độ tập luyện 7 ngày
         [HttpGet("ThongKe/GetWeeklyProgress")]
-        public async Task<IActionResult> GetWeeklyProgress(string userId)
+        public async Task<IActionResult> GetWeeklyProgress()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetWeeklyProgress: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
                 var endDate = DateTime.Now.Date;
                 var startDate = endDate.AddDays(-6);
+
+                _logger.LogInformation("GetWeeklyProgress: Loading data for userId: {UserId}, from {StartDate} to {EndDate}", 
+                    userId, startDate, endDate);
 
                 var progress = new List<object>();
                 var dayNames = new[] { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
@@ -86,8 +135,9 @@ namespace HealthWeb.Controllers
                 for (var date = startDate; date <= endDate; date = date.AddDays(1))
                 {
                     var dateOnly = DateOnly.FromDateTime(date);
+                    // Tính tổng thời gian, bao gồm cả NULL (coi như 0)
                     var minutes = await _context.NhatKyHoanThanhBaiTaps
-                        .Where(x => x.UserId == userId && x.NgayHoanThanh == dateOnly && x.ThoiLuongThucTePhut != null)
+                        .Where(x => x.UserId == userId && x.NgayHoanThanh == dateOnly)
                         .SumAsync(x => x.ThoiLuongThucTePhut ?? 0);
 
                     // DayOfWeek: Sunday = 0, Monday = 1, ..., Saturday = 6
@@ -98,6 +148,8 @@ namespace HealthWeb.Controllers
                         Minutes = (int)minutes
                     });
                 }
+
+                _logger.LogInformation("GetWeeklyProgress: Found {Count} days with data", progress.Count(p => ((dynamic)p).Minutes > 0));
 
                 return Json(new { success = true, data = progress });
             }
@@ -110,38 +162,64 @@ namespace HealthWeb.Controllers
 
         // API: Lấy phân bố loại tập luyện
         [HttpGet("ThongKe/GetTrainingDistribution")]
-        public async Task<IActionResult> GetTrainingDistribution(string userId)
+        public async Task<IActionResult> GetTrainingDistribution()
         {
             try
             {
-                var distribution = await _context.NhatKyHoanThanhBaiTaps
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetTrainingDistribution: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
+                _logger.LogInformation("GetTrainingDistribution: Loading data for userId: {UserId}", userId);
+
+                // Lấy tất cả nhật ký hoàn thành bài tập
+                var nhatKyList = await _context.NhatKyHoanThanhBaiTaps
                     .Where(x => x.UserId == userId)
                     .Include(x => x.ChiTiet)
                         .ThenInclude(x => x.KeHoach)
+                    .ToListAsync();
+
+                // Group by LoaiKeHoach, xử lý null safety
+                var distribution = nhatKyList
+                    .Where(x => x.ChiTiet != null && x.ChiTiet.KeHoach != null)
                     .GroupBy(x => x.ChiTiet.KeHoach.LoaiKeHoach ?? "Khác")
                     .Select(g => new
                     {
                         Type = g.Key,
                         Count = g.Count()
                     })
-                    .ToListAsync();
+                    .ToList();
+
+                _logger.LogInformation("GetTrainingDistribution: Found {Count} training types", distribution.Count);
 
                 // Nếu không có dữ liệu, trả về mảng rỗng (frontend sẽ xử lý)
                 return Json(new { success = true, data = distribution });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading training distribution");
+                _logger.LogError(ex, "Error loading training distribution: {Message}", ex.Message);
                 return Json(new { success = false, message = "Không thể tải phân bố loại tập luyện" });
             }
         }
 
         // API: Lấy thành tựu đã đạt được
         [HttpGet("ThongKe/GetAchievements")]
-        public async Task<IActionResult> GetAchievements(string userId)
+        public async Task<IActionResult> GetAchievements()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetAchievements: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
+                _logger.LogInformation("GetAchievements: Loading data for userId: {UserId}", userId);
+
                 var achievements = await _context.ThanhTuus
                     .Where(x => x.UserId == userId)
                     .OrderByDescending(x => x.NgayDatDuoc)
@@ -154,27 +232,38 @@ namespace HealthWeb.Controllers
                     })
                     .ToListAsync();
 
+                _logger.LogInformation("GetAchievements: Found {Count} achievements", achievements.Count);
+
                 return Json(new { success = true, data = achievements });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading achievements");
+                _logger.LogError(ex, "Error loading achievements: {Message}", ex.Message);
                 return Json(new { success = false, message = "Không thể tải thành tựu" });
             }
         }
 
         // API: Lấy thống kê chi tiết
         [HttpGet("ThongKe/GetDetailedStats")]
-        public async Task<IActionResult> GetDetailedStats(string userId)
+        public async Task<IActionResult> GetDetailedStats()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetDetailedStats: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
+                _logger.LogInformation("GetDetailedStats: Loading data for userId: {UserId}", userId);
+
                 var totalSessions = await _context.NhatKyHoanThanhBaiTaps
                     .Where(x => x.UserId == userId)
                     .CountAsync();
 
                 var totalTimeMinutes = await _context.NhatKyHoanThanhBaiTaps
-                    .Where(x => x.UserId == userId && x.ThoiLuongThucTePhut != null)
+                    .Where(x => x.UserId == userId)
                     .SumAsync(x => x.ThoiLuongThucTePhut ?? 0);
 
                 var totalCalories = await _context.NhatKyHoanThanhBaiTaps
@@ -216,29 +305,36 @@ namespace HealthWeb.Controllers
 
         // API: So sánh hiệu suất tuần này vs tuần trước
         [HttpGet("ThongKe/GetPerformanceComparison")]
-        public async Task<IActionResult> GetPerformanceComparison(string userId)
+        public async Task<IActionResult> GetPerformanceComparison()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetPerformanceComparison: UserId is null or empty");
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
+                _logger.LogInformation("GetPerformanceComparison: Loading data for userId: {UserId}", userId);
+
                 var now = DateTime.Now.Date;
                 var thisWeekStart = now.AddDays(-(int)now.DayOfWeek + 1); // Monday
                 var lastWeekStart = thisWeekStart.AddDays(-7);
                 var lastWeekEnd = thisWeekStart.AddDays(-1);
 
-                // Tuần này
+                // Tuần này - tính cả NULL (coi như 0)
                 var thisWeekMinutes = await _context.NhatKyHoanThanhBaiTaps
                     .Where(x => x.UserId == userId &&
                                DateOnly.FromDateTime(thisWeekStart) <= x.NgayHoanThanh &&
-                               x.NgayHoanThanh <= DateOnly.FromDateTime(now) &&
-                               x.ThoiLuongThucTePhut != null)
+                               x.NgayHoanThanh <= DateOnly.FromDateTime(now))
                     .SumAsync(x => x.ThoiLuongThucTePhut ?? 0);
 
-                // Tuần trước
+                // Tuần trước - tính cả NULL (coi như 0)
                 var lastWeekMinutes = await _context.NhatKyHoanThanhBaiTaps
                     .Where(x => x.UserId == userId &&
                                DateOnly.FromDateTime(lastWeekStart) <= x.NgayHoanThanh &&
-                               x.NgayHoanThanh <= DateOnly.FromDateTime(lastWeekEnd) &&
-                               x.ThoiLuongThucTePhut != null)
+                               x.NgayHoanThanh <= DateOnly.FromDateTime(lastWeekEnd))
                     .SumAsync(x => x.ThoiLuongThucTePhut ?? 0);
 
                 return Json(new
@@ -286,10 +382,16 @@ namespace HealthWeb.Controllers
 
         // API: Lấy thống kê sức khỏe (cân nặng, BMI) theo thời gian
         [HttpGet("ThongKe/GetHealthStats")]
-        public async Task<IActionResult> GetHealthStats(string userId, string period = "7days")
+        public async Task<IActionResult> GetHealthStats(string period = "7days")
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
                 DateOnly startDate;
                 switch (period)
                 {
@@ -314,9 +416,14 @@ namespace HealthWeb.Controllers
                     {
                         Date = x.NgayGhiNhan.ToString("yyyy-MM-dd"),
                         Weight = x.CanNang ?? 0,
-                        BMI = x.Bmi ?? 0
+                        BMI = x.Bmi ?? (x.CanNang.HasValue && x.ChieuCao.HasValue && x.ChieuCao > 0 
+                            ? Math.Round((double)x.CanNang.Value / Math.Pow((double)x.ChieuCao.Value / 100, 2), 1) 
+                            : 0)
                     })
                     .ToListAsync();
+
+                _logger.LogInformation("GetHealthStats: Found {Count} health records for userId: {UserId}", 
+                    healthData.Count, userId);
 
                 // Tính tốc độ thay đổi trung bình (kg/tuần)
                 double avgChangePerWeek = 0;
@@ -348,10 +455,16 @@ namespace HealthWeb.Controllers
 
         // API: Lấy mục tiêu cân nặng
         [HttpGet("ThongKe/GetWeightGoals")]
-        public async Task<IActionResult> GetWeightGoals(string userId)
+        public async Task<IActionResult> GetWeightGoals()
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
                 var goals = await _context.MucTieus
                     .Where(x => x.UserId == userId && 
                                 (x.LoaiMucTieu.Contains("Weight") || x.LoaiMucTieu.Contains("Cân nặng")))
@@ -377,10 +490,16 @@ namespace HealthWeb.Controllers
 
         // API: Lấy thống kê dinh dưỡng (calo tiêu thụ vs đốt cháy)
         [HttpGet("ThongKe/GetNutritionStats")]
-        public async Task<IActionResult> GetNutritionStats(string userId, string period = "7days")
+        public async Task<IActionResult> GetNutritionStats(string period = "7days")
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
                 DateOnly startDate;
                 switch (period)
                 {
@@ -406,9 +525,14 @@ namespace HealthWeb.Controllers
                     .Select(g => new
                     {
                         Date = g.Key.ToString("yyyy-MM-dd"),
-                        Calories = g.Sum(x => (x.MonAn.LuongCalo ?? 0) * (x.LuongThucAn ?? 0) / 100)
+                        Calories = g.Sum(x => x.MonAn != null 
+                            ? ((x.MonAn.LuongCalo ?? 0) * (x.LuongThucAn ?? 0) / 100.0)
+                            : 0)
                     })
                     .ToListAsync();
+
+                _logger.LogInformation("GetNutritionStats: Found {Count} days with consumed calories for userId: {UserId}", 
+                    consumedCalories.Count, userId);
 
                 // Calo đốt cháy từ tập luyện
                 var burnedCalories = await _context.NhatKyHoanThanhBaiTaps
@@ -420,6 +544,9 @@ namespace HealthWeb.Controllers
                         Calories = g.Sum(x => x.CaloTieuHao ?? 0)
                     })
                     .ToListAsync();
+
+                _logger.LogInformation("GetNutritionStats: Found {Count} days with burned calories for userId: {UserId}", 
+                    burnedCalories.Count, userId);
 
                 // Tổng hợp theo ngày
                 var allDates = consumedCalories.Select(x => x.Date)
@@ -468,10 +595,16 @@ namespace HealthWeb.Controllers
 
         // API: Lấy tỷ lệ macro (Protein/Carbs/Fat) thực tế vs mục tiêu
         [HttpGet("ThongKe/GetMacroRatio")]
-        public async Task<IActionResult> GetMacroRatio(string userId, string period = "7days")
+        public async Task<IActionResult> GetMacroRatio(string period = "7days")
         {
             try
             {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+                }
+
                 DateOnly startDate;
                 switch (period)
                 {

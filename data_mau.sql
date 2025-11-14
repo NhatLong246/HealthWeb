@@ -114,13 +114,13 @@ VALUES
 
 INSERT INTO ThanhTuu (UserID, TenBadge, Diem, NgayDatDuoc, MoTa)
 VALUES
-    ('user_0001', '10 Bài Tập Hoàn Thành', 45, '2025-11-02 09:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Hãy tiếp tục nhé!'),
-    ('user_0001', '20 Bài Tập Hoàn Thành', 90, '2025-11-03 15:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Tiếp tục phát huy!'),
-    ('user_0002', '10 Bài Tập Hoàn Thành', 45, '2025-11-01 18:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Giữ vững phong độ!'),
-    ('user_0002', '20 Bài Tập Hoàn Thành', 90, '2025-11-02 08:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Bạn thật tuyệt vời!'),
-    ('user_0005', '10 Bài Tập Hoàn Thành', 45, '2025-11-02 12:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Hãy tiếp tục nhé!'),
-    ('user_0007', '20 Bài Tập Hoàn Thành', 90, '2025-11-01 20:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Tiếp tục chinh phục!'),
-    ('user_0008', '30 Bài Tập Hoàn Thành', 135, '2025-11-02 07:00:00', N'Chúc mừng bạn đã hoàn thành 30 bài tập. Bạn là một ngôi sao!');
+    ('user_0001', N'10 Bài Tập Hoàn Thành', 45, '2025-11-02 09:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Hãy tiếp tục nhé!'),
+    ('user_0001', N'20 Bài Tập Hoàn Thành', 90, '2025-11-03 15:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Tiếp tục phát huy!'),
+    ('user_0002', N'10 Bài Tập Hoàn Thành', 45, '2025-11-01 18:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Giữ vững phong độ!'),
+    ('user_0002', N'20 Bài Tập Hoàn Thành', 90, '2025-11-02 08:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Bạn thật tuyệt vời!'),
+    ('user_0005', N'10 Bài Tập Hoàn Thành', 45, '2025-11-02 12:00:00', N'Chúc mừng bạn đã hoàn thành 10 bài tập. Hãy tiếp tục nhé!'),
+    ('user_0007', N'20 Bài Tập Hoàn Thành', 90, '2025-11-01 20:00:00', N'Chúc mừng bạn đã hoàn thành 20 bài tập. Tiếp tục chinh phục!'),
+    ('user_0008', N'30 Bài Tập Hoàn Thành', 135, '2025-11-02 07:00:00', N'Chúc mừng bạn đã hoàn thành 30 bài tập. Bạn là một ngôi sao!');
 
 INSERT INTO NhatKyDinhDuong (DinhDuongID, UserID, NgayGhiLog, MonAnID, LuongThucAn, GhiChu)
 VALUES

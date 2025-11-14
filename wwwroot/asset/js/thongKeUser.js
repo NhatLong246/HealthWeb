@@ -2,26 +2,42 @@
 (function() {
     'use strict';
 
-    // Lấy userId từ localStorage hoặc session
-    function getUserId() {
+    // Lấy userId từ server
+    let userId = null;
+    
+    async function getUserId() {
+        if (userId) {
+            console.log('getUserId: Using cached userId:', userId);
+            return userId;
+        }
+        
         try {
-            // Thử lấy từ localStorage (nếu có)
-            const userId = localStorage.getItem('hw_userId');
-            if (userId) return userId;
+            console.log('getUserId: Fetching userId from server...');
+            const response = await fetch('/ThongKe/GetCurrentUserId', {
+                credentials: 'same-origin'
+            });
             
-            // Hoặc từ sessionStorage
-            const sessionUserId = sessionStorage.getItem('hw_userId');
-            if (sessionUserId) return sessionUserId;
+            if (!response.ok) {
+                console.error('getUserId: Response not ok:', response.status, response.statusText);
+                return null;
+            }
             
-            // Fallback: demo user (có thể thay đổi)
-            return 'user_0001';
+            const result = await response.json();
+            console.log('getUserId: Response:', result);
+            
+            if (result.success && result.userId) {
+                userId = result.userId;
+                console.log('getUserId: Successfully got userId:', userId);
+                return userId;
+            } else {
+                console.warn('getUserId: Chưa đăng nhập hoặc không thể lấy userId. Result:', result);
+                return null;
+            }
         } catch (e) {
-            console.error('Error getting userId:', e);
-            return 'user_0001';
+            console.error('getUserId: Error getting userId:', e);
+            return null;
         }
     }
-
-    const userId = getUserId();
     let progressChart, distributionChart, comparisonChart;
     let healthChart, caloriesChart, macroChart;
     let currentHealthPeriod = '7days';
@@ -50,26 +66,75 @@
     }
 
     // Khởi tạo
-    document.addEventListener('DOMContentLoaded', function() {
-        setupExportButtons();
-        // Load sample data ngay để preview (sẽ được thay thế nếu có dữ liệu thật)
-        loadSampleData();
-        loadSampleHealthData();
-        loadSampleNutritionData();
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('=== THỐNG KÊ PAGE LOADED ===');
+        console.log('Checking for required elements...');
         
-        // Sau đó thử load dữ liệu thật từ API
-        setTimeout(() => {
-            loadAllData();
-            loadHealthData();
-            loadNutritionData();
-        }, 100);
+        // Kiểm tra các phần tử HTML có tồn tại không
+        const requiredElements = [
+            'totalSessions', 'totalTime', 'totalAchievements', 'goalAchieved',
+            'progressChart', 'distributionChart', 'comparisonChart',
+            'healthChart', 'caloriesChart', 'macroChart'
+        ];
+        
+        requiredElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) {
+                console.error(`Element #${id} not found!`);
+            } else {
+                console.log(`Element #${id} found`);
+            }
+        });
+        
+        setupExportButtons();
+        
+        // Lấy userId từ server trước
+        console.log('Getting userId from server...');
+        const currentUserId = await getUserId();
+        console.log('Current userId:', currentUserId);
+        
+        if (!currentUserId) {
+            // Nếu chưa đăng nhập, hiển thị thông báo
+            console.warn('Chưa đăng nhập - userId is null or empty');
+            showError('Vui lòng đăng nhập để xem thống kê của bạn');
+            showNoDataMessage();
+        } else {
+            // Load dữ liệu thật từ database
+            console.log('Đã đăng nhập, đang tải dữ liệu từ database... userId:', currentUserId);
+            try {
+                await loadAllData();
+                console.log('loadAllData completed');
+                await loadHealthData();
+                console.log('loadHealthData completed');
+                await loadNutritionData();
+                console.log('loadNutritionData completed');
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
         
         // Lắng nghe sự kiện thay đổi theme và cập nhật lại charts
         setupThemeChangeListener();
         
         // Setup period selector buttons
         setupPeriodSelectors();
+        
+        console.log('=== INITIALIZATION COMPLETE ===');
     });
+    
+    // Hiển thị thông báo không có dữ liệu
+    function showNoDataMessage() {
+        const containers = [
+            document.getElementById('achievementsList'),
+            document.getElementById('weightGoalsList')
+        ];
+        
+        containers.forEach(container => {
+            if (container) {
+                container.innerHTML = '<div class="loading">Chưa có dữ liệu</div>';
+            }
+        });
+    }
     
     // Thiết lập listener để cập nhật charts khi theme thay đổi
     function setupThemeChangeListener() {
@@ -176,7 +241,8 @@
     // Tải tất cả dữ liệu
     async function loadAllData() {
         try {
-            // Thử tải dữ liệu từ API
+            console.log('Starting loadAllData...');
+            // Tải tất cả dữ liệu từ API
             const results = await Promise.allSettled([
                 loadOverview(),
                 loadWeeklyProgress(),
@@ -186,86 +252,45 @@
                 loadPerformanceComparison()
             ]);
             
-            // Nếu tất cả đều fail hoặc không có dữ liệu, load dữ liệu mẫu
-            const allFailed = results.every(r => r.status === 'rejected');
-            if (allFailed) {
-                console.log('Loading sample data...');
-                loadSampleData();
-            } else {
-                // Kiểm tra nếu có dữ liệu rỗng, load sample data
-                setTimeout(() => {
-                    if (document.getElementById('totalSessions').textContent === '0' &&
-                        document.getElementById('totalTime').textContent === '0h') {
-                        loadSampleData();
-                    }
-                }, 500);
-            }
+            // Log kết quả của từng function
+            const functionNames = ['loadOverview', 'loadWeeklyProgress', 'loadTrainingDistribution', 
+                                 'loadAchievements', 'loadDetailedStats', 'loadPerformanceComparison'];
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    console.log(`${functionNames[index]} completed successfully`);
+                } else {
+                    console.error(`${functionNames[index]} failed:`, result.reason);
+                }
+            });
+            
+            console.log('Đã tải xong dữ liệu từ database');
         } catch (error) {
             console.error('Error loading data:', error);
-            loadSampleData();
         }
-    }
-    
-    // Tải dữ liệu mẫu
-    function loadSampleData() {
-        console.log('Loading sample data for preview...');
-        
-        // Sample overview data
-        document.getElementById('totalSessions').textContent = '128';
-        document.getElementById('totalTime').textContent = '245h';
-        document.getElementById('totalAchievements').textContent = '15';
-        document.getElementById('goalAchieved').textContent = '78%';
-        
-        // Sample weekly progress
-        const sampleProgress = [
-            { Day: 'T2', Minutes: 42 },
-            { Day: 'T3', Minutes: 60 },
-            { Day: 'T4', Minutes: 30 },
-            { Day: 'T5', Minutes: 75 },
-            { Day: 'T6', Minutes: 90 },
-            { Day: 'T7', Minutes: 50 },
-            { Day: 'CN', Minutes: 65 }
-        ];
-        renderProgressChart(sampleProgress);
-        
-        // Sample training distribution
-        const sampleDistribution = [
-            { Type: 'Cardio', Count: 45 },
-            { Type: 'Strength', Count: 38 },
-            { Type: 'Yoga', Count: 25 },
-            { Type: 'Mixed', Count: 20 }
-        ];
-        renderDistributionChart(sampleDistribution);
-        
-        // Sample achievements
-        const sampleAchievements = [
-            { TenBadge: 'Khởi Đầu Tuyệt Vời', MoTa: 'Hoàn thành 10 buổi tập đầu tiên', NgayDatDuoc: new Date() },
-            { TenBadge: 'Chăm Chỉ', MoTa: 'Tập luyện 30 ngày liên tiếp', NgayDatDuoc: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-            { TenBadge: 'Năng Lượng Cao', MoTa: 'Đốt cháy 5000 calo trong 1 tuần', NgayDatDuoc: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }
-        ];
-        renderAchievements(sampleAchievements);
-        
-        // Sample detailed stats
-        document.getElementById('avgTimePerSession').textContent = '1.9h';
-        document.getElementById('sessionsPerWeek').textContent = '4.2';
-        document.getElementById('totalCalories').textContent = '12,450';
-        document.getElementById('consecutiveDays').textContent = '7';
-        
-        // Sample performance comparison
-        renderComparisonChart({ LastWeek: 280, ThisWeek: 390 });
     }
     
     // Render progress chart
     function renderProgressChart(data) {
+        // Nếu không có dữ liệu, tạo dữ liệu mặc định cho 7 ngày
+        if (!data || data.length === 0) {
+            const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            data = dayNames.map(day => ({ Day: day, Minutes: 0 }));
+        }
+        
         const labels = data.map(d => d.Day);
-        const minutes = data.map(d => d.Minutes);
+        const minutes = data.map(d => d.Minutes || 0);
         
         if (progressChart) {
             progressChart.destroy();
         }
         
         const ctx = document.getElementById('progressChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('progressChart element not found');
+            return;
+        }
+        
+        console.log('Rendering progress chart with data:', { labels, minutes });
         
         progressChart = new Chart(ctx, {
             type: 'line',
@@ -347,8 +372,19 @@
     
     // Render distribution chart
     function renderDistributionChart(data) {
-        const labels = data.map(d => d.Type);
-        const counts = data.map(d => d.Count);
+        // Nếu không có dữ liệu, hiển thị thông báo
+        if (!data || data.length === 0) {
+            const ctx = document.getElementById('distributionChart');
+            if (ctx && distributionChart) {
+                distributionChart.destroy();
+                distributionChart = null;
+            }
+            console.log('No training distribution data to render');
+            return;
+        }
+        
+        const labels = data.map(d => d.Type || 'Khác');
+        const counts = data.map(d => d.Count || 0);
         
         const colors = [
             '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', 
@@ -360,7 +396,12 @@
         }
         
         const ctx = document.getElementById('distributionChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('distributionChart element not found');
+            return;
+        }
+        
+        console.log('Rendering distribution chart with data:', { labels, counts });
         
         distributionChart = new Chart(ctx, {
             type: 'doughnut',
@@ -449,7 +490,14 @@
         }
         
         const ctx = document.getElementById('comparisonChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('comparisonChart element not found');
+            return;
+        }
+        
+        const lastWeek = data?.LastWeek || 0;
+        const thisWeek = data?.ThisWeek || 0;
+        console.log('Rendering comparison chart with data:', { lastWeek, thisWeek });
         
         comparisonChart = new Chart(ctx, {
             type: 'bar',
@@ -457,7 +505,7 @@
                 labels: ['Tuần Trước', 'Tuần Này'],
                 datasets: [{
                     label: 'Phút',
-                    data: [data.LastWeek || 0, data.ThisWeek || 0],
+                    data: [lastWeek, thisWeek],
                     backgroundColor: ['#94a3b8', '#10b981'],
                     borderRadius: 8,
                     borderSkipped: false
@@ -526,15 +574,74 @@
     // Tải thống kê tổng quan
     async function loadOverview() {
         try {
-            const response = await fetch(`/ThongKe/GetOverview?userId=${userId}`);
-            const result = await response.json();
+            const currentUserId = await getUserId();
+            if (!currentUserId) {
+                console.warn('Không có userId, bỏ qua loadOverview');
+                return;
+            }
             
-            if (result.success) {
+            const response = await fetch('/ThongKe/GetOverview', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetOverview response not ok:', response.status);
+                return;
+            }
+            
+            const result = await response.json();
+            console.log('GetOverview raw response:', result);
+            
+            if (result.success && result.data) {
                 const data = result.data;
-                document.getElementById('totalSessions').textContent = data.TotalSessions || 0;
-                document.getElementById('totalTime').textContent = `${data.TotalTimeHours || 0}h`;
-                document.getElementById('totalAchievements').textContent = data.TotalAchievements || 0;
-                document.getElementById('goalAchieved').textContent = `${data.GoalAchievedPercent || 0}%`;
+                console.log('Overview data received:', data);
+                console.log('Data keys:', Object.keys(data));
+                console.log('TotalSessions:', data.TotalSessions, 'Type:', typeof data.TotalSessions);
+                console.log('TotalTimeHours:', data.TotalTimeHours, 'Type:', typeof data.TotalTimeHours);
+                console.log('TotalAchievements:', data.TotalAchievements, 'Type:', typeof data.TotalAchievements);
+                
+                // Luôn hiển thị dữ liệu, kể cả khi là 0
+                // Thử cả PascalCase và camelCase
+                const totalSessions = data.TotalSessions ?? data.totalSessions ?? 0;
+                const totalTimeHours = data.TotalTimeHours ?? data.totalTimeHours ?? 0;
+                const totalAchievements = data.TotalAchievements ?? data.totalAchievements ?? 0;
+                const goalAchievedPercent = data.GoalAchievedPercent ?? data.goalAchievedPercent ?? 0;
+                
+                const totalSessionsEl = document.getElementById('totalSessions');
+                const totalTimeEl = document.getElementById('totalTime');
+                const totalAchievementsEl = document.getElementById('totalAchievements');
+                const goalAchievedEl = document.getElementById('goalAchieved');
+                
+                console.log('Values to display:', { totalSessions, totalTimeHours, totalAchievements, goalAchievedPercent });
+                
+                if (totalSessionsEl) {
+                    totalSessionsEl.textContent = totalSessions;
+                    console.log('Set totalSessions to:', totalSessions);
+                } else {
+                    console.error('totalSessions element not found!');
+                }
+                if (totalTimeEl) {
+                    totalTimeEl.textContent = `${totalTimeHours}h`;
+                    console.log('Set totalTime to:', `${totalTimeHours}h`);
+                } else {
+                    console.error('totalTime element not found!');
+                }
+                if (totalAchievementsEl) {
+                    totalAchievementsEl.textContent = totalAchievements;
+                    console.log('Set totalAchievements to:', totalAchievements);
+                } else {
+                    console.error('totalAchievements element not found!');
+                }
+                if (goalAchievedEl) {
+                    goalAchievedEl.textContent = `${goalAchievedPercent}%`;
+                    console.log('Set goalAchieved to:', `${goalAchievedPercent}%`);
+                } else {
+                    console.error('goalAchieved element not found!');
+                }
+                
+                console.log('Overview data displayed - Sessions:', totalSessions, 'Time:', totalTimeHours, 'Achievements:', totalAchievements);
+            } else {
+                console.warn('GetOverview không thành công:', result.message || 'Unknown error', result);
             }
         } catch (error) {
             console.error('Error loading overview:', error);
@@ -544,11 +651,36 @@
     // Tải tiến độ 7 ngày
     async function loadWeeklyProgress() {
         try {
-            const response = await fetch(`/ThongKe/GetWeeklyProgress?userId=${userId}`);
-            const result = await response.json();
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
             
-            if (result.success && result.data && result.data.length > 0) {
-                renderProgressChart(result.data);
+            const response = await fetch('/ThongKe/GetWeeklyProgress', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetWeeklyProgress response not ok:', response.status);
+                return;
+            }
+            
+            const result = await response.json();
+            console.log('GetWeeklyProgress response:', result);
+            
+            if (result.success && result.data) {
+                // Luôn render chart, kể cả khi tất cả giá trị là 0
+                if (result.data.length > 0) {
+                    renderProgressChart(result.data);
+                    const hasData = result.data.some(d => d.Minutes > 0);
+                    console.log('Weekly progress loaded:', result.data, 'Has data:', hasData);
+                } else {
+                    console.log('GetWeeklyProgress: Không có dữ liệu tiến độ 7 ngày (mảng rỗng)');
+                    // Vẫn render chart với dữ liệu rỗng
+                    renderProgressChart([]);
+                }
+            } else {
+                console.warn('GetWeeklyProgress không thành công:', result.message || 'Unknown error', result);
+                // Render chart rỗng khi có lỗi
+                renderProgressChart([]);
             }
         } catch (error) {
             console.error('Error loading weekly progress:', error);
@@ -558,11 +690,35 @@
     // Tải phân bố loại tập luyện
     async function loadTrainingDistribution() {
         try {
-            const response = await fetch(`/ThongKe/GetTrainingDistribution?userId=${userId}`);
-            const result = await response.json();
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
             
-            if (result.success && result.data && result.data.length > 0) {
-                renderDistributionChart(result.data);
+            const response = await fetch('/ThongKe/GetTrainingDistribution', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetTrainingDistribution response not ok:', response.status);
+                return;
+            }
+            
+            const result = await response.json();
+            console.log('GetTrainingDistribution response:', result);
+            
+            if (result.success && result.data) {
+                // Luôn render chart nếu có dữ liệu (kể cả mảng rỗng)
+                if (result.data.length > 0) {
+                    renderDistributionChart(result.data);
+                    console.log('Training distribution loaded:', result.data);
+                } else {
+                    console.log('GetTrainingDistribution: Không có dữ liệu phân bố loại tập luyện');
+                    // Vẫn render chart rỗng để hiển thị trạng thái
+                    renderDistributionChart([]);
+                }
+            } else {
+                console.warn('GetTrainingDistribution không thành công:', result.message || 'Unknown error');
+                // Render chart rỗng khi có lỗi
+                renderDistributionChart([]);
             }
         } catch (error) {
             console.error('Error loading training distribution:', error);
@@ -572,11 +728,32 @@
     // Tải thành tựu
     async function loadAchievements() {
         try {
-            const response = await fetch(`/ThongKe/GetAchievements?userId=${userId}`);
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
+            
+            const response = await fetch('/ThongKe/GetAchievements', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetAchievements response not ok:', response.status);
+                return;
+            }
+            
             const result = await response.json();
             
-            if (result.success && result.data && result.data.length > 0) {
-                renderAchievements(result.data);
+            if (result.success && result.data) {
+                if (result.data.length > 0) {
+                    renderAchievements(result.data);
+                    console.log('Achievements loaded:', result.data);
+                } else {
+                    // Hiển thị thông báo không có thành tựu
+                    const container = document.getElementById('achievementsList');
+                    if (container) {
+                        container.innerHTML = '<div class="loading">Chưa có thành tựu nào</div>';
+                    }
+                    console.log('Không có thành tựu');
+                }
             }
         } catch (error) {
             console.error('Error loading achievements:', error);
@@ -586,15 +763,40 @@
     // Tải thống kê chi tiết
     async function loadDetailedStats() {
         try {
-            const response = await fetch(`/ThongKe/GetDetailedStats?userId=${userId}`);
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
+            
+            const response = await fetch('/ThongKe/GetDetailedStats', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetDetailedStats response not ok:', response.status);
+                return;
+            }
+            
             const result = await response.json();
             
-            if (result.success) {
+            if (result.success && result.data) {
                 const data = result.data;
-                document.getElementById('avgTimePerSession').textContent = `${data.AvgTimePerSession || 0}h`;
-                document.getElementById('sessionsPerWeek').textContent = data.SessionsPerWeek || 0;
-                document.getElementById('totalCalories').textContent = data.TotalCalories?.toLocaleString('vi-VN') || 0;
-                document.getElementById('consecutiveDays').textContent = data.ConsecutiveDays || 0;
+                const avgTimeEl = document.getElementById('avgTimePerSession');
+                const sessionsPerWeekEl = document.getElementById('sessionsPerWeek');
+                const totalCaloriesEl = document.getElementById('totalCalories');
+                const consecutiveDaysEl = document.getElementById('consecutiveDays');
+                
+                if (avgTimeEl) {
+                    avgTimeEl.textContent = `${data.AvgTimePerSession || 0}h`;
+                }
+                if (sessionsPerWeekEl) {
+                    sessionsPerWeekEl.textContent = data.SessionsPerWeek || 0;
+                }
+                if (totalCaloriesEl) {
+                    totalCaloriesEl.textContent = data.TotalCalories?.toLocaleString('vi-VN') || 0;
+                }
+                if (consecutiveDaysEl) {
+                    consecutiveDaysEl.textContent = data.ConsecutiveDays || 0;
+                }
+                console.log('Detailed stats loaded:', data);
             }
         } catch (error) {
             console.error('Error loading detailed stats:', error);
@@ -604,11 +806,27 @@
     // Tải so sánh hiệu suất
     async function loadPerformanceComparison() {
         try {
-            const response = await fetch(`/ThongKe/GetPerformanceComparison?userId=${userId}`);
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
+            
+            const response = await fetch('/ThongKe/GetPerformanceComparison', {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetPerformanceComparison response not ok:', response.status);
+                return;
+            }
+            
             const result = await response.json();
             
             if (result.success && result.data) {
                 renderComparisonChart(result.data);
+                console.log('Performance comparison loaded:', result.data);
+            } else {
+                console.warn('GetPerformanceComparison không thành công:', result.message || 'Unknown error');
+                // Render với dữ liệu mặc định
+                renderComparisonChart({ LastWeek: 0, ThisWeek: 0 });
             }
         } catch (error) {
             console.error('Error loading performance comparison:', error);
@@ -643,14 +861,8 @@
                 document.querySelectorAll('.health-nutrition-section:first-of-type .period-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentHealthPeriod = this.dataset.period;
-                // Load lại data (sẽ tự động fallback về sample nếu không có)
+                // Load lại data từ database
                 loadHealthData();
-                // Nếu không có data thật, load sample với period mới
-                setTimeout(() => {
-                    if (!healthChart || !healthChart.data || healthChart.data.labels.length === 0) {
-                        loadSampleHealthData();
-                    }
-                }, 200);
             });
         });
 
@@ -660,14 +872,8 @@
                 document.querySelectorAll('.health-nutrition-section:last-of-type .period-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentNutritionPeriod = this.dataset.period;
-                // Load lại data (sẽ tự động fallback về sample nếu không có)
+                // Load lại data từ database
                 loadNutritionData();
-                // Nếu không có data thật, load sample với period mới
-                setTimeout(() => {
-                    if (!caloriesChart || !caloriesChart.data || caloriesChart.data.labels.length === 0) {
-                        loadSampleNutritionData();
-                    }
-                }, 200);
             });
         });
     }
@@ -675,57 +881,114 @@
     // Load health data
     async function loadHealthData() {
         try {
-            const response = await fetch(`/ThongKe/GetHealthStats?userId=${userId}&period=${currentHealthPeriod}`);
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
+            
+            const response = await fetch(`/ThongKe/GetHealthStats?period=${currentHealthPeriod}`, {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetHealthStats response not ok:', response.status);
+                return;
+            }
+            
             const result = await response.json();
             
-            if (result.success && result.data && result.data.length > 0) {
-                renderHealthChart(result.data, result.avgChangePerWeek);
+            if (result.success && result.data) {
+                if (result.data.length > 0) {
+                    renderHealthChart(result.data, result.avgChangePerWeek || 0);
+                    console.log('Health stats loaded:', result.data, 'avgChangePerWeek:', result.avgChangePerWeek);
+                } else {
+                    console.log('Không có dữ liệu sức khỏe');
+                    // Vẫn render chart với dữ liệu rỗng để hiển thị trạng thái
+                    if (healthChart) {
+                        healthChart.destroy();
+                        healthChart = null;
+                    }
+                }
             } else {
-                // Nếu không có dữ liệu, load sample data
-                loadSampleHealthData();
+                console.warn('GetHealthStats không thành công:', result.message || 'Unknown error');
             }
             
             // Load weight goals
             try {
-                const goalsResponse = await fetch(`/ThongKe/GetWeightGoals?userId=${userId}`);
-                const goalsResult = await goalsResponse.json();
+                const goalsResponse = await fetch('/ThongKe/GetWeightGoals', {
+                    credentials: 'same-origin'
+                });
                 
-                if (goalsResult.success && goalsResult.data && goalsResult.data.length > 0) {
-                    renderWeightGoals(goalsResult.data);
-                } else {
-                    // Nếu không có mục tiêu, vẫn hiển thị sample
-                    loadSampleHealthData();
+                if (goalsResponse.ok) {
+                    const goalsResult = await goalsResponse.json();
+                    
+                    if (goalsResult.success && goalsResult.data) {
+                        if (goalsResult.data.length > 0) {
+                            renderWeightGoals(goalsResult.data);
+                            console.log('Weight goals loaded:', goalsResult.data);
+                        } else {
+                            const container = document.getElementById('weightGoalsList');
+                            if (container) {
+                                container.innerHTML = '<div class="loading">Chưa có mục tiêu cân nặng</div>';
+                            }
+                            console.log('Không có mục tiêu cân nặng');
+                        }
+                    }
                 }
             } catch (e) {
-                // Nếu lỗi, vẫn hiển thị sample
                 console.error('Error loading weight goals:', e);
             }
         } catch (error) {
             console.error('Error loading health data:', error);
-            // Load sample data
-            loadSampleHealthData();
         }
     }
 
     // Render health chart (Weight & BMI)
     function renderHealthChart(data, avgChangePerWeek) {
-        if (healthChart) {
-            healthChart.destroy();
-        }
+        try {
+            console.log('renderHealthChart called with data:', data, 'avgChangePerWeek:', avgChangePerWeek);
+            
+            if (healthChart) {
+                healthChart.destroy();
+            }
 
-        const ctx = document.getElementById('healthChart');
-        if (!ctx) return;
+            const ctx = document.getElementById('healthChart');
+            if (!ctx) {
+                console.error('healthChart canvas element not found!');
+                return;
+            }
 
+        // Parse dates correctly (format: yyyy-MM-dd)
         const labels = data.map(d => {
-            const date = new Date(d.Date);
+            if (!d.Date) return '';
+            // Handle both Date objects and string formats
+            let date;
+            if (typeof d.Date === 'string') {
+                // Parse yyyy-MM-dd format
+                const parts = d.Date.split('-');
+                if (parts.length === 3) {
+                    date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                } else {
+                    date = new Date(d.Date);
+                }
+            } else {
+                date = new Date(d.Date);
+            }
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date:', d.Date);
+                return d.Date; // Return original string if invalid
+            }
+            
             return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
         });
-        const weights = data.map(d => d.Weight);
-        const bmis = data.map(d => d.BMI);
+        const weights = data.map(d => d.Weight || 0);
+        const bmis = data.map(d => d.BMI || 0);
 
         // Update summary
-        document.getElementById('avgChangePerWeek').textContent = 
-            `${avgChangePerWeek >= 0 ? '+' : ''}${avgChangePerWeek} kg/tuần`;
+        const avgChangeEl = document.getElementById('avgChangePerWeek');
+        if (avgChangeEl) {
+            avgChangeEl.textContent = `${avgChangePerWeek >= 0 ? '+' : ''}${avgChangePerWeek} kg/tuần`;
+        }
 
         healthChart = new Chart(ctx, {
             type: 'line',
@@ -829,6 +1092,11 @@
                 }
             }
         });
+        
+        console.log('Health chart rendered successfully');
+        } catch (error) {
+            console.error('Error rendering health chart:', error);
+        }
     }
 
     // Render weight goals
@@ -865,61 +1133,125 @@
     // Load nutrition data
     async function loadNutritionData() {
         try {
-            const response = await fetch(`/ThongKe/GetNutritionStats?userId=${userId}&period=${currentNutritionPeriod}`);
+            const currentUserId = await getUserId();
+            if (!currentUserId) return;
+            
+            const response = await fetch(`/ThongKe/GetNutritionStats?period=${currentNutritionPeriod}`, {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                console.error('GetNutritionStats response not ok:', response.status);
+                return;
+            }
+            
             const result = await response.json();
             
-            if (result.success && result.data && result.data.length > 0) {
-                renderCaloriesChart(result.data, result.summary);
+            if (result.success && result.data) {
+                if (result.data.length > 0 && result.summary) {
+                    renderCaloriesChart(result.data, result.summary);
+                    console.log('Nutrition stats loaded:', result.data, 'summary:', result.summary);
+                } else {
+                    console.log('Không có dữ liệu dinh dưỡng hoặc thiếu summary. Data:', result.data, 'Summary:', result.summary);
+                    // Vẫn render chart với dữ liệu rỗng để hiển thị trạng thái
+                    if (caloriesChart) {
+                        caloriesChart.destroy();
+                        caloriesChart = null;
+                    }
+                }
             } else {
-                // Nếu không có dữ liệu, load sample data
-                loadSampleNutritionData();
+                console.warn('GetNutritionStats không thành công:', result.message || 'Unknown error', result);
+                if (caloriesChart) {
+                    caloriesChart.destroy();
+                    caloriesChart = null;
+                }
             }
             
             // Load macro ratio
             try {
-                const macroResponse = await fetch(`/ThongKe/GetMacroRatio?userId=${userId}&period=${currentNutritionPeriod}`);
-                const macroResult = await macroResponse.json();
+                const macroResponse = await fetch(`/ThongKe/GetMacroRatio?period=${currentNutritionPeriod}`, {
+                    credentials: 'same-origin'
+                });
                 
-                if (macroResult.success && macroResult.data) {
-                    renderMacroChart(macroResult.data);
-                } else {
-                    // Nếu không có dữ liệu, load sample
-                    loadSampleNutritionData();
+                if (macroResponse.ok) {
+                    const macroResult = await macroResponse.json();
+                    
+                    if (macroResult.success && macroResult.data) {
+                        renderMacroChart(macroResult.data);
+                        console.log('Macro ratio loaded:', macroResult.data);
+                    } else {
+                        console.log('Không có dữ liệu tỷ lệ macro:', macroResult);
+                        // Render với dữ liệu mặc định
+                        renderMacroChart({ actual: { Protein: 0, Carbs: 0, Fat: 0 }, target: { Protein: 30, Carbs: 40, Fat: 30 } });
+                    }
                 }
             } catch (e) {
-                // Nếu lỗi, vẫn hiển thị sample
                 console.error('Error loading macro ratio:', e);
             }
         } catch (error) {
             console.error('Error loading nutrition data:', error);
-            // Load sample data
-            loadSampleNutritionData();
         }
     }
 
     // Render calories chart
     function renderCaloriesChart(data, summary) {
-        if (caloriesChart) {
-            caloriesChart.destroy();
-        }
+        try {
+            console.log('renderCaloriesChart called with data:', data, 'summary:', summary);
+            
+            if (caloriesChart) {
+                caloriesChart.destroy();
+            }
 
-        const ctx = document.getElementById('caloriesChart');
-        if (!ctx) return;
+            const ctx = document.getElementById('caloriesChart');
+            if (!ctx) {
+                console.error('caloriesChart canvas element not found!');
+                return;
+            }
 
+        // Parse dates correctly (format: yyyy-MM-dd)
         const labels = data.map(d => {
-            const date = new Date(d.Date);
+            if (!d.Date) return '';
+            // Handle both Date objects and string formats
+            let date;
+            if (typeof d.Date === 'string') {
+                // Parse yyyy-MM-dd format
+                const parts = d.Date.split('-');
+                if (parts.length === 3) {
+                    date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                } else {
+                    date = new Date(d.Date);
+                }
+            } else {
+                date = new Date(d.Date);
+            }
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date:', d.Date);
+                return d.Date; // Return original string if invalid
+            }
+            
             return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
         });
-        const consumed = data.map(d => d.Consumed);
-        const burned = data.map(d => d.Burned);
+        const consumed = data.map(d => d.Consumed || 0);
+        const burned = data.map(d => d.Burned || 0);
 
         // Update summary
-        document.getElementById('totalConsumed').textContent = `${summary.totalConsumed.toLocaleString('vi-VN')} calo`;
-        document.getElementById('totalBurned').textContent = `${summary.totalBurned.toLocaleString('vi-VN')} calo`;
+        const totalConsumedEl = document.getElementById('totalConsumed');
+        const totalBurnedEl = document.getElementById('totalBurned');
         const deficitEl = document.getElementById('totalDeficit');
-        const deficit = summary.totalDeficit;
-        deficitEl.textContent = `${deficit >= 0 ? '+' : ''}${deficit.toLocaleString('vi-VN')} calo`;
-        deficitEl.style.color = deficit < 0 ? '#10b981' : '#ef4444';
+        
+        if (totalConsumedEl && summary) {
+            totalConsumedEl.textContent = `${summary.totalConsumed?.toLocaleString('vi-VN') || 0} calo`;
+        }
+        if (totalBurnedEl && summary) {
+            totalBurnedEl.textContent = `${summary.totalBurned?.toLocaleString('vi-VN') || 0} calo`;
+        }
+        if (deficitEl && summary) {
+            const deficit = summary.totalDeficit || 0;
+            deficitEl.textContent = `${deficit >= 0 ? '+' : ''}${deficit.toLocaleString('vi-VN')} calo`;
+            deficitEl.style.color = deficit < 0 ? '#10b981' : '#ef4444';
+        }
 
         caloriesChart = new Chart(ctx, {
             type: 'bar',
@@ -992,19 +1324,38 @@
                 }
             }
         });
+        
+        console.log('Calories chart rendered successfully');
+        } catch (error) {
+            console.error('Error rendering calories chart:', error);
+        }
     }
 
     // Render macro chart
     function renderMacroChart(data) {
-        if (macroChart) {
-            macroChart.destroy();
-        }
+        try {
+            console.log('renderMacroChart called with data:', data);
+            
+            if (macroChart) {
+                macroChart.destroy();
+            }
 
-        const ctx = document.getElementById('macroChart');
-        if (!ctx) return;
+            const ctx = document.getElementById('macroChart');
+            if (!ctx) {
+                console.error('macroChart canvas element not found!');
+                return;
+            }
 
-        const actual = data.actual;
-        const target = data.target;
+        const actual = data.actual || { Protein: 0, Carbs: 0, Fat: 0 };
+        const target = data.target || { Protein: 30, Carbs: 40, Fat: 30 };
+        
+        // Ensure all values are numbers
+        const actualProtein = typeof actual.Protein === 'number' ? actual.Protein : 0;
+        const actualCarbs = typeof actual.Carbs === 'number' ? actual.Carbs : 0;
+        const actualFat = typeof actual.Fat === 'number' ? actual.Fat : 0;
+        const targetProtein = typeof target.Protein === 'number' ? target.Protein : 30;
+        const targetCarbs = typeof target.Carbs === 'number' ? target.Carbs : 40;
+        const targetFat = typeof target.Fat === 'number' ? target.Fat : 30;
 
         macroChart = new Chart(ctx, {
             type: 'bar',
@@ -1013,13 +1364,13 @@
                 datasets: [
                     {
                         label: 'Thực tế (%)',
-                        data: [actual.Protein, actual.Carbs, actual.Fat],
+                        data: [actualProtein, actualCarbs, actualFat],
                         backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
                         borderRadius: 8
                     },
                     {
                         label: 'Mục tiêu (%)',
-                        data: [target.Protein, target.Carbs, target.Fat],
+                        data: [targetProtein, targetCarbs, targetFat],
                         backgroundColor: ['rgba(59, 130, 246, 0.3)', 'rgba(16, 185, 129, 0.3)', 'rgba(245, 158, 11, 0.3)'],
                         borderRadius: 8,
                         borderColor: ['#3b82f6', '#10b981', '#f59e0b'],
@@ -1088,184 +1439,32 @@
                 <div class="macro-legend-item">
                     <span class="macro-name">Protein</span>
                     <div class="macro-values">
-                        <span class="macro-value">Thực tế: ${actual.Protein}%</span>
-                        <span class="macro-value">Mục tiêu: ${target.Protein}%</span>
+                        <span class="macro-value">Thực tế: ${actualProtein.toFixed(1)}%</span>
+                        <span class="macro-value">Mục tiêu: ${targetProtein.toFixed(1)}%</span>
                     </div>
                 </div>
                 <div class="macro-legend-item">
                     <span class="macro-name">Carbs</span>
                     <div class="macro-values">
-                        <span class="macro-value">Thực tế: ${actual.Carbs}%</span>
-                        <span class="macro-value">Mục tiêu: ${target.Carbs}%</span>
+                        <span class="macro-value">Thực tế: ${actualCarbs.toFixed(1)}%</span>
+                        <span class="macro-value">Mục tiêu: ${targetCarbs.toFixed(1)}%</span>
                     </div>
                 </div>
                 <div class="macro-legend-item">
                     <span class="macro-name">Fat</span>
                     <div class="macro-values">
-                        <span class="macro-value">Thực tế: ${actual.Fat}%</span>
-                        <span class="macro-value">Mục tiêu: ${target.Fat}%</span>
+                        <span class="macro-value">Thực tế: ${actualFat.toFixed(1)}%</span>
+                        <span class="macro-value">Mục tiêu: ${targetFat.toFixed(1)}%</span>
                     </div>
                 </div>
             `;
         }
+        
+        console.log('Macro chart rendered successfully');
+        } catch (error) {
+            console.error('Error rendering macro chart:', error);
+        }
     }
 
-    // Sample data for health
-    function loadSampleHealthData() {
-        console.log('Loading sample health data for preview...');
-        
-        // Sample data cho 7 ngày
-        const sampleData7Days = [
-            { Date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 70.5, BMI: 23.2 },
-            { Date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 70.3, BMI: 23.1 },
-            { Date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 70.1, BMI: 23.0 },
-            { Date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 69.9, BMI: 23.0 },
-            { Date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 69.8, BMI: 22.9 },
-            { Date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Weight: 69.6, BMI: 22.9 },
-            { Date: new Date().toISOString().split('T')[0], Weight: 69.5, BMI: 22.8 }
-        ];
-        
-        // Sample data cho 1 tháng (30 ngày, mỗi 3 ngày 1 điểm)
-        const sampleData1Month = [];
-        for (let i = 29; i >= 0; i -= 3) {
-            const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-            const weight = 71.0 - (i * 0.05); // Giảm dần từ 71.0 xuống 69.5
-            const bmi = 23.3 - (i * 0.008);
-            sampleData1Month.push({
-                Date: date.toISOString().split('T')[0],
-                Weight: Math.round(weight * 10) / 10,
-                BMI: Math.round(bmi * 10) / 10
-            });
-        }
-        
-        // Sample data cho 3 tháng (90 ngày, mỗi 5 ngày 1 điểm)
-        const sampleData3Months = [];
-        for (let i = 89; i >= 0; i -= 5) {
-            const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-            const weight = 72.5 - (i * 0.033); // Giảm dần từ 72.5 xuống 69.5
-            const bmi = 23.8 - (i * 0.011);
-            sampleData3Months.push({
-                Date: date.toISOString().split('T')[0],
-                Weight: Math.round(weight * 10) / 10,
-                BMI: Math.round(bmi * 10) / 10
-            });
-        }
-        
-        // Render theo period hiện tại
-        let dataToRender = sampleData7Days;
-        if (currentHealthPeriod === '1month') {
-            dataToRender = sampleData1Month;
-        } else if (currentHealthPeriod === '3months') {
-            dataToRender = sampleData3Months;
-        }
-        
-        renderHealthChart(dataToRender, -0.14);
-        
-        // Sample weight goals
-        renderWeightGoals([
-            { 
-                TargetValue: 68, 
-                CurrentProgress: 69.5, 
-                IsCompleted: false,
-                StartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                EndDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            },
-            { 
-                TargetValue: 65, 
-                CurrentProgress: 69.5, 
-                IsCompleted: false,
-                StartDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                EndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            },
-            { 
-                TargetValue: 70, 
-                CurrentProgress: 70, 
-                IsCompleted: true,
-                StartDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                EndDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            }
-        ]);
-    }
-
-    // Sample data for nutrition
-    function loadSampleNutritionData() {
-        console.log('Loading sample nutrition data for preview...');
-        
-        // Sample data cho 7 ngày
-        const sampleData7Days = [
-            { Date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2200, Burned: 500, Deficit: 1700 },
-            { Date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2400, Burned: 600, Deficit: 1800 },
-            { Date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2100, Burned: 450, Deficit: 1650 },
-            { Date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2300, Burned: 550, Deficit: 1750 },
-            { Date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2200, Burned: 500, Deficit: 1700 },
-            { Date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], Consumed: 2500, Burned: 700, Deficit: 1800 },
-            { Date: new Date().toISOString().split('T')[0], Consumed: 2100, Burned: 400, Deficit: 1700 }
-        ];
-        
-        // Sample data cho 1 tháng (30 ngày)
-        const sampleData1Month = [];
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-            const consumed = 2000 + Math.floor(Math.random() * 600); // 2000-2600
-            const burned = 300 + Math.floor(Math.random() * 500); // 300-800
-            sampleData1Month.push({
-                Date: date.toISOString().split('T')[0],
-                Consumed: consumed,
-                Burned: burned,
-                Deficit: consumed - burned
-            });
-        }
-        
-        // Sample data cho 3 tháng (90 ngày, mỗi 3 ngày 1 điểm)
-        const sampleData3Months = [];
-        for (let i = 89; i >= 0; i -= 3) {
-            const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-            const consumed = 2000 + Math.floor(Math.random() * 600);
-            const burned = 300 + Math.floor(Math.random() * 500);
-            sampleData3Months.push({
-                Date: date.toISOString().split('T')[0],
-                Consumed: consumed,
-                Burned: burned,
-                Deficit: consumed - burned
-            });
-        }
-        
-        // Render theo period hiện tại
-        let dataToRender = sampleData7Days;
-        let summary = {
-            totalConsumed: sampleData7Days.reduce((sum, d) => sum + d.Consumed, 0),
-            totalBurned: sampleData7Days.reduce((sum, d) => sum + d.Burned, 0),
-            totalDeficit: sampleData7Days.reduce((sum, d) => sum + d.Deficit, 0)
-        };
-        
-        if (currentNutritionPeriod === '1month') {
-            dataToRender = sampleData1Month;
-            summary = {
-                totalConsumed: sampleData1Month.reduce((sum, d) => sum + d.Consumed, 0),
-                totalBurned: sampleData1Month.reduce((sum, d) => sum + d.Burned, 0),
-                totalDeficit: sampleData1Month.reduce((sum, d) => sum + d.Deficit, 0)
-            };
-        } else if (currentNutritionPeriod === '3months') {
-            dataToRender = sampleData3Months;
-            summary = {
-                totalConsumed: sampleData3Months.reduce((sum, d) => sum + d.Consumed, 0),
-                totalBurned: sampleData3Months.reduce((sum, d) => sum + d.Burned, 0),
-                totalDeficit: sampleData3Months.reduce((sum, d) => sum + d.Deficit, 0)
-            };
-        }
-        
-        renderCaloriesChart(dataToRender, summary);
-        
-        // Sample macro data với một chút biến động
-        const macroVariation = Math.random() * 4 - 2; // -2 đến +2
-        renderMacroChart({
-            actual: { 
-                Protein: 30 + macroVariation, 
-                Carbs: 40 - macroVariation, 
-                Fat: 30 
-            },
-            target: { Protein: 30, Carbs: 40, Fat: 30 }
-        });
-    }
 })();
 
