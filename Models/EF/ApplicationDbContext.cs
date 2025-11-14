@@ -87,6 +87,14 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<XepHang> XepHangs { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Không cấu hình gì ở đây để tránh ghi đè connection string được truyền từ bên ngoài.
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AicanhBaoSucKhoe>(entity =>

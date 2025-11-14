@@ -1,0 +1,419 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý bài tập - WebHealthy</title>
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="~/asset/css/admin.css" asp-append-version="true">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- JavaScript Files -->
+    <script src="~/asset/js/quanLiBaiTap.js" asp-append-version="true"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar will be loaded by sidebar.js -->
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="page-title">Quản lý bài tập</h1>
+                <div class="header-actions">
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="notifications-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-menu">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Exercises Management Section -->
+            <section id="exercises" class="content-section active">
+                <div class="section-header">
+                    <h2>Quản lý bài tập (Catalog bài tập)</h2>
+                    <div class="header-actions-group">
+                        <div class="view-toggle-group">
+                            <button class="view-toggle-btn active" data-view="grid" title="Lưới">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-toggle-btn" data-view="list" title="Danh sách">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                        <button class="btn-primary" id="btn-add-exercise">
+                            <i class="fas fa-plus"></i> Thêm bài tập
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-cards-grid" id="exercise-kpi-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng bài tập</h3>
+                            <p class="kpi-value" id="total-exercises-kpi">0</p>
+                            <span class="kpi-unit">bài tập</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Độ khó TB</h3>
+                            <p class="kpi-value" id="avg-difficulty-kpi">0</p>
+                            <span class="kpi-unit">/ 5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filter Bar -->
+                <div class="advanced-filter-bar-enhanced">
+                    <div class="filter-section filter-section--search">
+                        <div class="filter-section-header">
+                            <i class="fas fa-search"></i>
+                            <span>TÌM KIẾM</span>
+                        </div>
+                        <div class="filter-input-wrapper">
+                            <i class="fas fa-search filter-input-icon"></i>
+                            <input type="text" class="filter-input-enhanced" id="exercise-search" placeholder="Tên bài tập...">
+                        </div>
+                    </div>
+
+                    <div class="filter-section filter-section--muscle-group">
+                        <div class="filter-section-header">
+                            <i class="fas fa-fire"></i>
+                            <span>NHÓM CƠ</span>
+                        </div>
+                        <div class="filter-select-wrapper">
+                            <i class="fas fa-chevron-down filter-select-icon"></i>
+                            <select class="filter-select-enhanced" id="filter-muscle-group">
+                                <option value="">Tất cả</option>
+                                <!-- Muscle group options will be loaded dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-section filter-section--difficulty">
+                        <div class="filter-section-header">
+                            <i class="fas fa-star"></i>
+                            <span>ĐỘ KHÓ</span>
+                        </div>
+                        <div class="filter-select-wrapper">
+                            <i class="fas fa-chevron-down filter-select-icon"></i>
+                            <select class="filter-select-enhanced" id="filter-difficulty">
+                                <option value="">Tất cả</option>
+                                <option value="Beginner">Dễ</option>
+                                <option value="Intermediate">Trung bình</option>
+                                <option value="Advanced">Khó</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-section filter-section--equipment">
+                        <div class="filter-section-header">
+                            <i class="fas fa-dumbbell"></i>
+                            <span>THIẾT BỊ</span>
+                        </div>
+                        <div class="filter-select-wrapper">
+                            <i class="fas fa-chevron-down filter-select-icon"></i>
+                            <select class="filter-select-enhanced" id="filter-equipment">
+                                <option value="">Tất cả</option>
+                                <!-- Equipment options will be loaded dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions-enhanced">
+                        <button type="button" class="btn-filter-apply" id="btn-apply-exercise-filter">
+                            <i class="fas fa-filter"></i>
+                            <span>Áp dụng lọc</span>
+                        </button>
+                        <button type="button" class="btn-filter-reset" onclick="resetExerciseFilters()">
+                            <i class="fas fa-redo-alt"></i>
+                            <span>Đặt lại</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Exercise Cards Grid View -->
+                <div class="users-cards-wrapper" id="exercises-cards-view">
+                    <div class="pt-cards-grid" id="exercise-cards-grid">
+                        <!-- Exercise cards will be dynamically loaded here -->
+                    </div>
+                    <div class="empty-state" id="exercises-empty-state" style="display: none;">
+                        <i class="fas fa-dumbbell"></i>
+                        <p>Không tìm thấy bài tập nào</p>
+                        <button class="btn-primary" onclick="document.getElementById('btn-add-exercise').click()">
+                            <i class="fas fa-plus"></i> Thêm bài tập mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Exercise Table List View -->
+                <div class="table-container" id="exercises-table-view" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên bài tập</th>
+                                <th>Nhóm cơ</th>
+                                <th>Độ khó</th>
+                                <th>Thiết bị</th>
+                                <th>Calo/phút</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exercise-table-body">
+                            <!-- Table rows will be dynamically loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="table-pagination" id="exercise-pagination">
+                    <!-- Pagination will be dynamically generated -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Exercise Create/Edit Modal -->
+    <div id="modal-exercise-form" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-dumbbell"></i> <span id="exercise-form-title">Thêm bài tập mới</span></h2>
+                <button class="modal-close" onclick="closeExerciseModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="exercise-form" onsubmit="saveExercise(event)">
+                    <input type="hidden" id="exercise-id" name="exerciseId">
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-name">Tên bài tập <span class="required">*</span></label>
+                            <input type="text" id="exercise-name" name="name" class="form-input" required
+                                   placeholder="VD: Push-up nâng cao">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-muscle-group-form">Nhóm cơ <span class="required">*</span></label>
+                            <select id="exercise-muscle-group-form" name="muscleGroup" class="form-input" required>
+                                <option value="">Chọn nhóm cơ...</option>
+                                <!-- Muscle group options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-difficulty">Độ khó <span class="required">*</span></label>
+                            <select id="exercise-difficulty" name="difficulty" class="form-input" required>
+                                <option value="">Chọn độ khó...</option>
+                                <option value="2">Dễ</option>
+                                <option value="3">Trung bình</option>
+                                <option value="4">Khó</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-equipment">Thiết bị <span class="required">*</span></label>
+                            <select id="exercise-equipment" name="equipment" class="form-input" required>
+                                <option value="">Chọn thiết bị...</option>
+                                <!-- Equipment options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-calories">Calo/phút ước tính <span class="required">*</span></label>
+                            <input type="number" id="exercise-calories" name="caloriesPerMinute"
+                                   class="form-input" min="0" step="0.1" required
+                                   placeholder="VD: 8.5">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-image">Link Hình ảnh bài tập</label>
+                            <input type="url" id="exercise-image" name="imageUrl" class="form-input"
+                                   placeholder="https://example.com/image.jpg">
+                            <small class="form-hint">URL hình ảnh minh họa bài tập</small>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="exercise-video">Link Video hướng dẫn</label>
+                            <input type="url" id="exercise-video" name="videoUrl" class="form-input"
+                                   placeholder="https://youtube.com/watch?v=...">
+                            <small class="form-hint">Link YouTube hoặc video hướng dẫn</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-warnings">Cảnh báo</label>
+                        <textarea id="exercise-warnings" name="warnings" class="form-input" rows="3"
+                                  placeholder="VD: Không nên tập nếu bị chấn thương vai, cần khởi động kỹ trước khi tập..."></textarea>
+                        <small class="form-hint">Lưu ý về an toàn và chống chỉ định</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-instructions">Hướng dẫn thực hiện</label>
+                        <textarea id="exercise-instructions" name="instructions" class="form-input" rows="4"
+                                  placeholder="Hướng dẫn chi tiết cách thực hiện bài tập..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-description">Mô tả</label>
+                        <textarea id="exercise-description" name="description" class="form-input" rows="3"
+                                  placeholder="Mô tả tổng quan về bài tập..."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-danger" id="btn-delete-exercise" style="display: none;" data-exercise-id="">
+                            <i class="fas fa-trash"></i> Xóa
+                        </button>
+                        <button type="button" class="btn-cancel" onclick="closeExerciseModal()">Hủy</button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Lưu bài tập
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="modal-delete-exercise-confirm" class="modal">
+        <div class="modal-overlay" onclick="closeDeleteConfirmModal()"></div>
+        <div class="modal-content" style="max-width: 500px; animation: modalSlideIn 0.3s ease-out;">
+            <div class="modal-header" style="border-bottom: 2px solid #fed7d7;">
+                <h2 style="display: flex; align-items: center; gap: 10px; color: #c53030;">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <span>Xác nhận xóa</span>
+                </h2>
+                <button class="modal-close" onclick="closeDeleteConfirmModal()" id="btn-close-delete-exercise-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div style="text-align: center; padding: 10px 0;">
+                    <div style="font-size: 64px; color: #f56565; margin-bottom: 20px; animation: shake 0.5s ease-in-out;">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <h3 style="margin-bottom: 15px; color: #2d3748; font-size: 20px; font-weight: 600;">
+                        Bạn có chắc muốn xóa bài tập này?
+                    </h3>
+                    <p style="color: #718096; margin-bottom: 30px; line-height: 1.6; font-size: 15px;">
+                        Thao tác này không thể hoàn tác. Bài tập sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                    </p>
+                </div>
+                <div class="modal-actions" style="justify-content: center; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-cancel" onclick="closeDeleteConfirmModal()" id="btn-cancel-delete-exercise" style="min-width: 120px;">
+                        <i class="fas fa-times"></i> Không
+                    </button>
+                    <button type="button" class="btn-danger" id="btn-confirm-delete-exercise" style="min-width: 160px;">
+                        <i class="fas fa-trash"></i> Có, xóa bài tập
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Details Modal -->
+    <div id="modal-exercise-detail" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-dumbbell"></i> Chi tiết bài tập</h2>
+                <button class="modal-close" onclick="closeExerciseDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="exercise-detail-content">
+                    <!-- Exercise details will be loaded here -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeExerciseDetailModal()">Đóng</button>
+                    <button class="btn-primary" id="btn-edit-exercise-from-detail">
+                        <i class="fas fa-edit"></i> Chỉnh sửa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @@keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @@keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        #modal-delete-exercise-confirm .modal-content {
+            border: 2px solid #feb2b2;
+            box-shadow: 0 20px 60px rgba(245, 101, 101, 0.3);
+        }
+
+        #modal-delete-exercise-confirm .btn-danger {
+            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
+        }
+
+        #modal-delete-exercise-confirm .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, #e53e3e 0%, #9b2c2c 100%);
+            box-shadow: 0 6px 20px rgba(245, 101, 101, 0.5);
+            transform: translateY(-2px);
+        }
+
+        #modal-delete-exercise-confirm .btn-danger:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script src="~/asset/js/sidebar.js" asp-append-version="true"></script>
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeExercises === 'function') {
+                initializeExercises();
+            }
+
+            // Setup delete confirmation button
+            const confirmDeleteBtn = document.getElementById('btn-confirm-delete-exercise');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function() {
+                    if (typeof confirmDeleteExercise === 'function') {
+                        confirmDeleteExercise();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

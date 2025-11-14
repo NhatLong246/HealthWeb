@@ -1,6 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using System;
 using HealthWeb.Models.EF;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using HealthWeb.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,13 @@ builder.Services.AddHttpClient();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
+builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
+builder.Services.AddScoped<INutritionAdminService, NutritionAdminService>();
+builder.Services.AddScoped<IExerciseAdminService, ExerciseAdminService>();
+builder.Services.AddScoped<ITransactionAdminService, TransactionAdminService>();
+builder.Services.AddScoped<IPTAdminService, PTAdminService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 
 // ✅ Thêm Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -67,6 +76,8 @@ app.UseSession();
 app.UseMiddleware<HealthWeb.Middleware.RequireBasicInfoMiddleware>();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

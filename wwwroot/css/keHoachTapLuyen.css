@@ -22,12 +22,58 @@ body {
     color: var(--text)
 }
 
+/* Scoped overrides: ensure only elements inside the Kế hoạch tập luyện app use these common class styles */
+.khtl .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px }
+.khtl .btn { border: 0; border-radius: 16px; padding: 8px 14px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center }
+.khtl .btn.primary { background: var(--primary); color: #fff }
+.khtl .btn.success { background: var(--success); color: #fff }
+.khtl .btn.warning { background: var(--warning); color: #663c00 }
+.khtl .btn.danger { background: var(--danger); color: #fff }
+.khtl .btn.ghost { background: #fff; border: 1px solid #d7e3f8; color: #3a67b3 }
+.khtl .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(0,0,0,.08); filter: brightness(1.05) }
+.khtl #view-schedule .footer, .khtl #view-detail .footer { display: flex; justify-content: center; margin-top: 10px }
+.khtl #view-detail .footer.sticky { position: static; left: auto; bottom: auto; transform: none; z-index: 1; background: transparent; margin-top: 12px }
+.khtl .badge { min-width: 84px; padding: 10px 12px; border-radius: 12px; background: #eef6ff; text-align: center; font-weight: 600 }
+
+/* Center action button rows and prevent last button from floating right */
+.khtl .actions { justify-content: center !important; align-items: center; flex-wrap: wrap; width: 100% }
+.khtl .actions .right { margin-left: 0 !important }
+.khtl #view-detail .actions { justify-content: center }
+
+/* Center the "Bắt đầu bài tập" buttons inside each exercise card */
+.khtl .exercise-item .open-btn { justify-self: center }
+
+/* Dark-mode readability: keep text dark on light cards, preserve global dark background */
+body.dark-mode .khtl .card,
+body.dark-mode .khtl .exercise-item,
+body.dark-mode .khtl .monthgrid .cell,
+body.dark-mode .khtl .day,
+body.dark-mode .khtl .warn,
+body.dark-mode .khtl .pill,
+body.dark-mode .khtl .fake-input,
+body.dark-mode .khtl .history li { color: #0e2431 }
+
+/* Muted texts in dark mode */
+body.dark-mode .khtl .range-label,
+body.dark-mode .khtl .day span,
+body.dark-mode .khtl .exercise-item p,
+body.dark-mode .khtl .details-grid span,
+body.dark-mode .khtl small,
+body.dark-mode .khtl .cap { color: var(--muted) }
+
+/* Keep timer colors in dark mode (they already use dark background) */
+body.dark-mode .khtl .timer { background: #0d1626; color: #e9f2ff }
+
 .page-header {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
     margin: 24px 16px 8px
+}
+
+.page-header .icon-btn {
+    flex-shrink: 0
 }
 
     .page-header h1 {
@@ -46,7 +92,24 @@ body {
     background: transparent;
     cursor: pointer;
     font-size: 18px;
-    opacity: .6
+    opacity: .8;
+    color: var(--text);
+    transition: opacity .2s ease, color .2s ease
+}
+
+.icon-btn:hover {
+    opacity: 1;
+    color: var(--primary)
+}
+
+body.dark-mode .khtl .icon-btn {
+    color: #ffffff;
+    opacity: .9
+}
+
+body.dark-mode .khtl .icon-btn:hover {
+    color: #4ade80;
+    opacity: 1
 }
 
     .icon-btn[disabled] {
@@ -58,7 +121,8 @@ body {
     display: none;
     max-width: 1100px;
     margin: 0 auto;
-    padding: 8px 12px 88px
+    padding: 8px 12px 88px;
+    padding-top: 90px
 }
 
     .view.active {

@@ -1,0 +1,829 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý huấn luyện viên - WebHealthy</title>
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="~/asset/css/admin.css" asp-append-version="true">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- JavaScript Files -->
+    <script src="~/asset/js/quanLiPT.js" asp-append-version="true"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar will be loaded by sidebar.js -->
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="page-title">Quản lý huấn luyện viên</h1>
+                <div class="header-actions">
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="notifications-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-menu">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Trainers Management Section -->
+            <section id="trainers" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-tie"></i> Quản lý huấn luyện viên (PT)</h2>
+                    <button class="btn-primary" id="btn-verify-pending" onclick="openVerifyPendingModal()">
+                        <i class="fas fa-check-circle"></i> Xác minh PT đăng ký
+                        <span class="badge" id="pending-pt-count" style="margin-left: 8px; background: #ff4757;">0</span>
+                    </button>
+                </div>
+
+                <!-- KPI Cards for PT -->
+                <div class="kpi-cards-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tổng huấn luyện viên</h3>
+                            <p class="kpi-value" id="total-trainers">0</p>
+                            <span class="kpi-unit">PT</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Doanh thu TB/PT/tháng</h3>
+                            <p class="kpi-value" id="avg-revenue-per-pt">0</p>
+                            <span class="kpi-unit">VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>TB khách đang phục vụ</h3>
+                            <p class="kpi-value" id="avg-active-clients">0</p>
+                            <span class="kpi-unit">khách</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tỷ lệ hủy lịch</h3>
+                            <p class="kpi-value" id="cancel-rate">0</p>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Điểm đánh giá TB</h3>
+                            <p class="kpi-value" id="avg-rating">0</p>
+                            <span class="kpi-unit">/ 5.0</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+                            <i class="fas fa-hand-pointer"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Tỷ lệ khách hàng chọn thuê PT</h3>
+                            <p class="kpi-value" id="pt-hiring-rate">0</p>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3>Trung bình PT đang có lịch thuê buổi/tuần</h3>
+                            <p class="kpi-value" id="avg-bookings-per-week">0</p>
+                            <span class="kpi-unit">buổi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filter Bar -->
+                <div class="advanced-filter-bar">
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label><i class="fas fa-search"></i> Tìm kiếm</label>
+                            <input type="text" id="pt-search-keyword" class="filter-input" placeholder="Tên/Email/PTID...">
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-briefcase"></i> Chuyên môn</label>
+                            <select id="pt-filter-specialty" class="filter-input">
+                                <option value="">Tất cả</option>
+                                <option value="Weight Loss">Weight Loss</option>
+                                <option value="Strength Training">Strength Training</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Yoga">Yoga</option>
+                                <option value="Muscle Gain">Muscle Gain</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="position: relative;">
+                            <label><i class="fas fa-map-marker-alt"></i> Tỉnh thành & Thành phố</label>
+                            <select id="pt-filter-city" class="filter-input">
+                                <option value="">Tất cả</option>
+                                <option value="An Giang">An Giang</option>
+                                <option value="Bắc Ninh">Bắc Ninh</option>
+                                <option value="Cà Mau">Cà Mau</option>
+                                <option value="Cao Bằng">Cao Bằng</option>
+                                <option value="TP. Cần Thơ">TP. Cần Thơ</option>
+                                <option value="TP. Đà Nẵng">TP. Đà Nẵng</option>
+                                <option value="Đắk Lắk">Đắk Lắk</option>
+                                <option value="Điện Biên">Điện Biên</option>
+                                <option value="Đồng Nai">Đồng Nai</option>
+                                <option value="Đồng Tháp">Đồng Tháp</option>
+                                <option value="Gia Lai">Gia Lai</option>
+                                <option value="TP. Hà Nội">TP. Hà Nội</option>
+                                <option value="Hà Tĩnh">Hà Tĩnh</option>
+                                <option value="TP. Hải Phòng">TP. Hải Phòng</option>
+                                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                                <option value="TP. Huế">TP. Huế</option>
+                                <option value="Hưng Yên">Hưng Yên</option>
+                                <option value="Khánh Hoà">Khánh Hoà</option>
+                                <option value="Lai Châu">Lai Châu</option>
+                                <option value="Lạng Sơn">Lạng Sơn</option>
+                                <option value="Lào Cai">Lào Cai</option>
+                                <option value="Lâm Đồng">Lâm Đồng</option>
+                                <option value="Nghệ An">Nghệ An</option>
+                                <option value="Ninh Bình">Ninh Bình</option>
+                                <option value="Phú Thọ">Phú Thọ</option>
+                                <option value="Quảng Ngãi">Quảng Ngãi</option>
+                                <option value="Quảng Ninh">Quảng Ninh</option>
+                                <option value="Quảng Trị">Quảng Trị</option>
+                                <option value="Sơn La">Sơn La</option>
+                                <option value="Tây Ninh">Tây Ninh</option>
+                                <option value="Thái Nguyên">Thái Nguyên</option>
+                                <option value="Thanh Hóa">Thanh Hóa</option>
+                                <option value="Tuyên Quang">Tuyên Quang</option>
+                                <option value="Vĩnh Long">Vĩnh Long</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-user-check"></i> Nhận khách</label>
+                            <select id="pt-filter-accepting" class="filter-input">
+                                <option value="">Tất cả</option>
+                                <option value="1">Đang nhận</option>
+                                <option value="0">Không nhận</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-star"></i> Điểm TB (≥)</label>
+                            <input type="number" id="pt-filter-rating" class="filter-input" placeholder="0.0" step="0.1" min="0" max="5">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-filter" id="pt-btn-apply-filter">
+                            <i class="fas fa-filter"></i> Áp dụng lọc
+                        </button>
+                        <button class="btn-reset" id="pt-btn-reset-filter">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                        <button class="btn-action" id="pt-btn-export" title="Xuất dữ liệu">
+                            <i class="fas fa-download"></i> Xuất Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PT Cards Grid -->
+                <div class="users-cards-wrapper">
+                    <div class="users-header">
+                        <div class="users-info">
+                            <span id="pt-count">0</span> huấn luyện viên
+                        </div>
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="grid" title="Grid view">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-btn" data-view="list" title="List view">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PT Cards Grid -->
+                    <div class="users-cards-grid" id="pt-cards-grid">
+                        <!-- PT cards will be loaded here -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="users-empty-state" id="pt-empty-state" style="display: none;">
+                        <div class="empty-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <h3>Không tìm thấy huấn luyện viên nào</h3>
+                        <p>Thử điều chỉnh bộ lọc của bạn</p>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="table-pagination" id="pt-pagination">
+                        <!-- Pagination will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Table View (hidden by default) -->
+                <div class="table-container" id="pt-table-container" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="pt-select-all"></th>
+                                <th>PTID</th>
+                                <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>Chuyên môn</th>
+                                <th>Thành phố</th>
+                                <th>Giá/giờ</th>
+                                <th>Điểm TB</th>
+                                <th>Số khách</th>
+                                <th>Xác minh</th>
+                                <th>Nhận khách</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pt-table-body">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- PT Management Modals -->
+    <!-- Modal: PT Profile 360 -->
+    <div class="modal" id="modal-pt-profile360">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-tie"></i> Thông tin chi tiết PT</h2>
+                <button class="modal-close" onclick="closeModal('modal-pt-profile360')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile360-tabs">
+                    <button class="profile360-tab active" data-tab="info">Thông tin</button>
+                    <button class="profile360-tab" data-tab="schedule">Lịch làm việc</button>
+                    <button class="profile360-tab" data-tab="reviews">Đánh giá</button>
+                    <button class="profile360-tab" data-tab="clients">Khách hàng</button>
+                    <button class="profile360-tab" data-tab="performance">Hiệu suất</button>
+                </div>
+
+                <div class="profile360-content">
+                    <!-- Tab: Thông tin -->
+                    <div class="profile360-tab-content active" id="pt-tab-info">
+                        <div class="profile-info-grid">
+                            <div class="info-card">
+                                <h3><i class="fas fa-id-card"></i> Thông tin cơ bản</h3>
+                                <div class="info-item">
+                                    <label>PTID:</label>
+                                    <span id="pt-detail-id">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Họ tên:</label>
+                                    <span id="pt-detail-name">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email:</label>
+                                    <span id="pt-detail-email">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số năm kinh nghiệm:</label>
+                                    <span id="pt-detail-experience" class="kpi-value">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Thành phố:</label>
+                                    <span id="pt-detail-city">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Giá/giờ:</label>
+                                    <span id="pt-detail-price" class="kpi-value">-</span>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h3><i class="fas fa-certificate"></i> Chuyên môn & Chứng chỉ</h3>
+                                <div class="info-item">
+                                    <label>Chuyên môn:</label>
+                                    <span id="pt-detail-specialty">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Chứng chỉ:</label>
+                                    <span id="pt-detail-certificate">-</span>
+                                </div>
+                                <div class="info-item full-width">
+                                    <label>Tiểu sử:</label>
+                                    <p id="pt-detail-bio">-</p>
+                                </div>
+                                <div class="info-item full-width">
+                                    <label>Giờ rảnh:</label>
+                                    <pre id="pt-detail-availability">-</pre>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h3><i class="fas fa-chart-line"></i> Trạng thái & Hiệu suất</h3>
+                                <div class="info-item">
+                                    <label>Xác minh:</label>
+                                    <span id="pt-detail-verified" class="status-badge">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Nhận khách:</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="toggle-accepting-clients" onchange="toggleAcceptingClients()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số khách hiện tại:</label>
+                                    <span id="pt-detail-current-clients" class="kpi-value">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Điểm TB:</label>
+                                    <span id="pt-detail-rating" class="kpi-value">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Tỷ lệ thành công:</label>
+                                    <span id="pt-detail-success-rate" class="kpi-value">-</span>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h3><i class="fas fa-file-alt"></i> Tài liệu đính kèm</h3>
+                                <div class="info-item">
+                                    <label>Ảnh đại diện:</label>
+                                    <a href="#" id="pt-detail-avatar-link" target="_blank" class="btn-view-details" style="display: none;">
+                                        <i class="fas fa-image"></i> Xem
+                                    </a>
+                                    <span id="pt-detail-avatar-none" style="color: #8d89b3; font-style: italic;">Chưa có</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ảnh CCCD:</label>
+                                    <a href="#" id="pt-detail-cccd-link" target="_blank" class="btn-view-details" style="display: none;">
+                                        <i class="fas fa-id-card"></i> Xem
+                                    </a>
+                                    <span id="pt-detail-cccd-none" style="color: #8d89b3; font-style: italic;">Chưa có</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ảnh chân dung:</label>
+                                    <a href="#" id="pt-detail-portrait-link" target="_blank" class="btn-view-details" style="display: none;">
+                                        <i class="fas fa-user"></i> Xem
+                                    </a>
+                                    <span id="pt-detail-portrait-none" style="color: #8d89b3; font-style: italic;">Chưa có</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>File tài liệu:</label>
+                                    <a href="#" id="pt-detail-document-link" target="_blank" class="btn-view-details" style="display: none;">
+                                        <i class="fas fa-file-pdf"></i> Xem
+                                    </a>
+                                    <span id="pt-detail-document-none" style="color: #8d89b3; font-style: italic;">Chưa có</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions" style="margin-top: 24px; display: flex; gap: 12px; justify-content: center;">
+                            <button class="btn-toggle-accepting-clients" id="btn-toggle-accepting" onclick="toggleAcceptingClients()">
+                                <i class="fas fa-user-check"></i>
+                                <span>Bật/Tắt nhận khách</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Lịch làm việc -->
+                    <div class="profile360-tab-content" id="pt-tab-schedule">
+                        <div class="schedule-layout-container">
+                            <!-- Calendar Section (Left) -->
+                            <div class="schedule-calendar-section">
+                                <div class="schedule-calendar-wrapper">
+                                    <div class="calendar-header">
+                                        <button class="calendar-nav-btn prev-month" onclick="changeScheduleMonth(-1)">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <h3 id="schedule-calendar-title">Tháng 1, 2024</h3>
+                                        <button class="calendar-nav-btn next-month" onclick="changeScheduleMonth(1)">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="calendar-weekdays">
+                                        <div class="weekday">CN</div>
+                                        <div class="weekday">T2</div>
+                                        <div class="weekday">T3</div>
+                                        <div class="weekday">T4</div>
+                                        <div class="weekday">T5</div>
+                                        <div class="weekday">T6</div>
+                                        <div class="weekday">T7</div>
+                                    </div>
+                                    <div class="calendar-days-grid" id="schedule-calendar-days">
+                                        <!-- Calendar days will be generated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Session List Section (Right) -->
+                            <div class="schedule-list-section">
+                                <div class="schedule-filter-bar">
+                                    <button class="schedule-filter-btn active" data-filter="all" onclick="filterScheduleByStatus('all')">
+                                        <i class="fas fa-list"></i> Tất cả
+                                    </button>
+                                    <button class="schedule-filter-btn" data-filter="upcoming" onclick="filterScheduleByStatus('upcoming')">
+                                        <i class="fas fa-clock"></i> Sắp tới
+                                    </button>
+                                    <button class="schedule-filter-btn" data-filter="ongoing" onclick="filterScheduleByStatus('ongoing')">
+                                        <i class="fas fa-running"></i> Đang diễn ra
+                                    </button>
+                                    <button class="schedule-filter-btn" data-filter="completed" onclick="filterScheduleByStatus('completed')">
+                                        <i class="fas fa-check-circle"></i> Đã hoàn thành
+                                    </button>
+                                    <button class="schedule-filter-btn" data-filter="cancelled" onclick="filterScheduleByStatus('cancelled')">
+                                        <i class="fas fa-times-circle"></i> Đã hủy
+                                    </button>
+                                </div>
+
+                                <div class="schedule-list-wrapper" id="pt-schedule-list">
+                                    <!-- Session cards will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Đánh giá -->
+                    <div class="profile360-tab-content" id="pt-tab-reviews">
+                        <div id="pt-reviews-list">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Tab: Khách hàng -->
+                    <div class="profile360-tab-content" id="pt-tab-clients">
+                        <div class="users-cards-grid" id="pt-clients-list">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Tab: Hiệu suất -->
+                    <div class="profile360-tab-content" id="pt-tab-performance">
+                        <div class="analytics-grid">
+                            <div class="analytics-card">
+                                <h3>Doanh thu tháng này</h3>
+                                <div class="metric-value" id="pt-performance-revenue">0</div>
+                                <div class="metric-currency">VNĐ</div>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>Tổng lịch đặt</h3>
+                                <div class="metric-value" id="pt-performance-bookings">0</div>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>Tỷ lệ hủy</h3>
+                                <div class="metric-value" id="pt-performance-cancel-rate">0</div>
+                                <div class="metric-currency">%</div>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>Số buổi/tuần</h3>
+                                <div class="metric-value" id="pt-performance-bookings-week">0</div>
+                                <div class="metric-currency">buổi</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Xác minh PT -->
+    <div class="modal" id="modal-verify-pt">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-check-circle"></i> Xác minh huấn luyện viên</h2>
+                <button class="modal-close" onclick="closeModal('modal-verify-pt')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Bạn có chắc chắn muốn xác minh PT này? Hãy kiểm tra kỹ hồ sơ, CCCD, ảnh và chứng chỉ trước khi xác minh.</p>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú xác minh:</label>
+                    <textarea id="verify-note" class="form-input" rows="3" placeholder="Ghi chú về quá trình xác minh..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal('modal-verify-pt')">Hủy</button>
+                    <button class="btn-primary" onclick="confirmVerifyPT()">
+                        <i class="fas fa-check"></i> Xác minh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Chỉnh sửa PT -->
+    <div class="modal" id="modal-edit-pt">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Chỉnh sửa thông tin PT</h2>
+                <button class="modal-close" onclick="closeModal('modal-edit-pt')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-pt">
+                    <input type="hidden" id="edit-pt-id" />
+                    <div class="form-group">
+                        <label>Chuyên môn <span class="text-danger">*</span></label>
+                        <select id="edit-pt-specialty" class="form-input" required>
+                            <option value="">-- Chọn chuyên môn --</option>
+                            <option value="Weight Loss">Weight Loss</option>
+                            <option value="Strength Training">Strength Training</option>
+                            <option value="Cardio">Cardio</option>
+                            <option value="Yoga">Yoga</option>
+                            <option value="Muscle Gain">Muscle Gain</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="position: relative;">
+                        <label>Tỉnh thành & Thành phố</label>
+                        <select id="edit-pt-city" class="form-input">
+                            <option value="">-- Chọn tỉnh thành --</option>
+                            <option value="An Giang">An Giang</option>
+                            <option value="Bắc Ninh">Bắc Ninh</option>
+                            <option value="Cà Mau">Cà Mau</option>
+                            <option value="Cao Bằng">Cao Bằng</option>
+                            <option value="TP. Cần Thơ">TP. Cần Thơ</option>
+                            <option value="TP. Đà Nẵng">TP. Đà Nẵng</option>
+                            <option value="Đắk Lắk">Đắk Lắk</option>
+                            <option value="Điện Biên">Điện Biên</option>
+                            <option value="Đồng Nai">Đồng Nai</option>
+                            <option value="Đồng Tháp">Đồng Tháp</option>
+                            <option value="Gia Lai">Gia Lai</option>
+                            <option value="TP. Hà Nội">TP. Hà Nội</option>
+                            <option value="Hà Tĩnh">Hà Tĩnh</option>
+                            <option value="TP. Hải Phòng">TP. Hải Phòng</option>
+                            <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                            <option value="TP. Huế">TP. Huế</option>
+                            <option value="Hưng Yên">Hưng Yên</option>
+                            <option value="Khánh Hoà">Khánh Hoà</option>
+                            <option value="Lai Châu">Lai Châu</option>
+                            <option value="Lạng Sơn">Lạng Sơn</option>
+                            <option value="Lào Cai">Lào Cai</option>
+                            <option value="Lâm Đồng">Lâm Đồng</option>
+                            <option value="Nghệ An">Nghệ An</option>
+                            <option value="Ninh Bình">Ninh Bình</option>
+                            <option value="Phú Thọ">Phú Thọ</option>
+                            <option value="Quảng Ngãi">Quảng Ngãi</option>
+                            <option value="Quảng Ninh">Quảng Ninh</option>
+                            <option value="Quảng Trị">Quảng Trị</option>
+                            <option value="Sơn La">Sơn La</option>
+                            <option value="Tây Ninh">Tây Ninh</option>
+                            <option value="Thái Nguyên">Thái Nguyên</option>
+                            <option value="Thanh Hóa">Thanh Hóa</option>
+                            <option value="Tuyên Quang">Tuyên Quang</option>
+                            <option value="Vĩnh Long">Vĩnh Long</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Giá theo giờ (VNĐ) <span class="text-danger">*</span></label>
+                        <input type="number" id="edit-pt-price" class="form-input" placeholder="Ví dụ: 500000" min="0" step="1000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tiểu sử</label>
+                        <textarea id="edit-pt-bio" class="form-input" rows="4" placeholder="Mô tả về kinh nghiệm và chuyên môn..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Số năm kinh nghiệm</label>
+                        <input type="number" id="edit-pt-experience" class="form-input" placeholder="Ví dụ: 5" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Chứng chỉ</label>
+                        <input type="text" id="edit-pt-certificate" class="form-input" placeholder="Ví dụ: ACE Certified, NASM...">
+                    </div>
+                    <div class="form-group">
+                        <label>Giờ rảnh (JSON)</label>
+                        <textarea id="edit-pt-availability" class="form-input" rows="3" placeholder='{"Mon": "8:00-12:00", "Wed": "14:00-18:00"}'></textarea>
+                        <small class="form-hint">Định dạng JSON: {"Mon": "8:00-12:00", "Wed": "14:00-18:00"}</small>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-pt-accepting" style="margin-right: 8px;">
+                            Đang nhận khách hàng
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel" onclick="closeModal('modal-edit-pt')">Hủy</button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Xóa PT -->
+    <div class="modal" id="modal-delete-pt">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-trash-alt"></i> Xóa huấn luyện viên</h2>
+                <button class="modal-close" onclick="closeModal('modal-delete-pt')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-box" style="background: #fff3cd; border-color: #ffc107;">
+                    <i class="fas fa-exclamation-triangle" style="color: #856404;"></i>
+                    <p style="color: #856404;">Bạn có chắc chắn muốn xóa PT này? Hành động này không thể hoàn tác.</p>
+                </div>
+                <div class="form-group">
+                    <label>Lý do xóa <span class="text-danger">*</span></label>
+                    <textarea id="delete-pt-reason" class="form-input" rows="3" placeholder="Nhập lý do xóa PT..." required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal('modal-delete-pt')">Hủy</button>
+                    <button type="button" class="btn-danger" onclick="confirmDeletePT()">
+                        <i class="fas fa-trash-alt"></i> Xóa PT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Quản lý PT chờ xác minh -->
+    <div class="modal" id="modal-pending-verification">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-clock"></i> Quản lý PT chờ xác minh</h2>
+                <button class="modal-close" onclick="closeModal('modal-pending-verification')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="filter-bar" style="margin-bottom: 20px;">
+                    <input type="text" id="pending-search" class="search-input" placeholder="Tìm kiếm PT chờ xác minh...">
+                    <select id="pending-filter-specialty" class="filter-select">
+                        <option value="">Tất cả chuyên môn</option>
+                        <option value="Yoga">Yoga</option>
+                        <option value="Strength">Strength</option>
+                        <option value="Cardio">Cardio</option>
+                        <option value="Pilates">Pilates</option>
+                        <option value="CrossFit">CrossFit</option>
+                    </select>
+                </div>
+
+                <div class="users-cards-grid" id="pending-pt-cards-grid">
+                    <!-- PT chờ xác minh sẽ được load ở đây -->
+                </div>
+
+                <div class="users-empty-state" id="pending-empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Không có PT nào chờ xác minh</h3>
+                    <p>Tất cả PT đã được xác minh</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Xem chi tiết hồ sơ đăng ký PT -->
+    <div class="modal" id="modal-pt-registration-detail">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt"></i> Chi tiết hồ sơ đăng ký PT</h2>
+                <button class="modal-close" onclick="closeModal('modal-pt-registration-detail')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-info-grid">
+                    <div class="info-card">
+                        <h3>Thông tin cơ bản</h3>
+                        <div class="info-item">
+                            <label>UserID:</label>
+                            <span id="reg-userid">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Họ tên:</label>
+                            <span id="reg-name">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Email:</label>
+                            <span id="reg-email">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Kinh nghiệm:</label>
+                            <span id="reg-experience">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Thành phố:</label>
+                            <span id="reg-city">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Giá/giờ:</label>
+                            <span id="reg-price">-</span> VNĐ
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày đăng ký:</label>
+                            <span id="reg-date">-</span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Chuyên môn & Chứng chỉ</h3>
+                        <div class="info-item">
+                            <label>Chuyên môn:</label>
+                            <span id="reg-specialty">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Chứng chỉ:</label>
+                            <span id="reg-certificate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Tiểu sử:</label>
+                            <span id="reg-bio">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Giờ rảnh:</label>
+                            <span id="reg-availability">-</span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Tài liệu đính kèm</h3>
+                        <div class="info-item">
+                            <label>Ảnh đại diện:</label>
+                            <a href="#" id="reg-avatar-link" target="_blank" class="btn-view-details">
+                                <i class="fas fa-image"></i> Xem ảnh
+                            </a>
+                        </div>
+                        <div class="info-item">
+                            <label>Ảnh CCCD:</label>
+                            <a href="#" id="reg-cccd-link" target="_blank" class="btn-view-details">
+                                <i class="fas fa-id-card"></i> Xem CCCD
+                            </a>
+                        </div>
+                        <div class="info-item">
+                            <label>Ảnh chân dung:</label>
+                            <a href="#" id="reg-portrait-link" target="_blank" class="btn-view-details">
+                                <i class="fas fa-user"></i> Xem ảnh
+                            </a>
+                        </div>
+                        <div class="info-item">
+                            <label>File tài liệu:</label>
+                            <a href="#" id="reg-document-link" target="_blank" class="btn-view-details">
+                                <i class="fas fa-file"></i> Xem tài liệu
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ghi chú xác minh:</label>
+                    <textarea id="verification-note" class="form-input" rows="3" placeholder="Ghi chú về quá trình xác minh..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-danger" onclick="rejectPTRegistration()">
+                        <i class="fas fa-times"></i> Từ chối
+                    </button>
+                    <button class="btn-primary" onclick="approvePTRegistration()">
+                        <i class="fas fa-check"></i> Duyệt và xác minh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/asset/js/sidebar.js" asp-append-version="true"></script>
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeTrainers === 'function') {
+                initializeTrainers();
+            }
+        });
+    </script>
+</body>
+</html>
+
