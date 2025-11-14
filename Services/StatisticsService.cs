@@ -110,13 +110,16 @@ public class StatisticsService : IStatisticsService
                            u.CreatedDate.Value <= effectiveDateTo)
                 .CountAsync(cancellationToken);
 
+            // Optimized: Use join instead of Include for count-only queries
             newTrainers = await _context.HuanLuyenViens
                 .AsNoTracking()
-                .Include(h => h.User)
-                .Where(h => h.User != null &&
-                           h.User.CreatedDate.HasValue &&
-                           h.User.CreatedDate.Value >= effectiveDateFrom &&
-                           h.User.CreatedDate.Value <= effectiveDateTo)
+                .Join(_context.Users,
+                    h => h.UserId,
+                    u => u.UserId,
+                    (h, u) => u)
+                .Where(u => u.CreatedDate.HasValue &&
+                           u.CreatedDate.Value >= effectiveDateFrom &&
+                           u.CreatedDate.Value <= effectiveDateTo)
                 .CountAsync(cancellationToken);
         }
 
@@ -191,13 +194,16 @@ public class StatisticsService : IStatisticsService
                        u.CreatedDate.Value <= previousPeriodEnd)
             .CountAsync(cancellationToken);
 
+        // Optimized: Use join instead of Include for count-only queries
         var previousTrainers = await _context.HuanLuyenViens
             .AsNoTracking()
-            .Include(h => h.User)
-            .Where(h => h.User != null &&
-                       h.User.CreatedDate.HasValue &&
-                       h.User.CreatedDate.Value >= previousPeriodStart &&
-                       h.User.CreatedDate.Value <= previousPeriodEnd)
+            .Join(_context.Users,
+                h => h.UserId,
+                u => u.UserId,
+                (h, u) => u)
+            .Where(u => u.CreatedDate.HasValue &&
+                       u.CreatedDate.Value >= previousPeriodStart &&
+                       u.CreatedDate.Value <= previousPeriodEnd)
             .CountAsync(cancellationToken);
 
         var previousRevenue = await _context.GiaoDiches
@@ -602,74 +608,103 @@ public class StatisticsService : IStatisticsService
 
         // Calculate account status based on actual data
         // Each user should only be counted in ONE status category
+        // Optimized: Calculate in database instead of loading all users into memory
         var now = DateTime.UtcNow;
         var nowDate = DateOnly.FromDateTime(now);
+        var thirtyDaysAgo = now.AddDays(-30);
+        var ninetyDaysAgo = now.AddDays(-90);
 
-        // Load all users first to calculate status properly
-        var allUsers = await _context.Users
+        // Get user IDs with active membership
+        var activeMembershipUserIds = await _context.GoiThanhViens
             .AsNoTracking()
-            .Include(u => u.GoiThanhViens)
-            .Include(u => u.NhatKyUngDungs)
-            .Where(u => u.Role != "Admin" && (u.Role == null || u.Role != "PT"))
+            .Where(g => g.TrangThai == "Active" && 
+                       (!g.NgayKetThuc.HasValue || g.NgayKetThuc.Value >= nowDate))
+            .Select(g => g.UserId)
+            .Distinct()
             .ToListAsync(cancellationToken);
 
-        int activeUsers = 0;
-        int suspendedUsers = 0;
-        int lockedUsers = 0;
-        int unverifiedUsers = 0;
+        // Get user IDs with recent activity (last 30 days)
+        var recentActivityUserIds = await _context.NhatKyUngDungs
+            .AsNoTracking()
+            .Where(n => n.ThoiGian.HasValue && n.ThoiGian.Value >= thirtyDaysAgo)
+            .Select(n => n.UserId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-        foreach (var user in allUsers)
-        {
-            // Check if user is active: has active membership OR has activity in last 30 days
-            var hasActiveMembership = user.GoiThanhViens.Any(g => 
-                g.TrangThai == "Active" && 
-                (!g.NgayKetThuc.HasValue || g.NgayKetThuc.Value >= nowDate));
-            
-            var hasRecentActivity = user.NhatKyUngDungs.Any(n => 
-                n.ThoiGian.HasValue && 
-                n.ThoiGian.Value >= now.AddDays(-30));
+        // Active users: has active membership OR has activity in last 30 days
+        var activeUserIds = activeMembershipUserIds
+            .Union(recentActivityUserIds)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToHashSet();
 
-            if (hasActiveMembership || hasRecentActivity)
-            {
-                activeUsers++;
-                continue; // User is active, skip other checks
-            }
+        // Suspended users: has membership with status "Suspended" or "Cancelled" AND not in active list
+        var suspendedUserIds = await _context.GoiThanhViens
+            .AsNoTracking()
+            .Where(g => (g.TrangThai == "Suspended" || g.TrangThai == "Cancelled") &&
+                       !activeUserIds.Contains(g.UserId))
+            .Select(g => g.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-            // Check if user is suspended: has membership with status "Suspended" or "Cancelled"
-            var hasSuspendedMembership = user.GoiThanhViens.Any(g => 
-                g.TrangThai == "Suspended" || g.TrangThai == "Cancelled");
+        // Locked users: expired reset token OR no activity for 90+ days AND not in active/suspended
+        var expiredTokenUserIds = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role != "Admin" && (u.Role == null || u.Role != "PT") &&
+                       u.ResetTokenExpiry.HasValue && 
+                       u.ResetTokenExpiry.Value < now &&
+                       !activeUserIds.Contains(u.UserId) &&
+                       !suspendedUserIds.Contains(u.UserId))
+            .Select(u => u.UserId)
+            .ToListAsync(cancellationToken);
 
-            if (hasSuspendedMembership)
-            {
-                suspendedUsers++;
-                continue; // User is suspended, skip other checks
-            }
+        var usersWithActivity90Days = await _context.NhatKyUngDungs
+            .AsNoTracking()
+            .Where(n => n.ThoiGian.HasValue && n.ThoiGian.Value >= ninetyDaysAgo)
+            .Select(n => n.UserId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-            // Check if user is locked: expired reset token OR no activity for 90+ days
-            var hasExpiredToken = user.ResetTokenExpiry.HasValue && user.ResetTokenExpiry.Value < now;
-            var hasNoActivity90Days = !user.NhatKyUngDungs.Any(n => 
-                n.ThoiGian.HasValue && 
-                n.ThoiGian.Value >= now.AddDays(-90));
+        var allClientUserIds = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role != "Admin" && (u.Role == null || u.Role != "PT"))
+            .Select(u => u.UserId)
+            .ToListAsync(cancellationToken);
 
-            if (hasExpiredToken || hasNoActivity90Days)
-            {
-                lockedUsers++;
-                continue; // User is locked, skip other checks
-            }
+        var lockedUserIds = allClientUserIds
+            .Where(id => !activeUserIds.Contains(id) &&
+                        !suspendedUserIds.Contains(id) &&
+                        (expiredTokenUserIds.Contains(id) || !usersWithActivity90Days.Contains(id)))
+            .ToHashSet();
 
-            // Unverified users: no email OR no activity at all
-            var hasNoEmail = string.IsNullOrEmpty(user.Email);
-            var hasNoActivity = !user.NhatKyUngDungs.Any();
+        // Unverified users: no email OR no activity at all AND not in other categories
+        var usersWithNoEmail = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role != "Admin" && (u.Role == null || u.Role != "PT") &&
+                       string.IsNullOrEmpty(u.Email) &&
+                       !activeUserIds.Contains(u.UserId) &&
+                       !suspendedUserIds.Contains(u.UserId) &&
+                       !lockedUserIds.Contains(u.UserId))
+            .Select(u => u.UserId)
+            .ToListAsync(cancellationToken);
 
-            if (hasNoEmail || hasNoActivity)
-            {
-                unverifiedUsers++;
-                continue;
-            }
+        var usersWithNoActivity = allClientUserIds
+            .Where(id => !activeUserIds.Contains(id) &&
+                        !suspendedUserIds.Contains(id) &&
+                        !lockedUserIds.Contains(id) &&
+                        !usersWithActivity90Days.Contains(id))
+            .ToHashSet();
 
-            // If user doesn't match any category, consider them as active (default)
-            activeUsers++;
-        }
+        var unverifiedUserIds = usersWithNoEmail
+            .Union(usersWithNoActivity)
+            .ToHashSet();
+
+        // Count users in each category
+        var activeUsers = activeUserIds.Count;
+        var suspendedUsers = suspendedUserIds.Count;
+        var lockedUsers = lockedUserIds.Count;
+        var unverifiedUsers = unverifiedUserIds.Count;
 
         return new UserAnalyticsDto
         {

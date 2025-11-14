@@ -25,6 +25,7 @@ public class UserAdminService : IUserAdminService
         {
             // Only get Client users (exclude PT and Admin)
             // Client: Role is null, "Client", or any value other than "PT" or "Admin"
+            // Optimized: Use AsNoTracking() and eager load all needed navigation properties in one query
             var clientUsers = await _context.Users
                 .AsNoTracking()
                 .Where(u => u.Role == null || (u.Role != "PT" && u.Role != "Admin"))

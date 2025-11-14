@@ -27,6 +27,7 @@ public class PTAdminService : IPTAdminService
         bool? verifiedOnly = true,
         CancellationToken cancellationToken = default)
     {
+        // Optimized: Load all navigation properties in one query to avoid N+1
         var query = _context.HuanLuyenViens
             .AsNoTracking()
             .Include(pt => pt.User)
@@ -125,6 +126,7 @@ public class PTAdminService : IPTAdminService
 
     public async Task<PTProfile360Dto?> GetPTProfile360Async(string ptId, CancellationToken cancellationToken = default)
     {
+        // Optimized: Load all related data in one query with proper includes
         var pt = await _context.HuanLuyenViens
             .AsNoTracking()
             .Include(pt => pt.User)
@@ -135,7 +137,8 @@ public class PTAdminService : IPTAdminService
             .Include(pt => pt.QuyenPtKhachHangs)
                 .ThenInclude(q => q.KhachHang)
             .Include(pt => pt.GiaoDiches)
-            .FirstOrDefaultAsync(pt => pt.Ptid == ptId, cancellationToken);
+            .Where(pt => pt.Ptid == ptId)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (pt == null)
         {
