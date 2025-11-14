@@ -301,25 +301,25 @@ function applyFilters(criteria, markAsApplied = true) {
 function normalizeFood(raw) {
     if (!raw) return null;
     return {
-        MonAnID: raw.foodId ?? raw.MonAnID ?? '',
-        TenMonAn: raw.name ?? raw.TenMonAn ?? 'Không xác định',
-        DonViTinh: raw.unit ?? raw.DonViTinh ?? '-',
-        HinhAnh: raw.imageUrl ?? raw.HinhAnh ?? null,
-        LuongCalo: Number(raw.calories ?? raw.LuongCalo ?? 0),
-        Protein: Number(raw.protein ?? raw.Protein ?? 0),
-        ChatBeo: Number(raw.fat ?? raw.ChatBeo ?? 0),
-        Carbohydrate: Number(raw.carb ?? raw.Carbohydrate ?? 0)
+        MonAnID: raw.FoodId ?? raw.foodId ?? raw.MonAnID ?? '',
+        TenMonAn: raw.Name ?? raw.name ?? raw.TenMonAn ?? 'Không xác định',
+        DonViTinh: raw.Unit ?? raw.unit ?? raw.DonViTinh ?? '-',
+        HinhAnh: raw.ImageUrl ?? raw.imageUrl ?? raw.HinhAnh ?? null,
+        LuongCalo: Number(raw.Calories ?? raw.calories ?? raw.LuongCalo ?? 0),
+        Protein: Number(raw.Protein ?? raw.protein ?? raw.Protein ?? 0),
+        ChatBeo: Number(raw.Fat ?? raw.fat ?? raw.ChatBeo ?? 0),
+        Carbohydrate: Number(raw.Carb ?? raw.carb ?? raw.Carbohydrate ?? 0)
     };
 }
 
 function normalizeSummary(raw) {
     if (!raw) return null;
     return {
-        TotalFoods: Number(raw.totalFoods ?? 0),
-        AverageCalories: Number(raw.averageCalories ?? 0),
-        TotalProtein: Number(raw.totalProtein ?? 0),
-        TotalFat: Number(raw.totalFat ?? 0),
-        TotalCarb: Number(raw.totalCarb ?? 0)
+        TotalFoods: Number(raw.TotalFoods ?? 0),
+        AverageCalories: Number(raw.AverageCalories ?? 0),
+        TotalProtein: Number(raw.TotalProtein ?? 0),
+        TotalFat: Number(raw.TotalFat ?? 0),
+        TotalCarb: Number(raw.TotalCarb ?? 0)
     };
 }
 
@@ -344,8 +344,8 @@ async function loadFoodsFromServer(forceReload = false) {
         }
 
         const payload = await response.json();
-        const foodsRaw = Array.isArray(payload?.foods) ? payload.foods : [];
-        const summaryRaw = payload?.summary ?? null;
+        const foodsRaw = Array.isArray(payload?.Foods) ? payload.Foods : [];
+        const summaryRaw = payload?.Summary ?? null;
 
         foodsData = foodsRaw.map(normalizeFood).filter(Boolean);
         filteredFoodsData = [...foodsData];

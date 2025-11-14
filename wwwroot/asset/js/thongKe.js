@@ -268,22 +268,22 @@
 
             switch(tabName) {
                 case 'user-analytics':
-                    renderUserAnalytics(data);
+                    renderUserAnalytics(data.UserAnalytics ?? data.userAnalytics ?? data);
                     break;
                 case 'pt-analytics':
-                    renderPTAnalytics(data);
+                    renderPTAnalytics(data.PTAnalytics ?? data.ptAnalytics ?? data);
                     break;
                 case 'health-analytics':
-                    renderHealthAnalytics(data);
+                    renderHealthAnalytics(data.HealthAnalytics ?? data.healthAnalytics ?? data);
                     break;
                 case 'goals-analytics':
-                    renderGoalsAnalytics(data);
+                    renderGoalsAnalytics(data.GoalsAnalytics ?? data.goalsAnalytics ?? data);
                     break;
                 case 'nutrition-analytics':
-                    renderNutritionAnalytics(data);
+                    renderNutritionAnalytics(data.NutritionAnalytics ?? data.nutritionAnalytics ?? data);
                     break;
                 case 'finance-analytics':
-                    renderFinanceAnalytics(data);
+                    renderFinanceAnalytics(data.FinanceAnalytics ?? data.financeAnalytics ?? data);
                     break;
             }
         } catch (error) {
@@ -318,7 +318,7 @@
             if (!response.ok) throw new Error('Failed to load overview data');
             statisticsData = await response.json();
             
-            updateOverviewStats(statisticsData.overview);
+            updateOverviewStats(statisticsData.Overview ?? statisticsData.overview);
             // Don't render user analytics here, it will be rendered when tab is loaded
         } catch (error) {
             console.error('Error loading overview data:', error);
@@ -391,11 +391,15 @@
         if (revenueCardTitle) revenueCardTitle.textContent = revenueTitle;
         if (activityCardTitle) activityCardTitle.textContent = activityTitle;
         
-        // Update stat numbers
-        const totalUsers = overview.totalUsers ?? 0;
-        const totalTrainers = overview.totalTrainers ?? 0;
-        const monthlyRevenue = Math.round(overview.monthlyRevenue ?? 0);
-        const todayActivity = overview.todayActivity ?? 0;
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const totalUsers = overview.TotalUsers ?? overview.totalUsers ?? 0;
+        const totalTrainers = overview.TotalTrainers ?? overview.totalTrainers ?? 0;
+        const monthlyRevenue = Math.round(overview.MonthlyRevenue ?? overview.monthlyRevenue ?? 0);
+        const todayActivity = overview.TodayActivity ?? overview.todayActivity ?? 0;
+        const userGrowthPercent = overview.UserGrowthPercent ?? overview.userGrowthPercent ?? 0;
+        const trainerGrowthPercent = overview.TrainerGrowthPercent ?? overview.trainerGrowthPercent ?? 0;
+        const revenueGrowthPercent = overview.RevenueGrowthPercent ?? overview.revenueGrowthPercent ?? 0;
+        const activityGrowthPercent = overview.ActivityGrowthPercent ?? overview.activityGrowthPercent ?? 0;
         
         animateNumber('.stat-card:nth-child(1) .stat-number', totalUsers);
         animateNumber('.stat-card:nth-child(2) .stat-number', totalTrainers);
@@ -403,10 +407,10 @@
         animateNumber('.stat-card:nth-child(4) .stat-number', todayActivity);
 
         // Update growth percentages
-        updateGrowthPercent('.stat-card:nth-child(1) .stat-change', overview.userGrowthPercent ?? 0);
-        updateGrowthPercent('.stat-card:nth-child(2) .stat-change', overview.trainerGrowthPercent ?? 0);
-        updateGrowthPercent('.stat-card:nth-child(3) .stat-change', overview.revenueGrowthPercent ?? 0);
-        updateGrowthPercent('.stat-card:nth-child(4) .stat-change', overview.activityGrowthPercent ?? 0);
+        updateGrowthPercent('.stat-card:nth-child(1) .stat-change', userGrowthPercent);
+        updateGrowthPercent('.stat-card:nth-child(2) .stat-change', trainerGrowthPercent);
+        updateGrowthPercent('.stat-card:nth-child(3) .stat-change', revenueGrowthPercent);
+        updateGrowthPercent('.stat-card:nth-child(4) .stat-change', activityGrowthPercent);
     }
 
     // Animate number counting
@@ -459,15 +463,20 @@
     function renderUserAnalytics(data) {
         if (!data) return;
 
-        // Update metrics
-        updateTextContent('.analytics-card:nth-child(1) .metric-value', formatNumber(data.totalUsers ?? 0));
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const totalUsers = data.TotalUsers ?? data.totalUsers ?? 0;
+        const dau = data.DailyActiveUsers ?? data.dailyActiveUsers ?? 0;
+        const dauPercent = data.DailyActiveUsersPercent ?? data.dailyActiveUsersPercent ?? 0;
+        const mau = data.MonthlyActiveUsers ?? data.monthlyActiveUsers ?? 0;
+        const mauPercent = data.MonthlyActiveUsersPercent ?? data.monthlyActiveUsersPercent ?? 0;
+        const retention7 = data.RetentionRate7Days ?? data.retentionRate7Days ?? 0;
+        const retention30 = data.RetentionRate30Days ?? data.retentionRate30Days ?? 0;
+        const genderDistribution = data.GenderDistribution ?? data.genderDistribution;
+        const ageDistribution = data.AgeDistribution ?? data.ageDistribution;
+        const topUsers = data.TopUsers ?? data.topUsers ?? [];
 
-        const dau = data.dailyActiveUsers ?? 0;
-        const dauPercent = (data.dailyActiveUsersPercent ?? 0);
-        const mau = data.monthlyActiveUsers ?? 0;
-        const mauPercent = (data.monthlyActiveUsersPercent ?? 0);
-        const retention7 = (data.retentionRate7Days ?? 0);
-        const retention30 = (data.retentionRate30Days ?? 0);
+        // Update metrics
+        updateTextContent('.analytics-card:nth-child(1) .metric-value', formatNumber(totalUsers));
 
         updateTextContent('.analytics-card:nth-child(2) .metric-item:first-child .metric-value-small', 
             `${formatNumber(dau)} <span class="percentage">${dauPercent.toFixed(1)}%</span>`);
@@ -479,15 +488,15 @@
 
 
         // Render charts with new implementation
-        if (data.genderDistribution) {
-            renderGenderChartNew(data.genderDistribution);
+        if (genderDistribution) {
+            renderGenderChartNew(genderDistribution);
         }
-        if (data.ageDistribution) {
-            renderAgeChartNew(data.ageDistribution);
+        if (ageDistribution) {
+            renderAgeChartNew(ageDistribution);
         }
 
         // Render top users
-        renderTopUsers(data.topUsers);
+        renderTopUsers(topUsers);
     }
 
     // ============================================
@@ -506,8 +515,8 @@
             chartAnimationsPlayed.gender = false;
         }
 
-        const male = data.male || 0;
-        const female = data.female || 0;
+        const male = data.Male ?? data.male ?? 0;
+        const female = data.Female ?? data.female ?? 0;
         const total = male + female;
 
         // Light, pastel color scheme
@@ -637,10 +646,10 @@
         }
 
         const ageGroups = [
-            { label: 'Dưới 18', value: data.under18 || 0, color: '#93c5fd' },
-            { label: '18-25', value: data.age18_25 || 0, color: '#86efac' },
-            { label: '26-45', value: data.age26_45 || 0, color: '#fcd34d' },
-            { label: 'Trên 45', value: data.over45 || 0, color: '#fca5a5' }
+            { label: 'Dưới 18', value: data.Under18 ?? data.under18 ?? 0, color: '#93c5fd' },
+            { label: '18-25', value: data.Age18_25 ?? data.age18_25 ?? 0, color: '#86efac' },
+            { label: '26-45', value: data.Age26_45 ?? data.age26_45 ?? 0, color: '#fcd34d' },
+            { label: 'Trên 45', value: data.Over45 ?? data.over45 ?? 0, color: '#fca5a5' }
         ];
 
         // Reset canvas
@@ -848,15 +857,28 @@
     function renderTopUsers(users) {
         const container = document.querySelector('#panel-user-analytics .top-list');
         if (!container) return;
+        
+        // Handle undefined or null
+        if (!users || !Array.isArray(users)) {
+            container.innerHTML = '<div class="empty-state">Không có dữ liệu</div>';
+            return;
+        }
 
-        container.innerHTML = users.map((user, index) => `
+        container.innerHTML = users.map((user, index) => {
+            // Support both PascalCase (from API) and camelCase (fallback)
+            const name = user.Name ?? user.name ?? 'Không xác định';
+            const healthLogs = user.HealthLogs ?? user.healthLogs ?? 0;
+            const goals = user.Goals ?? user.goals ?? 0;
+            
+            return `
             <div class="top-item">
                 <span class="rank">${index + 1}</span>
-                <span class="name">${user.name}</span>
-                <span class="stat">${user.healthLogs} log sức khỏe</span>
-                <span class="badge success">${user.goals} mục tiêu</span>
+                <span class="name">${name}</span>
+                <span class="stat">${healthLogs} log sức khỏe</span>
+                <span class="badge success">${goals} mục tiêu</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     // Render PT Analytics

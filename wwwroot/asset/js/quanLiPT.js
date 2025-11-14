@@ -151,11 +151,27 @@ function renderPTCards() {
 
 // Create PT Card
 function createPTCard(pt, index) {
-    const verifiedBadge = pt.verified ? 
+    // Support both PascalCase (from API) and camelCase (fallback)
+    const ptId = pt.PTId ?? pt.ptId ?? pt.UserId ?? pt.userId ?? '-';
+    const userId = pt.UserId ?? pt.userId ?? ptId;
+    const name = pt.Name ?? pt.name ?? '-';
+    const email = pt.Email ?? pt.email ?? '-';
+    const specialty = pt.Specialty ?? pt.specialty ?? '-';
+    const city = pt.City ?? pt.city ?? '-';
+    const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+    const rating = pt.Rating ?? pt.rating ?? 0;
+    const currentClients = pt.CurrentClients ?? pt.currentClients ?? 0;
+    const revenueThisMonth = pt.RevenueThisMonth ?? pt.revenueThisMonth ?? 0;
+    const completionRate = pt.CompletionRate ?? pt.completionRate ?? pt.SuccessRate ?? pt.successRate ?? 0;
+    const cancelRate = pt.CancelRate ?? pt.cancelRate ?? 0;
+    const verified = pt.Verified ?? pt.verified ?? false;
+    const acceptingClients = pt.AcceptingClients ?? pt.acceptingClients ?? false;
+    
+    const verifiedBadge = verified ? 
         '<span class="status-badge status-active"><i class="fas fa-check-circle"></i> Đã xác minh</span>' : 
         '<span class="status-badge status-pending"><i class="fas fa-clock"></i> Chưa xác minh</span>';
     
-    const acceptingBadge = pt.acceptingClients ? 
+    const acceptingBadge = acceptingClients ? 
         '<span class="status-badge status-active"><i class="fas fa-user-check"></i> Đang nhận</span>' : 
         '<span class="status-badge status-inactive"><i class="fas fa-user-times"></i> Không nhận</span>';
     
@@ -171,8 +187,8 @@ function createPTCard(pt, index) {
                     </div>
                 </div>
                 <div class="user-info">
-                    <h3 class="user-name">${pt.name || '-'}</h3>
-                    <p class="user-id">${pt.ptId || pt.userId || '-'}</p>
+                    <h3 class="user-name">${name}</h3>
+                    <p class="user-id">${ptId}</p>
                 </div>
             </div>
             
@@ -180,19 +196,19 @@ function createPTCard(pt, index) {
                 <div class="user-info-list">
                     <div class="user-info-item">
                         <i class="fas fa-envelope"></i>
-                        <span>${pt.email || '-'}</span>
+                        <span>${email}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-briefcase"></i>
-                        <span>${pt.specialty || '-'}</span>
+                        <span>${specialty}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>${pt.city || '-'}</span>
+                        <span>${city}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-dollar-sign"></i>
-                        <span>${(pt.pricePerHour || 0).toLocaleString('vi-VN')} VNĐ/giờ</span>
+                        <span>${pricePerHour.toLocaleString('vi-VN')} VNĐ/giờ</span>
                     </div>
                 </div>
                 
@@ -201,21 +217,21 @@ function createPTCard(pt, index) {
                         <i class="fas fa-star"></i>
                         <div>
                             <span class="kpi-label">Điểm TB</span>
-                            <span class="kpi-value-small">${(pt.rating || 0).toFixed(1)} ⭐</span>
+                            <span class="kpi-value-small">${rating.toFixed(1)} ⭐</span>
                         </div>
                     </div>
                     <div class="kpi-mini-item kpi-nutrition">
                         <i class="fas fa-users"></i>
                         <div>
                             <span class="kpi-label">Số khách</span>
-                            <span class="kpi-value-small">${pt.currentClients || 0}</span>
+                            <span class="kpi-value-small">${currentClients}</span>
                         </div>
                     </div>
                     <div class="kpi-mini-item kpi-workout">
                         <i class="fas fa-money-bill-wave"></i>
                         <div>
                             <span class="kpi-label">Doanh thu</span>
-                            <span class="kpi-value-small">${((pt.revenueThisMonth || 0) / 1000000).toFixed(1)}M</span>
+                            <span class="kpi-value-small">${(revenueThisMonth / 1000000).toFixed(1)}M</span>
                         </div>
                     </div>
                 </div>
@@ -224,21 +240,21 @@ function createPTCard(pt, index) {
                     <div class="user-metric-item">
                         <div class="user-metric-label">
                             <span>Tỷ lệ hoàn thành</span>
-                            <span class="user-metric-value">${(pt.completionRate || pt.successRate || 0).toFixed(1)}%</span>
+                            <span class="user-metric-value">${completionRate.toFixed(1)}%</span>
                         </div>
                         <div class="user-metric-bar">
                             <div class="user-metric-fill high" 
-                                 style="width: ${Math.min(pt.completionRate || pt.successRate || 0, 100)}%; background: linear-gradient(135deg, #50c878 0%, #43e97b 100%);"></div>
+                                 style="width: ${Math.min(completionRate, 100)}%; background: linear-gradient(135deg, #50c878 0%, #43e97b 100%);"></div>
                         </div>
                     </div>
                     <div class="user-metric-item">
                         <div class="user-metric-label">
                             <span>Tỷ lệ hủy</span>
-                            <span class="user-metric-value">${(pt.cancelRate || 0).toFixed(1)}%</span>
+                            <span class="user-metric-value">${cancelRate.toFixed(1)}%</span>
                         </div>
                         <div class="user-metric-bar">
-                            <div class="user-metric-fill ${(pt.cancelRate || 0) > 10 ? 'low' : (pt.cancelRate || 0) > 5 ? 'medium' : 'high'}" 
-                                 style="width: ${Math.min(pt.cancelRate || 0, 100)}%"></div>
+                            <div class="user-metric-fill ${cancelRate > 10 ? 'low' : cancelRate > 5 ? 'medium' : 'high'}" 
+                                 style="width: ${Math.min(cancelRate, 100)}%"></div>
                         </div>
                     </div>
                 </div>
@@ -250,14 +266,14 @@ function createPTCard(pt, index) {
             
             <div class="user-card-footer">
                 <div class="user-card-actions">
-                    <button class="btn-view-details" onclick="viewPTProfile360('${pt.ptId || pt.userId}')">
+                    <button class="btn-view-details" onclick="viewPTProfile360('${ptId}')">
                         <i class="fas fa-eye"></i>
                         <span>Chi tiết</span>
                     </button>
-                    <button class="btn-card-action edit" onclick="event.stopPropagation(); openEditPTModal('${pt.ptId || pt.userId}')" title="Chỉnh sửa">
+                    <button class="btn-card-action edit" onclick="event.stopPropagation(); openEditPTModal('${ptId}')" title="Chỉnh sửa">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-card-action delete" onclick="event.stopPropagation(); openDeletePTModal('${pt.ptId || pt.userId}')" title="Xóa">
+                    <button class="btn-card-action delete" onclick="event.stopPropagation(); openDeletePTModal('${ptId}')" title="Xóa">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -275,24 +291,37 @@ function loadPTTableView() {
     const endIndex = startIndex + ptItemsPerPage;
     const pageData = filteredTrainersData.slice(startIndex, endIndex);
     
-    tbody.innerHTML = pageData.map(pt => `
+    tbody.innerHTML = pageData.map(pt => {
+        const ptId = pt.PTId ?? pt.ptId ?? pt.UserId ?? pt.userId ?? '-';
+        const name = pt.Name ?? pt.name ?? '-';
+        const email = pt.Email ?? pt.email ?? '-';
+        const specialty = pt.Specialty ?? pt.specialty ?? '-';
+        const city = pt.City ?? pt.city ?? '-';
+        const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+        const rating = pt.Rating ?? pt.rating ?? 0;
+        const currentClients = pt.CurrentClients ?? pt.currentClients ?? 0;
+        const verified = pt.Verified ?? pt.verified ?? false;
+        const acceptingClients = pt.AcceptingClients ?? pt.acceptingClients ?? false;
+        
+        return `
         <tr>
-            <td><input type="checkbox" data-ptid="${pt.ptId || pt.userId}"></td>
-            <td>${pt.ptId || pt.userId}</td>
-            <td>${pt.name || '-'}</td>
-            <td>${pt.email || '-'}</td>
-            <td>${pt.specialty || '-'}</td>
-            <td>${pt.city || '-'}</td>
-            <td>${(pt.pricePerHour || 0).toLocaleString('vi-VN')} VNĐ</td>
-            <td>${(pt.rating || 0).toFixed(1)} ⭐</td>
-            <td>${pt.currentClients || 0}</td>
-            <td>${pt.verified ? '<span class="status-badge status-active">Đã xác minh</span>' : '<span class="status-badge status-pending">Chưa xác minh</span>'}</td>
-            <td>${pt.acceptingClients ? '<span class="status-badge status-active">Đang nhận</span>' : '<span class="status-badge status-inactive">Không nhận</span>'}</td>
+            <td><input type="checkbox" data-ptid="${ptId}"></td>
+            <td>${ptId}</td>
+            <td>${name}</td>
+            <td>${email}</td>
+            <td>${specialty}</td>
+            <td>${city}</td>
+            <td>${pricePerHour.toLocaleString('vi-VN')} VNĐ</td>
+            <td>${rating.toFixed(1)} ⭐</td>
+            <td>${currentClients}</td>
+            <td>${verified ? '<span class="status-badge status-active">Đã xác minh</span>' : '<span class="status-badge status-pending">Chưa xác minh</span>'}</td>
+            <td>${acceptingClients ? '<span class="status-badge status-active">Đang nhận</span>' : '<span class="status-badge status-inactive">Không nhận</span>'}</td>
             <td>
-                <button class="btn-edit" onclick="viewPTProfile360('${pt.ptId || pt.userId}')"><i class="fas fa-eye"></i></button>
+                <button class="btn-edit" onclick="viewPTProfile360('${ptId}')"><i class="fas fa-eye"></i></button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Update PT count
@@ -308,13 +337,13 @@ function updatePTKPIs() {
     if (!ptSummary) return;
     
         const el = id => document.getElementById(id);
-    if (el('total-trainers')) el('total-trainers').textContent = ptSummary.totalTrainers || 0;
-    if (el('avg-revenue-per-pt')) el('avg-revenue-per-pt').textContent = (ptSummary.averageRevenuePerPT || 0).toLocaleString('vi-VN');
-    if (el('avg-active-clients')) el('avg-active-clients').textContent = (ptSummary.averageActiveClients || 0).toFixed(1);
-    if (el('cancel-rate')) el('cancel-rate').textContent = (ptSummary.cancelRate || 0).toFixed(1);
-    if (el('avg-rating')) el('avg-rating').textContent = (ptSummary.averageRating || 0).toFixed(1);
-    if (el('pt-hiring-rate')) el('pt-hiring-rate').textContent = (ptSummary.ptHiringRate || 0).toFixed(1);
-    if (el('avg-bookings-per-week')) el('avg-bookings-per-week').textContent = (ptSummary.averageBookingsPerWeek || 0).toFixed(1);
+    if (el('total-trainers')) el('total-trainers').textContent = ptSummary.TotalTrainers || 0;
+    if (el('avg-revenue-per-pt')) el('avg-revenue-per-pt').textContent = (ptSummary.AverageRevenuePerPT || 0).toLocaleString('vi-VN');
+    if (el('avg-active-clients')) el('avg-active-clients').textContent = (ptSummary.AverageActiveClients || 0).toFixed(1);
+    if (el('cancel-rate')) el('cancel-rate').textContent = (ptSummary.CancelRate || 0).toFixed(1);
+    if (el('avg-rating')) el('avg-rating').textContent = (ptSummary.AverageRating || 0).toFixed(1);
+    if (el('pt-hiring-rate')) el('pt-hiring-rate').textContent = (ptSummary.PTHiringRate || 0).toFixed(1);
+    if (el('avg-bookings-per-week')) el('avg-bookings-per-week').textContent = (ptSummary.AverageBookingsPerWeek || 0).toFixed(1);
 }
 
 // Filter PT - Load from API with filters
@@ -337,9 +366,9 @@ async function applyPTFilters() {
         if (!response.ok) throw new Error('Failed to load PT data');
         
         const data = await response.json();
-        trainersData = data.trainers || [];
+        trainersData = data.Trainers || [];
         filteredTrainersData = [...trainersData];
-        ptSummary = data.summary;
+        ptSummary = data.Summary;
     
     ptCurrentPage = 1;
         updatePTKPIs();
@@ -369,52 +398,66 @@ async function viewPTProfile360(ptid) {
         if (!response.ok) throw new Error('Failed to load PT profile');
         
         const data = await response.json();
-        const pt = data.basicInfo;
+        const pt = data.BasicInfo ?? data.basicInfo;
         
     if (!pt) return;
     
     currentPTId = ptid;
     
+    // Support both PascalCase (from API) and camelCase (fallback)
+    const ptId = pt.PTId ?? pt.ptId ?? pt.UserId ?? pt.userId ?? '-';
+    const name = pt.Name ?? pt.name ?? '-';
+    const email = pt.Email ?? pt.email ?? '-';
+    const experience = pt.Experience ?? pt.experience ?? 0;
+    const city = pt.City ?? pt.city ?? '-';
+    const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+    const specialty = pt.Specialty ?? pt.specialty ?? '-';
+    const certificate = pt.Certificate ?? pt.certificate ?? '-';
+    const bio = pt.Bio ?? pt.bio ?? '-';
+    const availability = pt.Availability ?? pt.availability ?? '';
+    const verified = pt.Verified ?? pt.verified ?? false;
+    const acceptingClients = pt.AcceptingClients ?? pt.acceptingClients ?? false;
+    
     // Fill info tab
-        document.getElementById('pt-detail-id').textContent = pt.ptId || '-';
-        document.getElementById('pt-detail-name').textContent = pt.name || '-';
-        document.getElementById('pt-detail-email').textContent = pt.email || '-';
-        document.getElementById('pt-detail-experience').textContent = (pt.experience || 0) + ' năm';
-        document.getElementById('pt-detail-city').textContent = pt.city || '-';
-        document.getElementById('pt-detail-price').textContent = (pt.pricePerHour || 0).toLocaleString('vi-VN');
-        document.getElementById('pt-detail-specialty').textContent = pt.specialty || '-';
-        document.getElementById('pt-detail-certificate').textContent = pt.certificate || '-';
+        document.getElementById('pt-detail-id').textContent = ptId;
+        document.getElementById('pt-detail-name').textContent = name;
+        document.getElementById('pt-detail-email').textContent = email;
+        document.getElementById('pt-detail-experience').textContent = experience + ' năm';
+        document.getElementById('pt-detail-city').textContent = city;
+        document.getElementById('pt-detail-price').textContent = pricePerHour.toLocaleString('vi-VN');
+        document.getElementById('pt-detail-specialty').textContent = specialty;
+        document.getElementById('pt-detail-certificate').textContent = certificate;
         // Bio and availability - use innerHTML/textContent based on element type
         const bioEl = document.getElementById('pt-detail-bio');
         if (bioEl) {
             if (bioEl.tagName === 'P') {
-                bioEl.textContent = pt.bio || '-';
+                bioEl.textContent = bio;
             } else {
-                bioEl.textContent = pt.bio || '-';
+                bioEl.textContent = bio;
             }
         }
         const availabilityEl = document.getElementById('pt-detail-availability');
         if (availabilityEl) {
-            const formattedAvailability = formatAvailability(pt.availability);
+            const formattedAvailability = formatAvailability(availability);
             if (availabilityEl.tagName === 'PRE') {
                 availabilityEl.textContent = formattedAvailability;
             } else {
                 availabilityEl.textContent = formattedAvailability;
             }
         }
-    document.getElementById('pt-detail-verified').innerHTML = pt.verified ? 
+    document.getElementById('pt-detail-verified').innerHTML = verified ? 
         '<span class="status-badge status-active">Đã xác minh</span>' : 
         '<span class="status-badge status-pending">Chưa xác minh</span>';
     
     const toggleSwitch = document.getElementById('toggle-accepting-clients');
     if (toggleSwitch) {
-            toggleSwitch.checked = pt.acceptingClients === true;
+            toggleSwitch.checked = acceptingClients === true;
         }
         
         // Update button active state
         const toggleButton = document.getElementById('btn-toggle-accepting');
         if (toggleButton) {
-            if (pt.acceptingClients === true) {
+            if (acceptingClients === true) {
                 toggleButton.classList.add('active');
             } else {
                 toggleButton.classList.remove('active');
@@ -476,41 +519,43 @@ async function viewPTProfile360(ptid) {
         }
         
         // Reviews tab
-        renderPTReviews(data.reviews || []);
+        renderPTReviews(data.Reviews ?? data.reviews ?? []);
         
         // Clients tab
-        renderPTClients(data.clients || []);
+        renderPTClients(data.Clients ?? data.clients ?? []);
     
     // Performance tab
-        const perf = data.performance || {};
-        document.getElementById('pt-performance-revenue').textContent = (perf.revenueThisMonth || 0).toLocaleString('vi-VN');
-        document.getElementById('pt-performance-bookings').textContent = perf.totalBookings || 0;
-        document.getElementById('pt-performance-cancel-rate').textContent = (perf.cancelRate || 0).toFixed(1);
-        document.getElementById('pt-performance-bookings-week').textContent = (perf.bookingsPerWeek || 0).toFixed(1);
+        const perf = data.Performance ?? data.performance ?? {};
+        document.getElementById('pt-performance-revenue').textContent = (perf.RevenueThisMonth ?? perf.revenueThisMonth ?? 0).toLocaleString('vi-VN');
+        document.getElementById('pt-performance-bookings').textContent = perf.TotalBookings ?? perf.totalBookings ?? 0;
+        document.getElementById('pt-performance-cancel-rate').textContent = (perf.CancelRate ?? perf.cancelRate ?? 0).toFixed(1);
+        document.getElementById('pt-performance-bookings-week').textContent = (perf.BookingsPerWeek ?? perf.bookingsPerWeek ?? 0).toFixed(1);
         
         // Store schedule data
-        if (data.schedule && data.schedule.length > 0) {
-            const scheduleData = data.schedule.map(s => ({
-                id: s.scheduleId,
-                userId: s.userId,
-                userName: s.userName,
-                userEmail: s.userEmail,
-                dateTime: new Date(s.dateTime),
-                duration: s.duration || 60,
-                status: s.status,
-                type: s.type,
-                location: s.location,
-                rating: s.rating,
-                review: s.review,
-                reviewDate: s.reviewDate ? new Date(s.reviewDate) : null
+        const schedule = data.Schedule ?? data.schedule ?? [];
+        if (schedule && schedule.length > 0) {
+            const scheduleData = schedule.map(s => ({
+                id: s.ScheduleId ?? s.scheduleId,
+                userId: s.UserId ?? s.userId,
+                userName: s.UserName ?? s.userName,
+                userEmail: s.UserEmail ?? s.userEmail,
+                dateTime: new Date(s.DateTime ?? s.dateTime),
+                duration: s.Duration ?? s.duration ?? 60,
+                status: s.Status ?? s.status,
+                type: s.Type ?? s.type,
+                location: s.Location ?? s.location,
+                rating: s.Rating ?? s.rating,
+                review: s.Review ?? s.review,
+                reviewDate: (s.ReviewDate ?? s.reviewDate) ? new Date(s.ReviewDate ?? s.reviewDate) : null
             }));
             
-            const ptInData = trainersData.find(p => p.ptId === ptid);
+            const ptInData = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === ptid);
             if (ptInData) {
                 ptInData.scheduleData = scheduleData;
             } else {
                 // Create new entry if not found
                 trainersData.push({
+                    PTId: ptid,
                     ptId: ptid,
                     scheduleData: scheduleData
                 });
@@ -532,7 +577,7 @@ async function viewPTProfile360(ptid) {
 async function loadPTSchedule(ptid) {
     try {
         // Try to get from local data first
-        let pt = trainersData.find(p => p.ptId === ptid);
+        let pt = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === ptid);
         let scheduleData = pt?.scheduleData || [];
         
         // If no schedule data, fetch from API
@@ -540,20 +585,21 @@ async function loadPTSchedule(ptid) {
             const response = await fetch(`/Admin/QuanLiPT/${encodeURIComponent(ptid)}/Profile360`);
             if (response.ok) {
                 const data = await response.json();
-                if (data.schedule && data.schedule.length > 0) {
-                    scheduleData = data.schedule.map(s => ({
-                        id: s.scheduleId,
-                        userId: s.userId,
-                        userName: s.userName,
-                        userEmail: s.userEmail,
-                        dateTime: new Date(s.dateTime),
-                        duration: s.duration || 60,
-                        status: s.status,
-                        type: s.type,
-                        location: s.location,
-                        rating: s.rating,
-                        review: s.review,
-                        reviewDate: s.reviewDate ? new Date(s.reviewDate) : null
+                const schedule = data.Schedule ?? data.schedule ?? [];
+                if (schedule && schedule.length > 0) {
+                    scheduleData = schedule.map(s => ({
+                        id: s.ScheduleId ?? s.scheduleId,
+                        userId: s.UserId ?? s.userId,
+                        userName: s.UserName ?? s.userName,
+                        userEmail: s.UserEmail ?? s.userEmail,
+                        dateTime: new Date(s.DateTime ?? s.dateTime),
+                        duration: s.Duration ?? s.duration ?? 60,
+                        status: s.Status ?? s.status,
+                        type: s.Type ?? s.type,
+                        location: s.Location ?? s.location,
+                        rating: s.Rating ?? s.rating,
+                        review: s.Review ?? s.review,
+                        reviewDate: (s.ReviewDate ?? s.reviewDate) ? new Date(s.ReviewDate ?? s.reviewDate) : null
                     }));
                     
                     // Store in local data
@@ -697,7 +743,7 @@ function changeScheduleMonth(delta) {
         currentScheduleYear++;
     }
     
-    const pt = trainersData.find(p => p.ptId === currentPTId);
+    const pt = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === currentPTId);
     if (pt && pt.scheduleData) {
         renderScheduleCalendar(pt.scheduleData);
     }
@@ -706,7 +752,7 @@ function changeScheduleMonth(delta) {
 // Select Schedule Date
 function selectScheduleDate(dateStr) {
     selectedScheduleDate = dateStr;
-    const pt = trainersData.find(p => p.ptId === currentPTId);
+    const pt = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === currentPTId);
     if (!pt || !pt.scheduleData) return;
     
     renderScheduleCalendar(pt.scheduleData);
@@ -887,7 +933,7 @@ function renderPTScheduleList(filtered) {
 
 // Filter Schedule by Status
 function filterScheduleByStatus(status) {
-    const pt = trainersData.find(p => p.ptId === currentPTId);
+    const pt = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === currentPTId);
     if (!pt || !pt.scheduleData) return;
     
     document.querySelectorAll('.schedule-filter-btn').forEach(btn => {
@@ -922,8 +968,13 @@ function renderPTReviews(reviews) {
     }
     
     container.innerHTML = reviews.map((review, index) => {
-        const reviewDate = review.reviewDate ? new Date(review.reviewDate) : null;
-        const rating = review.rating || 0;
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const reviewDate = (review.ReviewDate ?? review.reviewDate) ? new Date(review.ReviewDate ?? review.reviewDate) : null;
+        const rating = review.Rating ?? review.rating ?? 0;
+        const customerName = review.CustomerName ?? review.customerName ?? 'Khách hàng';
+        const customerId = review.CustomerId ?? review.customerId ?? '';
+        const comment = review.Comment ?? review.comment ?? null;
+        
         const stars = Array.from({length: 5}, (_, i) => 
             `<i class="fas fa-star ${i < rating ? '' : 'empty'}" style="color: ${i < rating ? '#fbbf24' : '#e5e7eb'}; transition: all 0.3s ease;"></i>`
         ).join('');
@@ -941,11 +992,11 @@ function renderPTReviews(reviews) {
                 <div class="pt-review-header">
                     <div class="pt-review-customer">
                         <div class="pt-review-avatar" style="background: ${ratingColors[colorIndex]};">
-                            ${(review.customerName || 'K')[0].toUpperCase()}
+                            ${customerName[0].toUpperCase()}
                         </div>
                         <div>
-                            <div class="pt-review-name">${review.customerName || 'Khách hàng'}</div>
-                            <div class="pt-review-id">${review.customerId || ''}</div>
+                            <div class="pt-review-name">${customerName}</div>
+                            <div class="pt-review-id">${customerId}</div>
                         </div>
                     </div>
                     <div class="pt-review-rating">
@@ -953,8 +1004,8 @@ function renderPTReviews(reviews) {
                         ${reviewDate ? `<div class="pt-review-date">${reviewDate.toLocaleDateString('vi-VN')}</div>` : ''}
                     </div>
                 </div>
-                ${review.comment ? 
-                    `<div class="pt-review-comment">${review.comment}</div>` : 
+                ${comment ? 
+                    `<div class="pt-review-comment">${comment}</div>` : 
                     '<div class="pt-review-comment empty">Không có bình luận</div>'
                 }
             </div>
@@ -982,7 +1033,12 @@ function renderPTClients(clients) {
     
     // Add animation delay based on index
     container.innerHTML = clients.map((client, index) => {
-        const accessDate = client.accessGrantedDate ? new Date(client.accessGrantedDate) : null;
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const accessDate = (client.AccessGrantedDate ?? client.accessGrantedDate) ? new Date(client.AccessGrantedDate ?? client.accessGrantedDate) : null;
+        const userId = client.UserId ?? client.userId ?? '';
+        const name = client.Name ?? client.name ?? 'Khách hàng';
+        const email = client.Email ?? client.email ?? '';
+        const isActive = client.IsActive ?? client.isActive ?? false;
         const avatarColors = [
             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -995,13 +1051,13 @@ function renderPTClients(clients) {
         
         return `
             <div class="pt-client-card" style="animation-delay: ${index * 0.1}s;">
-                <div class="pt-client-header">
+                    <div class="pt-client-header">
                     <div class="pt-client-avatar" style="background: ${avatarColors[colorIndex]};">
-                        ${(client.name || 'U')[0].toUpperCase()}
+                        ${name[0].toUpperCase()}
                     </div>
                     <div class="pt-client-info">
-                        <div class="pt-client-name">${client.name || '-'}</div>
-                        <div class="pt-client-email">${client.email || client.userId || ''}</div>
+                        <div class="pt-client-name">${name}</div>
+                        <div class="pt-client-email">${email || userId}</div>
                     </div>
                 </div>
                 <div class="pt-client-footer">
@@ -1012,7 +1068,7 @@ function renderPTClients(clients) {
                         </div>
                     ` : '<div></div>'}
                     <div class="pt-client-status">
-                        ${client.isActive ? 
+                        ${isActive ? 
                             '<span class="status-badge status-active"><i class="fas fa-check-circle"></i> Đang hoạt động</span>' : 
                             '<span class="status-badge status-inactive"><i class="fas fa-pause-circle"></i> Không hoạt động</span>'
                         }
@@ -1078,9 +1134,10 @@ async function toggleAcceptingClients() {
         const updated = await response.json();
         
         // Update local data
-        const pt = trainersData.find(p => p.ptId === currentPTId);
+        const pt = trainersData.find(p => (p.PTId ?? p.ptId ?? p.UserId ?? p.userId) === currentPTId);
         if (pt) {
-            pt.acceptingClients = updated.acceptingClients;
+            pt.AcceptingClients = updated.AcceptingClients ?? updated.acceptingClients;
+            pt.acceptingClients = updated.AcceptingClients ?? updated.acceptingClients;
         }
         
         // Update button active state
@@ -1193,6 +1250,15 @@ function renderPendingPTCards() {
 }
 
 function createPendingPTCard(pt, index) {
+    // Support both PascalCase (from API) and camelCase (fallback)
+    const userId = pt.UserId ?? pt.userId ?? pt.PTId ?? pt.ptId ?? '-';
+    const name = pt.Name ?? pt.name ?? '-';
+    const email = pt.Email ?? pt.email ?? '-';
+    const specialty = pt.Specialty ?? pt.specialty ?? '-';
+    const city = pt.City ?? pt.city ?? '-';
+    const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+    const registrationDate = pt.RegistrationDate ?? pt.registrationDate;
+    
     return `
         <div class="user-card" style="animation-delay: ${index * 0.05}s">
             <div class="user-card-header">
@@ -1205,8 +1271,8 @@ function createPendingPTCard(pt, index) {
                     </div>
                 </div>
                 <div class="user-info">
-                    <h3 class="user-name">${pt.name || '-'}</h3>
-                    <p class="user-id">${pt.userId || '-'}</p>
+                    <h3 class="user-name">${name}</h3>
+                    <p class="user-id">${userId}</p>
                 </div>
             </div>
             
@@ -1214,30 +1280,30 @@ function createPendingPTCard(pt, index) {
                 <div class="user-info-list">
                     <div class="user-info-item">
                         <i class="fas fa-envelope"></i>
-                        <span>${pt.email || '-'}</span>
+                        <span>${email}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-briefcase"></i>
-                        <span>${pt.specialty || '-'}</span>
+                        <span>${specialty}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>${pt.city || '-'}</span>
+                        <span>${city}</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-dollar-sign"></i>
-                        <span>${(pt.pricePerHour || 0).toLocaleString('vi-VN')} VNĐ/giờ</span>
+                        <span>${pricePerHour.toLocaleString('vi-VN')} VNĐ/giờ</span>
                     </div>
                     <div class="user-info-item">
                         <i class="fas fa-calendar"></i>
-                        <span>Đăng ký: ${pt.registrationDate ? new Date(pt.registrationDate).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                        <span>Đăng ký: ${registrationDate ? new Date(registrationDate).toLocaleDateString('vi-VN') : 'N/A'}</span>
                     </div>
                 </div>
             </div>
             
             <div class="user-card-footer">
                 <div class="user-card-actions">
-                    <button class="btn-view-details" onclick="viewPTRegistrationDetail('${pt.userId}')">
+                    <button class="btn-view-details" onclick="viewPTRegistrationDetail('${userId}')">
                         <i class="fas fa-eye"></i>
                         <span>Xem hồ sơ</span>
                     </button>
@@ -1252,12 +1318,18 @@ function filterPendingPT() {
     const specialty = document.getElementById('pending-filter-specialty')?.value || '';
     
     filteredPendingPTData = pendingPTData.filter(pt => {
-        const matchKeyword = !keyword || 
-            (pt.name && pt.name.toLowerCase().includes(keyword)) || 
-            (pt.email && pt.email.toLowerCase().includes(keyword)) || 
-            (pt.userId && pt.userId.toLowerCase().includes(keyword));
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const name = pt.Name ?? pt.name ?? '';
+        const email = pt.Email ?? pt.email ?? '';
+        const userId = pt.UserId ?? pt.userId ?? pt.PTId ?? pt.ptId ?? '';
+        const ptSpecialty = pt.Specialty ?? pt.specialty ?? '';
         
-        const matchSpecialty = !specialty || pt.specialty === specialty;
+        const matchKeyword = !keyword || 
+            (name && name.toLowerCase().includes(keyword)) || 
+            (email && email.toLowerCase().includes(keyword)) || 
+            (userId && userId.toLowerCase().includes(keyword));
+        
+        const matchSpecialty = !specialty || ptSpecialty === specialty;
         
         return matchKeyword && matchSpecialty;
     });
@@ -1271,7 +1343,7 @@ async function openVerifyPendingModal() {
         if (!response.ok) throw new Error('Failed to load pending PTs');
         
         const data = await response.json();
-        pendingPTData = data.trainers || [];
+        pendingPTData = data.Trainers ?? data.trainers ?? [];
     filteredPendingPTData = [...pendingPTData];
     
     const badge = document.getElementById('pending-pt-count');
@@ -1293,7 +1365,8 @@ async function openVerifyPendingModal() {
 }
 
 function viewPTRegistrationDetail(userid) {
-    const pt = pendingPTData.find(p => p.userId === userid) || trainersData.find(p => p.userId === userid);
+    const pt = pendingPTData.find(p => (p.UserId ?? p.userId ?? p.PTId ?? p.ptId) === userid) || 
+               trainersData.find(p => (p.UserId ?? p.userId ?? p.PTId ?? p.ptId) === userid);
     if (!pt) return;
     
     currentPendingPTId = userid;
@@ -1301,22 +1374,39 @@ function viewPTRegistrationDetail(userid) {
 }
 
 function fillRegistrationDetail(pt) {
-    document.getElementById('reg-userid').textContent = pt.userId || '-';
-    document.getElementById('reg-name').textContent = pt.name || '-';
-    document.getElementById('reg-email').textContent = pt.email || '-';
-    document.getElementById('reg-experience').textContent = (pt.experience || 0) + ' năm';
-    document.getElementById('reg-city').textContent = pt.city || '-';
-    document.getElementById('reg-price').textContent = (pt.pricePerHour || 0).toLocaleString('vi-VN');
-    document.getElementById('reg-specialty').textContent = pt.specialty || '-';
-    document.getElementById('reg-certificate').textContent = pt.certificate || '-';
-    document.getElementById('reg-bio').textContent = pt.bio || '-';
-    document.getElementById('reg-availability').textContent = pt.availability || '-';
-    document.getElementById('reg-date').textContent = pt.registrationDate ? new Date(pt.registrationDate).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+    // Support both PascalCase (from API) and camelCase (fallback)
+    const userId = pt.UserId ?? pt.userId ?? pt.PTId ?? pt.ptId ?? '-';
+    const name = pt.Name ?? pt.name ?? '-';
+    const email = pt.Email ?? pt.email ?? '-';
+    const experience = pt.Experience ?? pt.experience ?? 0;
+    const city = pt.City ?? pt.city ?? '-';
+    const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+    const specialty = pt.Specialty ?? pt.specialty ?? '-';
+    const certificate = pt.Certificate ?? pt.certificate ?? '-';
+    const bio = pt.Bio ?? pt.bio ?? '-';
+    const availability = pt.Availability ?? pt.availability ?? '-';
+    const registrationDate = pt.RegistrationDate ?? pt.registrationDate;
+    const avatarUrl = pt.AvatarUrl ?? pt.avatarUrl;
+    const cccdUrl = pt.CCCDUrl ?? pt.cccdUrl;
+    const portraitUrl = pt.PortraitUrl ?? pt.portraitUrl;
+    const documentUrl = pt.DocumentUrl ?? pt.documentUrl;
     
-    document.getElementById('reg-avatar-link').href = pt.avatarUrl || '#';
-    document.getElementById('reg-cccd-link').href = pt.cccdUrl || '#';
-    document.getElementById('reg-portrait-link').href = pt.portraitUrl || '#';
-    document.getElementById('reg-document-link').href = pt.documentUrl || '#';
+    document.getElementById('reg-userid').textContent = userId;
+    document.getElementById('reg-name').textContent = name;
+    document.getElementById('reg-email').textContent = email;
+    document.getElementById('reg-experience').textContent = experience + ' năm';
+    document.getElementById('reg-city').textContent = city;
+    document.getElementById('reg-price').textContent = pricePerHour.toLocaleString('vi-VN');
+    document.getElementById('reg-specialty').textContent = specialty;
+    document.getElementById('reg-certificate').textContent = certificate;
+    document.getElementById('reg-bio').textContent = bio;
+    document.getElementById('reg-availability').textContent = availability;
+    document.getElementById('reg-date').textContent = registrationDate ? new Date(registrationDate).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+    
+    document.getElementById('reg-avatar-link').href = avatarUrl || '#';
+    document.getElementById('reg-cccd-link').href = cccdUrl || '#';
+    document.getElementById('reg-portrait-link').href = portraitUrl || '#';
+    document.getElementById('reg-document-link').href = documentUrl || '#';
     
     openModal('modal-pt-registration-detail');
 }
@@ -1522,7 +1612,7 @@ async function openEditPTModal(ptId) {
         if (!response.ok) throw new Error('Failed to fetch PT data');
         
         const data = await response.json();
-        const pt = data.basicInfo;
+        const pt = data.BasicInfo ?? data.basicInfo;
         
         if (!pt) {
             showNotification('Không tìm thấy thông tin PT', 'error');
@@ -1544,25 +1634,36 @@ async function openEditPTModal(ptId) {
             }
         };
         
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const ptId = pt.PTId ?? pt.ptId ?? pt.UserId ?? pt.userId ?? '';
+        const specialty = pt.Specialty ?? pt.specialty ?? '';
+        const city = pt.City ?? pt.city ?? '';
+        const pricePerHour = pt.PricePerHour ?? pt.pricePerHour ?? 0;
+        const bio = pt.Bio ?? pt.bio ?? '';
+        const experience = pt.Experience ?? pt.experience ?? 0;
+        const certificate = pt.Certificate ?? pt.certificate ?? '';
+        const availability = pt.Availability ?? pt.availability ?? '';
+        const acceptingClients = pt.AcceptingClients ?? pt.acceptingClients ?? false;
+        
         // Populate form with null checks
-        setValue('edit-pt-id', pt.ptId || pt.userId || '');
-        setValue('edit-pt-specialty', pt.specialty || '');
-        setValue('edit-pt-city', pt.city || '');
-        setValue('edit-pt-price', pt.pricePerHour || '');
-        setValue('edit-pt-bio', pt.bio || '');
-        setValue('edit-pt-experience', pt.experience || '');
-        setValue('edit-pt-certificate', pt.certificate || '');
-        setValue('edit-pt-availability', pt.availability || '');
-        setValue('edit-pt-accepting', pt.acceptingClients || false);
+        setValue('edit-pt-id', ptId);
+        setValue('edit-pt-specialty', specialty);
+        setValue('edit-pt-city', city);
+        setValue('edit-pt-price', pricePerHour);
+        setValue('edit-pt-bio', bio);
+        setValue('edit-pt-experience', experience);
+        setValue('edit-pt-certificate', certificate);
+        setValue('edit-pt-availability', availability);
+        setValue('edit-pt-accepting', acceptingClients);
         
         // For select elements, ensure the value is selected
         const specialtySelect = document.getElementById('edit-pt-specialty');
-        if (specialtySelect && pt.specialty) {
-            specialtySelect.value = pt.specialty;
+        if (specialtySelect && specialty) {
+            specialtySelect.value = specialty;
         }
         const citySelect = document.getElementById('edit-pt-city');
-        if (citySelect && pt.city) {
-            citySelect.value = pt.city;
+        if (citySelect && city) {
+            citySelect.value = city;
         }
     } catch (error) {
         console.error('Error opening edit modal:', error);

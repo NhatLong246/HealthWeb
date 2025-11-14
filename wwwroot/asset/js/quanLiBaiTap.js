@@ -220,29 +220,29 @@ function validateExerciseFormData(data) {
 function normalizeExercise(raw) {
     if (!raw) return null;
     return {
-        id: raw.exerciseId ?? raw.id ?? 0,
-        name: raw.name ?? 'Không xác định',
-        muscleGroup: raw.muscleGroup ?? 'Toàn thân',
-        difficulty: Number(raw.difficulty ?? 3),
-        difficultyText: raw.difficultyText ?? 'Trung bình',
-        equipment: raw.equipment ?? 'Không cần',
-        caloriesPerMinute: Number(raw.caloriesPerMinute ?? 0),
-        imageUrl: raw.imageUrl ?? null,
-        videoUrl: raw.videoUrl ?? null,
-        warnings: raw.warnings ?? null,
-        instructions: raw.instructions ?? null,
-        description: raw.description ?? null,
-        hidden: raw.hidden ?? false,
-        createdAt: raw.createdAt ?? new Date().toISOString().split('T')[0],
-        timesUsed: Number(raw.timesUsed ?? 0)
+        id: raw.ExerciseId ?? raw.exerciseId ?? raw.id ?? 0,
+        name: raw.Name ?? raw.name ?? 'Không xác định',
+        muscleGroup: raw.MuscleGroup ?? raw.muscleGroup ?? 'Toàn thân',
+        difficulty: Number(raw.Difficulty ?? raw.difficulty ?? 3),
+        difficultyText: raw.DifficultyText ?? raw.difficultyText ?? 'Trung bình',
+        equipment: raw.Equipment ?? raw.equipment ?? 'Không cần',
+        caloriesPerMinute: Number(raw.CaloriesPerMinute ?? raw.caloriesPerMinute ?? 0),
+        imageUrl: raw.ImageUrl ?? raw.imageUrl ?? null,
+        videoUrl: raw.VideoUrl ?? raw.videoUrl ?? null,
+        warnings: raw.Warnings ?? raw.warnings ?? null,
+        instructions: raw.Instructions ?? raw.instructions ?? null,
+        description: raw.Description ?? raw.description ?? null,
+        hidden: raw.Hidden ?? raw.hidden ?? false,
+        createdAt: raw.CreatedAt ?? raw.createdAt ?? new Date().toISOString().split('T')[0],
+        timesUsed: Number(raw.TimesUsed ?? raw.timesUsed ?? 0)
     };
 }
 
 function normalizeSummary(raw) {
     if (!raw) return null;
     return {
-        TotalExercises: Number(raw.totalExercises ?? 0),
-        AverageDifficulty: Number(raw.averageDifficulty ?? 0)
+        TotalExercises: Number(raw.TotalExercises ?? 0),
+        AverageDifficulty: Number(raw.AverageDifficulty ?? 0)
     };
 }
 
@@ -267,8 +267,8 @@ async function loadExercisesFromServer(forceReload = false) {
         }
 
         const payload = await response.json();
-        const exercisesRaw = Array.isArray(payload?.exercises) ? payload.exercises : [];
-        const summaryRaw = payload?.summary ?? null;
+        const exercisesRaw = Array.isArray(payload?.Exercises) ? payload.Exercises : [];
+        const summaryRaw = payload?.Summary ?? null;
 
         exercisesData = exercisesRaw.map(normalizeExercise).filter(Boolean);
         filteredExercisesData = [...exercisesData];
