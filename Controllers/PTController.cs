@@ -15,6 +15,39 @@ namespace HealthWeb.Controllers
             _ptService = ptService;
         }
 
+        // GET: /PT/SwitchToPT - chuyển sang giao diện PT (kiểm tra và redirect)
+        [HttpGet("PT/SwitchToPT")]
+        public async Task<IActionResult> SwitchToPT()
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    // Chưa đăng nhập → redirect đến login
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // Kiểm tra xem user đã đăng ký làm PT chưa
+                var trainer = await _ptService.GetCurrentTrainerAsync(userId);
+                if (trainer != null)
+                {
+                    // Đã là PT → redirect đến Dashboard PT
+                    return RedirectToAction("Dashboard", "PT");
+                }
+                else
+                {
+                    // Chưa đăng ký → redirect đến trang đăng ký PT
+                    return RedirectToAction("RegisterPT", "PT");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error switching to PT mode");
+                return RedirectToAction("RegisterPT", "PT");
+            }
+        }
+
         // GET: /PT/RegisterPT - render form đăng ký PT (frontend xử lý hiển thị)
         [HttpGet("PT/RegisterPT")]
         public IActionResult RegisterPT()
@@ -53,11 +86,36 @@ namespace HealthWeb.Controllers
             return RedirectToAction("Login", "Account");
         }
 
-        // GET: /PT/Dashboard - trả view dashboard (dữ liệu fetch qua API)
+        // GET: /PT/Dashboard - trả view dashboard với dữ liệu từ server
         [HttpGet("PT/DashboardPT")]
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
-            return View();
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Dashboard: No userId found, redirecting to login");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                _logger.LogInformation("Dashboard: Loading dashboard for userId: {UserId}", userId);
+                var viewModel = await _ptService.GetDashboardViewModelAsync(userId);
+                if (viewModel == null)
+                {
+                    _logger.LogWarning("Dashboard: ViewModel is null for userId: {UserId}", userId);
+                    return View(new DashboardViewModel());
+                }
+
+                _logger.LogInformation("Dashboard: Loaded dashboard with {TotalClients} clients, {TodayBookings} bookings, {Revenue} revenue", 
+                    viewModel.TotalClients, viewModel.TodayBookings, viewModel.MonthlyRevenue);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading dashboard");
+                return View(new DashboardViewModel());
+            }
         }
 
         // Thống kê chính trên dashboard PT (khách, lịch hôm nay, doanh thu, rating)
@@ -116,14 +174,18 @@ namespace HealthWeb.Controllers
             try
             {
                 var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                _logger.LogInformation("GetClientsStats: userId from session: {UserId}", userId ?? "NULL");
+                
                 if (string.IsNullOrEmpty(userId))
                 {
+                    _logger.LogWarning("GetClientsStats: No userId found in session");
                     return Json(new { success = false, message = "Vui lòng đăng nhập" });
                 }
 
                 var stats = await _ptService.GetClientsStatsAsync(userId);
                 if (stats == null)
                 {
+                    _logger.LogWarning("GetClientsStats: GetClientsStatsAsync returned null for userId: {UserId}", userId);
                     return Json(new { success = false, message = "Không tìm thấy thông tin PT" });
                 }
 
@@ -143,12 +205,16 @@ namespace HealthWeb.Controllers
             try
             {
                 var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                _logger.LogInformation("GetClientsList: userId from session: {UserId}", userId ?? "NULL");
+                
                 if (string.IsNullOrEmpty(userId))
                 {
+                    _logger.LogWarning("GetClientsList: No userId found in session");
                     return Json(new { success = false, message = "Vui lòng đăng nhập" });
                 }
 
                 var clients = await _ptService.GetClientsListAsync(userId);
+                _logger.LogInformation("GetClientsList: Returning {Count} clients for userId: {UserId}", clients.Count, userId);
                 return Json(new { success = true, data = clients });
             }
             catch (Exception ex)
@@ -209,32 +275,132 @@ namespace HealthWeb.Controllers
 
         // GET: /PT/Schedule
         [HttpGet("PT/SchedulePT")]
-        public IActionResult Schedule()
+        public async Task<IActionResult> Schedule([FromQuery] DateOnly? start)
         {
-            return View();
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var viewModel = await _ptService.GetScheduleViewModelAsync(userId, start);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading schedule");
+                return View(new HealthWeb.Services.ScheduleViewModel());
+            }
         }
 
         // GET: /PT/SearchClients - hiển thị giao diện tìm khách hàng tiềm năng
         [HttpGet("PT/SearchClients")]
-        public IActionResult SearchClients()
+        public async Task<IActionResult> SearchClients(
+            [FromQuery] string? search,
+            [FromQuery] string? goal,
+            [FromQuery] string? location,
+            [FromQuery] string? time,
+            [FromQuery] string? budget)
         {
-            return View();
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var viewModel = await _ptService.GetSearchClientsViewModelAsync(userId, search, goal, location, time, budget);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading search clients");
+                return View(new HealthWeb.Services.SearchClientsViewModel());
+            }
         }
 
-        // GET: /PT/ManageClients - giao diện quản lý khách hiện hữu
+        // GET: /PT/ManageClients - giao diện quản lý khách hiện hữu với dữ liệu từ server
         [HttpGet("PT/ManageClients")]
-        public IActionResult ManageClients()
+        public async Task<IActionResult> ManageClients()
         {
-            return View();
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("ManageClients: No userId found, redirecting to login");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                _logger.LogInformation("ManageClients: Loading clients for userId: {UserId}", userId);
+                var viewModel = await _ptService.GetManageClientsViewModelAsync(userId);
+                if (viewModel == null)
+                {
+                    _logger.LogWarning("ManageClients: ViewModel is null for userId: {UserId}", userId);
+                    return View(new ManageClientsViewModel());
+                }
+
+                _logger.LogInformation("ManageClients: Loaded {TotalClients} clients, {ActiveClients} active, {Sessions} sessions", 
+                    viewModel.TotalClients, viewModel.ActiveClients, viewModel.TotalSessions);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading manage clients");
+                return View(new ManageClientsViewModel());
+            }
+        }
+
+        // GET: /PT/Clients/Detail/{clientId} - lấy thông tin chi tiết khách hàng (trả về PartialView)
+        [HttpGet("PT/Clients/Detail/{clientId}")]
+        public async Task<IActionResult> GetClientDetail(string clientId)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return PartialView("_Error", (object)"Vui lòng đăng nhập");
+                }
+
+                var detail = await _ptService.GetClientDetailViewModelAsync(userId, clientId);
+                if (detail == null)
+                {
+                    return PartialView("_Error", (object)"Không tìm thấy thông tin khách hàng");
+                }
+
+                return PartialView("_ClientDetail", detail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving client detail");
+                return PartialView("_Error", (object)"Không thể tải thông tin khách hàng");
+            }
         }
 
         // GET: /PT/Settings
         [HttpGet("PT/Settings")]
         public async Task<IActionResult> Settings()
         {
-            // Get current user from session/localStorage (to be implemented)
-            // For now, return view
-            return View();
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var viewModel = await _ptService.GetSettingsViewModelAsync(userId);
+                return View(viewModel ?? new HealthWeb.Services.SettingsViewModel());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading settings");
+                return View(new HealthWeb.Services.SettingsViewModel());
+            }
         }
 
         // POST: /PT/Settings/Profile
@@ -348,6 +514,122 @@ namespace HealthWeb.Controllers
                 return Json(new { success = false, message = "Có lỗi xảy ra" });
             }
         }
+
+        // GET: /PT/Requests - trang quản lý yêu cầu
+        [HttpGet("PT/Requests")]
+        public async Task<IActionResult> Requests()
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var requests = await _ptService.GetPendingRequestsAsync(userId);
+                return View(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading requests");
+                return View(new List<PendingRequestViewModel>());
+            }
+        }
+
+        // GET: /PT/Requests/List - API lấy danh sách yêu cầu
+        [HttpGet("PT/Requests/List")]
+        public async Task<IActionResult> GetRequestsList()
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                var requests = await _ptService.GetPendingRequestsAsync(userId);
+                return Json(new { success = true, data = requests });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving requests list");
+                return Json(new { success = false, message = "Không thể tải danh sách yêu cầu" });
+            }
+        }
+
+        // POST: /PT/Requests/Accept - chấp nhận yêu cầu
+        [HttpPost("PT/Requests/Accept")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptRequest([FromBody] AcceptRequestModel model)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.RequestId))
+                {
+                    return Json(new { success = false, message = "Yêu cầu không hợp lệ" });
+                }
+
+                var (success, message) = await _ptService.AcceptRequestAsync(userId, model.RequestId);
+                return Json(new { success, message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error accepting request");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi chấp nhận yêu cầu" });
+            }
+        }
+
+        // POST: /PT/Requests/Reject - từ chối yêu cầu
+        [HttpPost("PT/Requests/Reject")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectRequest([FromBody] RejectRequestModel model)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.RequestId))
+                {
+                    return Json(new { success = false, message = "Yêu cầu không hợp lệ" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Reason))
+                {
+                    return Json(new { success = false, message = "Vui lòng nhập lý do từ chối" });
+                }
+
+                var (success, message) = await _ptService.RejectRequestAsync(userId, model.RequestId, model.Reason);
+                return Json(new { success, message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting request");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi từ chối yêu cầu" });
+            }
+        }
+    }
+
+    public class AcceptRequestModel
+    {
+        public string RequestId { get; set; } = null!;
+    }
+
+    public class RejectRequestModel
+    {
+        public string RequestId { get; set; } = null!;
+        public string Reason { get; set; } = null!;
     }
 }
 

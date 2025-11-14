@@ -9,11 +9,18 @@ namespace HealthWeb.Services
     {
         Task<List<object>> SearchPTsAsync(string? search, string? location, string? specialization, double? maxPrice, int? minExperience);
         Task<object?> GetPTDetailsAsync(string ptId);
-        Task<(bool success, string message)> SendTrainingRequestAsync(string userId, string ptId, DateTime dateTime, string? sessionType, string? notes);
+        Task<(bool success, string message)> SendTrainingRequestAsync(string userId, string ptId, string goal, List<ScheduleItem> schedules, string? notes);
         Task<List<object>> GetMyRequestsAsync(string userId);
         Task<object?> GetRequestDetailsAsync(string bookingId, string userId);
         Task<(bool success, string message)> CancelRequestAsync(string bookingId, string userId);
         Task<string?> GetCurrentUserIdAsync(HttpContext httpContext);
+    }
+
+    public class ScheduleItem
+    {
+        public string Day { get; set; } = null!;
+        public string StartTime { get; set; } = null!;
+        public string EndTime { get; set; } = null!;
     }
 
     public class FindPTService : IFindPTService
@@ -190,7 +197,7 @@ namespace HealthWeb.Services
             }
         }
 
-        public async Task<(bool success, string message)> SendTrainingRequestAsync(string userId, string ptId, DateTime dateTime, string? sessionType, string? notes)
+        public async Task<(bool success, string message)> SendTrainingRequestAsync(string userId, string ptId, string goal, List<ScheduleItem> schedules, string? notes)
         {
             try
             {
@@ -206,10 +213,16 @@ namespace HealthWeb.Services
                     return (false, "Huấn luyện viên không hợp lệ");
                 }
 
-                // Validate dateTime - không được đặt trong quá khứ
-                if (dateTime <= DateTime.Now)
+                // Validate goal
+                if (string.IsNullOrWhiteSpace(goal))
                 {
-                    return (false, "Thời gian đặt lịch phải trong tương lai");
+                    return (false, "Vui lòng chọn mục tiêu luyện tập");
+                }
+
+                // Validate schedules
+                if (schedules == null || schedules.Count == 0)
+                {
+                    return (false, "Vui lòng chọn ít nhất một ngày và nhập thời gian rảnh");
                 }
 
                 // Kiểm tra user có tồn tại không
@@ -239,67 +252,136 @@ namespace HealthWeb.Services
                     return (false, "Huấn luyện viên hiện không nhận khách mới");
                 }
 
-                // Kiểm tra xem đã có yêu cầu chưa được xử lý chưa (trong cùng ngày)
-                var dateOnly = dateTime.Date;
-                var existingRequest = await _context.DatLichPts
-                    .Where(d => d.KhacHangId == userId && 
-                               d.Ptid == ptId && 
-                               d.NgayGioDat.Date == dateOnly &&
-                               d.TrangThai != null &&
-                               d.TrangThai != "Cancelled" &&
-                               d.TrangThai != "Completed")
-                    .FirstOrDefaultAsync();
-
-                if (existingRequest != null)
-                {
-                    return (false, "Bạn đã có yêu cầu với huấn luyện viên này trong ngày này rồi");
-                }
-
                 // Kiểm tra xem user có phải là PT không (PT không thể đặt lịch với PT khác)
                 if (user.Role == "PT")
                 {
                     return (false, "Huấn luyện viên không thể đặt lịch với huấn luyện viên khác");
                 }
 
-                // Tạo DatLichId mới
+                // Tính toán ngày trong tuần hiện tại
+                var today = DateTime.Now.Date;
+                var startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+                if (startOfWeek > today) startOfWeek = startOfWeek.AddDays(-7);
+
+                // Map day name to DayOfWeek
+                var dayOfWeekMap = new Dictionary<string, DayOfWeek>
+                {
+                    { "Monday", DayOfWeek.Monday },
+                    { "Tuesday", DayOfWeek.Tuesday },
+                    { "Wednesday", DayOfWeek.Wednesday },
+                    { "Thursday", DayOfWeek.Thursday },
+                    { "Friday", DayOfWeek.Friday },
+                    { "Saturday", DayOfWeek.Saturday },
+                    { "Sunday", DayOfWeek.Sunday }
+                };
+
+                // Tạo booking cho mỗi buổi trong tuần
+                var bookings = new List<DatLichPt>();
                 var lastBooking = await _context.DatLichPts
                     .OrderByDescending(d => d.DatLichId)
                     .FirstOrDefaultAsync();
 
-                var bookingId = "bkg_0001";
+                var bookingNumber = 1;
                 if (lastBooking != null)
                 {
                     try
                     {
-                        var number = int.Parse(lastBooking.DatLichId.Split('_')[1]) + 1;
-                        bookingId = $"bkg_{number:D4}";
+                        bookingNumber = int.Parse(lastBooking.DatLichId.Split('_')[1]) + 1;
                     }
                     catch
                     {
-                        // Fallback nếu parse lỗi
-                        bookingId = $"bkg_{DateTime.Now:yyyyMMddHHmmss}";
+                        bookingNumber = 1;
                     }
                 }
 
-                // Tạo yêu cầu mới
-                var booking = new DatLichPt
+                // Tạo GhiChu với thông tin mục tiêu và lịch trình
+                var fullNotes = $"Mục tiêu: {goal}";
+                if (!string.IsNullOrWhiteSpace(notes))
                 {
-                    DatLichId = bookingId,
-                    KhacHangId = userId,
-                    Ptid = ptId,
-                    NgayGioDat = dateTime,
-                    LoaiBuoiTap = sessionType ?? "Online",
-                    TrangThai = "Pending",
-                    GhiChu = notes,
-                    NgayTao = DateTime.Now
-                };
+                    fullNotes += $"\nGhi chú: {notes}";
+                }
+                fullNotes += "\nThời gian rảnh trong tuần:";
+                foreach (var schedule in schedules)
+                {
+                    fullNotes += $"\n- {schedule.Day}: {schedule.StartTime} - {schedule.EndTime}";
+                }
 
-                _context.DatLichPts.Add(booking);
+                foreach (var schedule in schedules)
+                {
+                    if (!dayOfWeekMap.TryGetValue(schedule.Day, out var dayOfWeek))
+                    {
+                        continue;
+                    }
+
+                    // Tính ngày trong tuần hiện tại
+                    var targetDate = startOfWeek.AddDays((int)dayOfWeek - (int)DayOfWeek.Monday);
+                    
+                    // Nếu ngày đã qua, lấy tuần tiếp theo
+                    if (targetDate < today)
+                    {
+                        targetDate = targetDate.AddDays(7);
+                    }
+
+                    // Parse thời gian
+                    if (!TimeSpan.TryParse(schedule.StartTime, out var startTime))
+                    {
+                        continue;
+                    }
+
+                    // Tạo DateTime cho buổi tập (sử dụng giờ bắt đầu)
+                    var dateTime = targetDate.Add(startTime);
+
+                    // Kiểm tra không được đặt trong quá khứ
+                    if (dateTime <= DateTime.Now)
+                    {
+                        continue;
+                    }
+
+                    // Kiểm tra xem đã có yêu cầu chưa được xử lý chưa (trong cùng ngày)
+                    var dateOnly = dateTime.Date;
+                    var existingRequest = await _context.DatLichPts
+                        .Where(d => d.KhacHangId == userId && 
+                                   d.Ptid == ptId && 
+                                   d.NgayGioDat.Date == dateOnly &&
+                                   d.TrangThai != null &&
+                                   d.TrangThai != "Cancelled" &&
+                                   d.TrangThai != "Completed")
+                        .FirstOrDefaultAsync();
+
+                    if (existingRequest != null)
+                    {
+                        continue; // Bỏ qua ngày đã có booking
+                    }
+
+                    var bookingId = $"bkg_{bookingNumber:D4}";
+                    bookingNumber++;
+
+                    var booking = new DatLichPt
+                    {
+                        DatLichId = bookingId,
+                        KhacHangId = userId,
+                        Ptid = ptId,
+                        NgayGioDat = dateTime,
+                        LoaiBuoiTap = "In-person", // Chỉ cho phép trực tiếp
+                        TrangThai = "Pending",
+                        GhiChu = fullNotes,
+                        NgayTao = DateTime.Now
+                    };
+
+                    bookings.Add(booking);
+                }
+
+                if (bookings.Count == 0)
+                {
+                    return (false, "Không thể tạo booking. Có thể bạn đã có yêu cầu cho các ngày đã chọn hoặc thời gian không hợp lệ.");
+                }
+
+                _context.DatLichPts.AddRange(bookings);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Training request created: {BookingId} for user {UserId} with PT {PtId}", bookingId, userId, ptId);
+                _logger.LogInformation("Training requests created: {Count} bookings for user {UserId} with PT {PtId}", bookings.Count, userId, ptId);
 
-                return (true, "Đã gửi yêu cầu thành công! Huấn luyện viên sẽ xem xét và phản hồi.");
+                return (true, $"Đã gửi {bookings.Count} yêu cầu thành công! Huấn luyện viên sẽ xem xét và phản hồi.");
             }
             catch (Exception ex)
             {

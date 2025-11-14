@@ -35,6 +35,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
+
 // ✅ Thêm Session
 builder.Services.AddSession(options =>
 {
@@ -51,13 +52,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-
-
-    options.Cookie.SameSite = SameSiteMode.Lax;  // Lax cho dev
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-});
-
 
 var app = builder.Build();
 
@@ -72,7 +66,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseSession();
+
 
 
 // ✅ Middleware thứ tự chính xác

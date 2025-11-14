@@ -1,6 +1,10 @@
+@model HealthWeb.Services.ManageClientsViewModel
 @{
     ViewData["Title"] = "Quản Lý Khách Hàng - HealthWeb";
     Layout = "_Layout";
+    
+    // Ensure Model is not null
+    var model = Model ?? new HealthWeb.Services.ManageClientsViewModel();
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -16,19 +20,19 @@
     <!-- Stats Overview -->
     <div class="stats-overview">
         <div class="stat-box">
-            <div class="stat-box-value" id="totalClients">0</div>
+            <div class="stat-box-value">@(model.TotalClients)</div>
             <div class="stat-box-label">Tổng Khách Hàng</div>
         </div>
         <div class="stat-box">
-            <div class="stat-box-value" id="activeClients">0</div>
+            <div class="stat-box-value">@(model.ActiveClients)</div>
             <div class="stat-box-label">Đang Hoạt Động</div>
         </div>
         <div class="stat-box">
-            <div class="stat-box-value" id="totalSessions">0</div>
+            <div class="stat-box-value">@(model.TotalSessions)</div>
             <div class="stat-box-label">Tổng Buổi Tập</div>
         </div>
         <div class="stat-box">
-            <div class="stat-box-value" id="avgRating">0.0</div>
+            <div class="stat-box-value">@(model.AvgRating.ToString("F1"))</div>
             <div class="stat-box-label">Đánh Giá TB</div>
         </div>
     </div>
@@ -53,7 +57,7 @@
     <div class="clients-section">
         <div class="section-header">
             <h2><i class="fas fa-list"></i> Danh Sách Khách Hàng</h2>
-            <span style="font-size: 0.9rem; opacity: 0.7;" id="clientsCount">0 khách hàng</span>
+            <span style="font-size: 0.9rem; opacity: 0.7;" id="clientsCount">@(model.Clients?.Count ?? 0) khách hàng</span>
         </div>
 
         <table class="clients-table">
@@ -68,16 +72,110 @@
                 </tr>
             </thead>
             <tbody id="clientsTableBody">
-                <tr>
-                    <td colspan="6" class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>Đang tải danh sách khách hàng...</p>
-                    </td>
-                </tr>
+                @if (model.Clients != null && model.Clients.Any())
+                {
+                    @foreach (var client in model.Clients)
+                    {
+                        <tr data-status="@client.Status.ToLower()">
+                            <td>
+                                <div class="client-info">
+                                    <div class="client-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="client-details">
+                                        <h4>@client.Name</h4>
+                                        <p>@@@client.Username @if (!string.IsNullOrEmpty(client.Email)) { <text>• @client.Email</text> }</p>
+                                        @if (client.LastActivity.HasValue)
+                                        {
+                                            var daysAgo = (DateTime.Now - client.LastActivity.Value).Days;
+                                            <p style="opacity: 0.6; font-size: 0.8rem;">
+                                                Lịch gần nhất: @if (daysAgo == 0) { <text>Hôm nay</text> } else if (daysAgo == 1) { <text>1 ngày trước</text> } else { <text>@daysAgo ngày trước</text> }
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <p style="opacity: 0.6; font-size: 0.8rem;">Chưa có lịch hẹn</p>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@(client.Goal ?? "Chưa cập nhật")</td>
+                            <td>@client.Sessions</td>
+                            <td>
+                                <span class="status-badge status-@(client.Status.ToLower())">
+                                    @if (client.Status == "Active")
+                                    {
+                                        <text>Hoạt động</text>
+                                    }
+                                    else if (client.Status == "Inactive")
+                                    {
+                                        <text>Không hoạt động</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Chờ duyệt</text>
+                                    }
+                                </span>
+                            </td>
+                            <td>
+                                @if (client.Rating > 0)
+                                {
+                                    <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                        <i class="fas fa-star" style="color: #fbbf24;"></i>
+                                        <span>@client.Rating.ToString("F1")</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span style="opacity: 0.5;">Chưa có</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button onclick="openClientDetail('@client.Id')" class="action-btn btn-primary">
+                                        <i class="fas fa-eye"></i> Xem
+                                    </button>
+                                    <a href="/PT/ClientSchedule/@client.Id" class="action-btn btn-secondary">
+                                        <i class="fas fa-calendar"></i> Lịch
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>Chưa có khách hàng nào</p>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
 </div>
 
+<!-- Client Detail Modal -->
+<div id="clientDetailModal" class="client-detail-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user"></i> Chi Tiết Khách Hàng</h2>
+            <button class="modal-close" id="closeClientModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="clientDetailContent">
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Đang tải thông tin...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
 <script src="~/js/pt/manageClientsPT.js"></script>
 

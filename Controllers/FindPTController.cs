@@ -67,11 +67,6 @@ namespace HealthWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendTrainingRequest([FromBody] SendTrainingRequestViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
-            }
-
             try
             {
                 // Validate model
@@ -80,9 +75,14 @@ namespace HealthWeb.Controllers
                     return Json(new { success = false, message = "Vui lòng chọn huấn luyện viên" });
                 }
 
-                if (model.DateTime <= DateTime.Now)
+                if (string.IsNullOrWhiteSpace(model.Goal))
                 {
-                    return Json(new { success = false, message = "Thời gian đặt lịch phải trong tương lai" });
+                    return Json(new { success = false, message = "Vui lòng chọn mục tiêu luyện tập" });
+                }
+
+                if (model.Schedules == null || model.Schedules.Count == 0)
+                {
+                    return Json(new { success = false, message = "Vui lòng chọn ít nhất một ngày và nhập thời gian rảnh" });
                 }
 
                 // Lấy userId từ session hoặc từ model
@@ -100,8 +100,8 @@ namespace HealthWeb.Controllers
                 var (success, message) = await _findPTService.SendTrainingRequestAsync(
                     userId, 
                     model.PtId, 
-                    model.DateTime, 
-                    model.SessionType, 
+                    model.Goal,
+                    model.Schedules, 
                     model.Notes);
 
                 return Json(new { success, message });
@@ -190,8 +190,8 @@ namespace HealthWeb.Controllers
     public class SendTrainingRequestViewModel
     {
         public string PtId { get; set; } = null!;
-        public DateTime DateTime { get; set; }
-        public string? SessionType { get; set; }
+        public string Goal { get; set; } = null!;
+        public List<HealthWeb.Services.ScheduleItem> Schedules { get; set; } = new List<HealthWeb.Services.ScheduleItem>();
         public string? Notes { get; set; }
         public string? UserId { get; set; } // Optional: from client side
     }

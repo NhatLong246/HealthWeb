@@ -1,11 +1,11 @@
 let currentFilter = 'all';
-let clients = [];
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadClientsStats();
-    loadClients();
-
-    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    // Client-side filtering only (data already rendered from server)
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+    }
 
     document.querySelectorAll('#statusFilters .filter-tab').forEach(button => {
         button.addEventListener('click', function() {
@@ -17,147 +17,57 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-async function loadClientsStats() {
-    try {
-        const response = await fetch('/PT/Clients/Stats', { credentials: 'include' });
-        if (!response.ok) {
-            throw new Error('Không thể kết nối đến máy chủ');
-        }
-
-        const result = await response.json();
-        if (!result.success || !result.data) {
-            throw new Error(result.message || 'Không thể tải thống kê');
-        }
-
-        document.getElementById('totalClients').textContent = result.data.totalClients ?? 0;
-        document.getElementById('activeClients').textContent = result.data.activeClients ?? 0;
-        document.getElementById('totalSessions').textContent = result.data.totalSessions ?? 0;
-        document.getElementById('avgRating').textContent = (result.data.avgRating ?? 0).toFixed(1);
-    } catch (error) {
-        console.error('Error loading client stats:', error);
-        document.getElementById('totalClients').textContent = '--';
-        document.getElementById('activeClients').textContent = '--';
-        document.getElementById('totalSessions').textContent = '--';
-        document.getElementById('avgRating').textContent = '--';
-    }
-}
-
-async function loadClients() {
-    const tableBody = document.getElementById('clientsTableBody');
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="6" class="empty-state">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Đang tải danh sách khách hàng...</p>
-            </td>
-        </tr>
-    `;
-
-    try {
-        const response = await fetch('/PT/Clients/List', { credentials: 'include' });
-        if (!response.ok) {
-            throw new Error('Không thể kết nối đến máy chủ');
-        }
-
-        const result = await response.json();
-        if (!result.success || !Array.isArray(result.data)) {
-            throw new Error(result.message || 'Không thể tải danh sách khách hàng');
-        }
-
-        clients = result.data;
-        applyFilters();
-    } catch (error) {
-        console.error('Error loading clients:', error);
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>${escapeHtml(error.message || 'Không thể tải danh sách khách hàng')}</p>
-                </td>
-            </tr>
-        `;
-    }
-}
-
 function applyFilters() {
-    let filtered = [...clients];
+    const tableBody = document.getElementById('clientsTableBody');
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
+    const searchTerm = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    let visibleCount = 0;
 
-    if (currentFilter !== 'all') {
-        filtered = filtered.filter(c => (c.status || '').toLowerCase() === currentFilter);
+    rows.forEach(row => {
+        if (row.classList.contains('empty-state')) {
+            return; // Skip empty state row
+        }
+
+        const status = row.getAttribute('data-status') || '';
+        const text = row.textContent.toLowerCase();
+
+        // Filter by status
+        const statusMatch = currentFilter === 'all' || status === currentFilter;
+
+        // Filter by search term
+        const searchMatch = !searchTerm || text.includes(searchTerm);
+
+        if (statusMatch && searchMatch) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Update count
+    const countElement = document.getElementById('clientsCount');
+    if (countElement) {
+        countElement.textContent = `${visibleCount} khách hàng`;
     }
 
-    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-    if (term) {
-        filtered = filtered.filter(c =>
-            (c.name || '').toLowerCase().includes(term) ||
-            (c.username || '').toLowerCase().includes(term) ||
-            (c.email || '').toLowerCase().includes(term) ||
-            (c.goal || '').toLowerCase().includes(term)
-        );
-    }
-
-    displayClients(filtered);
-}
-
-function displayClients(clientsList) {
-    const tbody = document.getElementById('clientsTableBody');
-    document.getElementById('clientsCount').textContent = `${clientsList.length} khách hàng`;
-
-    if (clientsList.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <p>Không tìm thấy khách hàng nào</p>
-                </td>
-            </tr>
+    // Show empty state if no results
+    const hasVisibleRows = rows.some(row => row.style.display !== 'none' && !row.classList.contains('empty-state'));
+    let emptyStateRow = tableBody.querySelector('.empty-state-row');
+    
+    if (!hasVisibleRows && !emptyStateRow) {
+        emptyStateRow = document.createElement('tr');
+        emptyStateRow.className = 'empty-state-row';
+        emptyStateRow.innerHTML = `
+            <td colspan="6" class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>Không tìm thấy khách hàng nào</p>
+            </td>
         `;
-        return;
+        tableBody.appendChild(emptyStateRow);
+    } else if (hasVisibleRows && emptyStateRow) {
+        emptyStateRow.remove();
     }
-
-    tbody.innerHTML = clientsList.map(client => `
-        <tr>
-            <td>
-                <div class="client-info">
-                    <div class="client-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="client-details">
-                        <h4>${escapeHtml(client.name)}</h4>
-                        <p>${escapeHtml(formatUsername(client.username))} • ${escapeHtml(client.email)}</p>
-                        <p style="opacity: 0.6; font-size: 0.8rem;">
-                            ${client.lastActivity ? `Lịch gần nhất: ${escapeHtml(formatRelativeTime(client.lastActivity))}` : 'Chưa có lịch hẹn'}
-                        </p>
-                    </div>
-                </div>
-            </td>
-            <td>${escapeHtml(client.goal ?? 'Chưa cập nhật')}</td>
-            <td>${client.sessions ?? 0}</td>
-            <td>
-                <span class="status-badge status-${(client.status || 'pending').toLowerCase()}">
-                    ${formatStatusLabel(client.status)}
-                </span>
-            </td>
-            <td>
-                ${(client.rating ?? 0) > 0 ? `
-                    <div style="display: flex; align-items: center; gap: 0.3rem;">
-                        <i class="fas fa-star" style="color: #fbbf24;"></i>
-                        <span>${Number(client.rating).toFixed(1)}</span>
-                    </div>
-                ` : '<span style="opacity: 0.5;">Chưa có</span>'}
-            </td>
-            <td>
-                <div class="action-buttons">
-                    <a href="/PT/ClientDetail/${client.id}" class="action-btn btn-primary">
-                        <i class="fas fa-eye"></i> Xem
-                    </a>
-                    <a href="/PT/ClientSchedule/${client.id}" class="action-btn btn-secondary">
-                        <i class="fas fa-calendar"></i> Lịch
-                    </a>
-                </div>
-            </td>
-        </tr>
-    `).join('');
 }
 
 function escapeHtml(text) {
@@ -201,5 +111,181 @@ function formatUsername(username) {
         return '';
     }
     return String.fromCharCode(64) + username;
+}
+
+// Client Detail Modal Functions
+async function openClientDetail(clientId) {
+    const modal = document.getElementById('clientDetailModal');
+    const content = document.getElementById('clientDetailContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        return;
+    }
+    
+    modal.classList.add('active');
+    content.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải thông tin...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/PT/Clients/Detail/${encodeURIComponent(clientId)}`, { 
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        if (!html || html.trim() === '') {
+            throw new Error('Không nhận được dữ liệu từ máy chủ');
+        }
+
+        content.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading client detail:', error);
+        content.innerHTML = `
+            <div class="error-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>${escapeHtml(error.message || 'Không thể tải thông tin khách hàng')}</p>
+            </div>
+        `;
+    }
+}
+
+function closeClientDetail() {
+    const modal = document.getElementById('clientDetailModal');
+    modal.classList.remove('active');
+}
+
+// Event listeners for modal
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('clientDetailModal');
+    const closeBtn = document.getElementById('closeClientModal');
+    const overlay = modal?.querySelector('.modal-overlay');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeClientDetail);
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', closeClientDetail);
+    }
+
+    // Close on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal?.classList.contains('active')) {
+            closeClientDetail();
+        }
+    });
+});
+
+// Get anti-forgery token
+function getToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+}
+
+// Accept client request
+async function acceptClientRequest(requestId, clientId) {
+    if (!confirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/PT/Requests/Accept', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({
+                requestId: requestId
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            // Đóng modal và reload trang để cập nhật danh sách với trạng thái mới
+            closeClientDetail();
+            window.location.reload();
+        } else {
+            alert(result.message || 'Có lỗi xảy ra khi chấp nhận yêu cầu');
+        }
+    } catch (error) {
+        console.error('Error accepting request:', error);
+        alert('Có lỗi xảy ra khi chấp nhận yêu cầu');
+    }
+}
+
+// Show reject reason box
+function showRejectReasonBox(requestId, clientId) {
+    const reasonBox = document.getElementById(`rejectReasonBox_${clientId}`);
+    if (reasonBox) {
+        reasonBox.style.display = 'block';
+        const textarea = document.getElementById(`rejectReasonInput_${clientId}`);
+        if (textarea) {
+            textarea.focus();
+        }
+    }
+}
+
+// Hide reject reason box
+function hideRejectReasonBox(clientId) {
+    const reasonBox = document.getElementById(`rejectReasonBox_${clientId}`);
+    if (reasonBox) {
+        reasonBox.style.display = 'none';
+        const textarea = document.getElementById(`rejectReasonInput_${clientId}`);
+        if (textarea) {
+            textarea.value = '';
+        }
+    }
+}
+
+// Reject client request
+async function rejectClientRequest(requestId, clientId) {
+    const reasonInput = document.getElementById(`rejectReasonInput_${clientId}`);
+    const reason = reasonInput?.value?.trim();
+
+    if (!reason || reason === '') {
+        alert('Vui lòng nhập lý do từ chối');
+        return;
+    }
+
+    try {
+        const response = await fetch('/PT/Requests/Reject', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({
+                requestId: requestId,
+                reason: reason
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            // Đóng modal và reload trang để xóa client khỏi danh sách
+            closeClientDetail();
+            window.location.reload();
+        } else {
+            alert(result.message || 'Có lỗi xảy ra khi từ chối yêu cầu');
+        }
+    } catch (error) {
+        console.error('Error rejecting request:', error);
+        alert('Có lỗi xảy ra khi từ chối yêu cầu');
+    }
 }
 

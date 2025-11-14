@@ -1,0 +1,186 @@
+@model HealthWeb.Services.ClientDetailViewModel
+@{
+    var model = Model ?? new HealthWeb.Services.ClientDetailViewModel();
+}
+
+@functions {
+    string FormatRelativeTime(DateTime? value)
+    {
+        if (!value.HasValue) return "Chưa có";
+        
+        var now = DateTime.Now;
+        var diff = now - value.Value;
+        
+        if (diff.TotalMinutes < 1) return "Vừa xong";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} phút trước";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} giờ trước";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} ngày trước";
+        
+        return value.Value.ToString("dd/MM/yyyy HH:mm");
+    }
+
+    string FormatStatus(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "active" => "Hoạt động",
+            "inactive" => "Không hoạt động",
+            _ => "Chờ duyệt"
+        };
+    }
+
+    string FormatBookingStatus(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "active" => "Hoạt động",
+            "inactive" => "Không hoạt động",
+            "completed" => "Hoàn thành",
+            "cancelled" => "Đã hủy",
+            _ => "Chờ duyệt"
+        };
+    }
+}
+
+<div class="client-detail-container">
+    <!-- Header Section -->
+    <div class="detail-header">
+        <div class="detail-avatar">
+            @if (!string.IsNullOrEmpty(model.Avatar))
+            {
+                <img src="@(model.Avatar)" alt="@(model.Name)">
+            }
+            else
+            {
+                <i class="fas fa-user"></i>
+            }
+        </div>
+        <div class="detail-header-info">
+            <h3>@(model.Name)</h3>
+            <p class="detail-meta">
+                <span>@@@(model.Username)</span>
+                <span>•</span>
+                <span>@(model.Email ?? "Chưa có email")</span>
+            </p>
+            <span class="status-badge status-@(model.Status.ToLower())">@FormatStatus(model.Status)</span>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="detail-stats-grid">
+        <div class="detail-stat-item">
+            <div class="stat-icon"><i class="fas fa-dumbbell"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(model.TotalSessions)</div>
+                <div class="stat-label">Tổng Buổi Tập</div>
+            </div>
+        </div>
+        <div class="detail-stat-item">
+            <div class="stat-icon"><i class="fas fa-star"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(model.AvgRating.ToString("F1"))</div>
+                <div class="stat-label">Đánh Giá TB (@(model.TotalRatings) đánh giá)</div>
+            </div>
+        </div>
+        <div class="detail-stat-item">
+            <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(model.Goal ?? "Chưa cập nhật")</div>
+                <div class="stat-label">Mục Tiêu</div>
+            </div>
+        </div>
+        <div class="detail-stat-item">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@FormatRelativeTime(model.LastActivity)</div>
+                <div class="stat-label">Hoạt Động Gần Nhất</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Info Section -->
+    @if (model.HealthInfo != null)
+    {
+        <div class="detail-section">
+            <h4><i class="fas fa-heartbeat"></i> Thông Tin Sức Khỏe</h4>
+            <div class="health-info-grid">
+                <div class="health-item">
+                    <span class="health-label">Chiều cao:</span>
+                    <span class="health-value">@(model.HealthInfo.Height.HasValue ? $"{model.HealthInfo.Height} cm" : "Chưa có")</span>
+                </div>
+                <div class="health-item">
+                    <span class="health-label">Cân nặng:</span>
+                    <span class="health-value">@(model.HealthInfo.Weight.HasValue ? $"{model.HealthInfo.Weight} kg" : "Chưa có")</span>
+                </div>
+                <div class="health-item">
+                    <span class="health-label">BMI:</span>
+                    <span class="health-value">@(model.HealthInfo.Bmi.HasValue ? model.HealthInfo.Bmi.Value.ToString("F1") : "Chưa có")</span>
+                </div>
+                <div class="health-item">
+                    <span class="health-label">Ngày ghi nhận:</span>
+                    <span class="health-value">@(model.HealthInfo.RecordDate?.ToString("dd/MM/yyyy") ?? "Chưa có")</span>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Recent Bookings Section -->
+    <div class="detail-section">
+        <h4><i class="fas fa-calendar-check"></i> Lịch Hẹn Gần Đây</h4>
+        @if (model.RecentBookings != null && model.RecentBookings.Any())
+        {
+            <div class="bookings-list">
+                @foreach (var booking in model.RecentBookings)
+                {
+                    <div class="booking-item">
+                        <div class="booking-date">
+                            <i class="fas fa-calendar"></i>
+                            @booking.Date.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                        <div class="booking-info">
+                            <span class="booking-type">@booking.Type</span>
+                            <span class="status-badge status-@(booking.Status.ToLower())">
+                                @FormatBookingStatus(booking.Status)
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(booking.Note))
+                        {
+                            <div class="booking-note">@booking.Note</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p style="opacity: 0.6; margin: 1rem 0;">Chưa có lịch hẹn nào</p>
+        }
+    </div>
+
+    @if (model.HasPendingRequest)
+    {
+        <!-- Pending Request Actions Section -->
+        <div class="detail-section request-actions-section">
+            <div class="request-actions-wrapper">
+                <p class="request-prompt-text">Khách hàng này có yêu cầu tập luyện đang chờ bạn xử lý</p>
+                <div class="request-action-buttons">
+                    <button class="btn-accept-request" onclick="acceptClientRequest('@(model.PendingRequestId)', '@(model.Id)')">
+                        <i class="fas fa-check"></i> <span>Đồng ý</span>
+                    </button>
+                    <button class="btn-reject-request" onclick="showRejectReasonBox('@(model.PendingRequestId)', '@(model.Id)')">
+                        <i class="fas fa-times"></i> <span>Từ chối</span>
+                    </button>
+                </div>
+                <div id="rejectReasonBox_@(model.Id)" class="reject-reason-box" style="display: none;">
+                    <label for="rejectReasonInput_@(model.Id)">Lý do từ chối <span style="color: #ef4444;">*</span></label>
+                    <textarea id="rejectReasonInput_@(model.Id)" rows="3" placeholder="Ví dụ: Lịch trình không phù hợp, đã đủ khách hàng..."></textarea>
+                    <div class="reject-reason-actions">
+                        <button class="btn-cancel-reject" onclick="hideRejectReasonBox('@(model.Id)')">Hủy</button>
+                        <button class="btn-submit-reject" onclick="rejectClientRequest('@(model.PendingRequestId)', '@(model.Id)')">Xác nhận từ chối</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+

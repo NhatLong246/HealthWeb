@@ -1,9 +1,16 @@
 // Global variables
 let currentPTs = [];
 let currentPTDetail = null;
+let currentUserId = null;
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load userId from server session
+    await loadUserId();
+    
+    // Setup day checkboxes
+    setupDayCheckboxes();
+    
     loadPTs();
     
     // Search on Enter key
@@ -23,6 +30,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Load userId from server session
+async function loadUserId() {
+    try {
+        const response = await fetch('/Account/GetCurrentUserId', {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (data.success && data.userId) {
+            currentUserId = data.userId;
+            // Also save to localStorage for fallback
+            localStorage.setItem('hw_userId', data.userId);
+        }
+    } catch (error) {
+        console.error('Error loading userId:', error);
+        // Fallback to localStorage
+        currentUserId = localStorage.getItem('hw_userId') || sessionStorage.getItem('hw_userId');
+    }
+}
 
 // Debounce function
 function debounce(func, wait) {
@@ -305,18 +331,62 @@ function renderPTDetail(pt) {
 function openRequestModal(ptId) {
     document.getElementById('requestPtId').value = ptId;
     
-    // Set minimum date to today
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('requestDateTime').min = now.toISOString().slice(0, 16);
+    // Reset form
+    document.getElementById('requestForm').reset();
+    document.getElementById('requestGoal').value = '';
+    document.getElementById('requestNotes').value = '';
     
-    // Set default to tomorrow at 9 AM
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-    document.getElementById('requestDateTime').value = tomorrow.toISOString().slice(0, 16);
+    // Reset all day checkboxes and hide time slots
+    document.querySelectorAll('.day-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+        const day = checkbox.id.replace('day-', '');
+        const timeSlots = document.getElementById(`time-${day}`);
+        if (timeSlots) {
+            timeSlots.style.display = 'none';
+        }
+        const daySelector = checkbox.closest('.day-selector');
+        if (daySelector) {
+            daySelector.classList.remove('active');
+        }
+    });
+    
+    // Setup day checkbox event listeners
+    setupDayCheckboxes();
     
     document.getElementById('requestModal').style.display = 'block';
+}
+
+// Setup day checkbox event listeners
+function setupDayCheckboxes() {
+    document.querySelectorAll('.day-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const day = this.id.replace('day-', '');
+            const timeSlots = document.getElementById(`time-${day}`);
+            const daySelector = this.closest('.day-selector');
+            
+            if (this.checked) {
+                if (timeSlots) {
+                    timeSlots.style.display = 'flex';
+                }
+                if (daySelector) {
+                    daySelector.classList.add('active');
+                }
+            } else {
+                if (timeSlots) {
+                    timeSlots.style.display = 'none';
+                }
+                if (daySelector) {
+                    daySelector.classList.remove('active');
+                }
+                // Clear time inputs
+                const dayName = day.charAt(0).toUpperCase() + day.slice(1);
+                const startInput = timeSlots?.querySelector(`.time-start[data-day="${dayName}"]`);
+                const endInput = timeSlots?.querySelector(`.time-end[data-day="${dayName}"]`);
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+            }
+        });
+    });
 }
 
 // Close Request Modal
@@ -335,20 +405,89 @@ async function submitRequest(event) {
     event.preventDefault();
     
     const ptId = document.getElementById('requestPtId').value;
-    const dateTime = document.getElementById('requestDateTime').value;
-    const sessionType = document.getElementById('requestSessionType').value;
+    const goal = document.getElementById('requestGoal').value;
     const notes = document.getElementById('requestNotes').value;
     
-    // Get userId from localStorage (fallback if session is not available)
-    const userId = localStorage.getItem('hw_userId') || sessionStorage.getItem('hw_userId');
+    // Validate goal
+    if (!goal) {
+        alert('Vui lòng chọn mục tiêu luyện tập');
+        return;
+    }
+    
+    // Collect selected days and times
+    const selectedSchedules = [];
+    const dayMap = {
+        'monday': 'Monday',
+        'tuesday': 'Tuesday',
+        'wednesday': 'Wednesday',
+        'thursday': 'Thursday',
+        'friday': 'Friday',
+        'saturday': 'Saturday',
+        'sunday': 'Sunday'
+    };
+    
+    document.querySelectorAll('.day-checkbox:checked').forEach(checkbox => {
+        const dayId = checkbox.id.replace('day-', '');
+        const dayName = dayMap[dayId];
+        const timeSlots = document.getElementById(`time-${dayId}`);
+        
+        if (timeSlots) {
+            const startInput = timeSlots.querySelector(`.time-start[data-day="${dayName}"]`);
+            const endInput = timeSlots.querySelector(`.time-end[data-day="${dayName}"]`);
+            
+            const startTime = startInput?.value;
+            const endTime = endInput?.value;
+            
+            if (!startTime || !endTime) {
+                alert(`Vui lòng nhập đầy đủ thời gian cho ${dayName === 'Monday' ? 'Thứ 2' : dayName === 'Tuesday' ? 'Thứ 3' : dayName === 'Wednesday' ? 'Thứ 4' : dayName === 'Thursday' ? 'Thứ 5' : dayName === 'Friday' ? 'Thứ 6' : dayName === 'Saturday' ? 'Thứ 7' : 'Chủ nhật'}`);
+                return;
+            }
+            
+            if (startTime >= endTime) {
+                alert(`Giờ kết thúc phải sau giờ bắt đầu cho ${dayName === 'Monday' ? 'Thứ 2' : dayName === 'Tuesday' ? 'Thứ 3' : dayName === 'Wednesday' ? 'Thứ 4' : dayName === 'Thursday' ? 'Thứ 5' : dayName === 'Friday' ? 'Thứ 6' : dayName === 'Saturday' ? 'Thứ 7' : 'Chủ nhật'}`);
+                return;
+            }
+            
+            selectedSchedules.push({
+                day: dayName,
+                startTime: startTime,
+                endTime: endTime
+            });
+        }
+    });
+    
+    if (selectedSchedules.length === 0) {
+        alert('Vui lòng chọn ít nhất một ngày và nhập thời gian rảnh');
+        return;
+    }
+    
+    // Get userId - try currentUserId first, then localStorage
+    let userId = currentUserId || localStorage.getItem('hw_userId') || sessionStorage.getItem('hw_userId');
+    
+    // If still no userId, try to load from server
+    if (!userId) {
+        try {
+            const response = await fetch('/Account/GetCurrentUserId', {
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            if (data.success && data.userId) {
+                userId = data.userId;
+                currentUserId = userId;
+                localStorage.setItem('hw_userId', userId);
+            }
+        } catch (error) {
+            console.error('Error getting userId:', error);
+        }
+    }
     
     if (!userId) {
         alert('Vui lòng đăng nhập để gửi yêu cầu');
+        window.location.href = '/Account/Login';
         return;
     }
     
     try {
-        
         const response = await fetch('/FindPT/SendRequest', {
             method: 'POST',
             headers: {
@@ -357,10 +496,10 @@ async function submitRequest(event) {
             },
             body: JSON.stringify({
                 ptId: ptId,
-                dateTime: dateTime,
-                sessionType: sessionType,
+                goal: goal,
+                schedules: selectedSchedules,
                 notes: notes,
-                userId: userId // Include userId in request
+                userId: userId
             })
         });
         
@@ -369,7 +508,6 @@ async function submitRequest(event) {
         if (data.success) {
             alert(data.message || 'Đã gửi yêu cầu thành công!');
             closeRequestModal();
-            // Optionally reload PTs or show success message
         } else {
             alert(data.message || 'Có lỗi xảy ra khi gửi yêu cầu');
         }

@@ -102,28 +102,197 @@
 
 <!-- Request Training Modal -->
 <div class="modal" id="requestModal">
-    <div class="modal-content">
-        <span class="close" onclick="closeRequestModal()">&times;</span>
-        <h2><i class="fas fa-calendar-check"></i> Gửi Yêu Cầu Tập Luyện</h2>
-        <form id="requestForm" onsubmit="submitRequest(event)">
+    <div class="modal-content request-modal-content">
+        <div class="request-modal-header">
+            <div class="request-modal-title">
+                <div class="request-modal-icon">
+                    <i class="fas fa-calendar"></i>
+                    <i class="fas fa-check request-check-icon"></i>
+                </div>
+                <h2>Gửi Yêu Cầu Tập Luyện</h2>
+            </div>
+            <span class="close" onclick="closeRequestModal()">&times;</span>
+        </div>
+        <div class="request-modal-body">
+            <form id="requestForm" onsubmit="submitRequest(event)">
             <input type="hidden" id="requestPtId">
             
+            <!-- Mục tiêu luyện tập -->
             <div class="form-group">
-                <label><i class="fas fa-calendar-alt"></i> Ngày và giờ tập</label>
-                <input type="datetime-local" id="requestDateTime" required>
+                <label><i class="fas fa-bullseye"></i> Mục tiêu luyện tập <span class="required">*</span></label>
+                <div class="select-wrapper">
+                    <select id="requestGoal" required>
+                        <option value="">Chọn mục tiêu</option>
+                        <option value="Weight Loss">Giảm cân</option>
+                        <option value="Muscle Gain">Tăng cơ</option>
+                        <option value="Endurance">Tăng sức bền</option>
+                        <option value="Flexibility">Tăng độ linh hoạt</option>
+                        <option value="Strength">Tăng sức mạnh</option>
+                        <option value="Rehabilitation">Phục hồi chấn thương</option>
+                        <option value="General Fitness">Tăng cường sức khỏe tổng thể</option>
+                        <option value="Sports Performance">Cải thiện hiệu suất thể thao</option>
+                    </select>
+                    <i class="fas fa-chevron-down select-arrow"></i>
+                </div>
+            </div>
+
+            <!-- Chọn thời gian rảnh trong tuần -->
+            <div class="form-group">
+                <label><i class="fas fa-calendar-week"></i> Thời gian rảnh trong tuần <span class="required">*</span></label>
+                <div class="week-schedule-selector" id="weekScheduleSelector">
+                    <div class="day-selector" data-day="Monday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-monday" class="day-checkbox">
+                            <label for="day-monday">Thứ 2</label>
+                        </div>
+                        <div class="time-slots" id="time-monday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Monday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Monday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Tuesday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-tuesday" class="day-checkbox">
+                            <label for="day-tuesday">Thứ 3</label>
+                        </div>
+                        <div class="time-slots" id="time-tuesday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Tuesday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Tuesday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Wednesday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-wednesday" class="day-checkbox">
+                            <label for="day-wednesday">Thứ 4</label>
+                        </div>
+                        <div class="time-slots" id="time-wednesday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Wednesday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Wednesday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Thursday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-thursday" class="day-checkbox">
+                            <label for="day-thursday">Thứ 5</label>
+                        </div>
+                        <div class="time-slots" id="time-thursday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Thursday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Thursday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Friday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-friday" class="day-checkbox">
+                            <label for="day-friday">Thứ 6</label>
+                        </div>
+                        <div class="time-slots" id="time-friday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Friday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Friday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Saturday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-saturday" class="day-checkbox">
+                            <label for="day-saturday">Thứ 7</label>
+                        </div>
+                        <div class="time-slots" id="time-saturday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Saturday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Saturday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="day-selector" data-day="Sunday">
+                        <div class="day-header">
+                            <input type="checkbox" id="day-sunday" class="day-checkbox">
+                            <label for="day-sunday">Chủ nhật</label>
+                        </div>
+                        <div class="time-slots" id="time-sunday" style="display: none;">
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ bắt đầu:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-start" data-day="Sunday">
+                                </div>
+                            </div>
+                            <div class="time-slot">
+                                <label><i class="fas fa-clock"></i> Giờ kết thúc:</label>
+                                <div class="time-input-wrapper">
+                                    <input type="time" class="time-end" data-day="Sunday">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <small class="form-hint">Chọn ít nhất một ngày và nhập thời gian rảnh</small>
             </div>
 
             <div class="form-group">
-                <label><i class="fas fa-video"></i> Loại buổi tập</label>
-                <select id="requestSessionType" required>
-                    <option value="Online">Online (Video call)</option>
-                    <option value="In-person">Trực tiếp (In-person)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-sticky-note"></i> Ghi chú (tùy chọn)</label>
-                <textarea id="requestNotes" rows="4" placeholder="Ví dụ: Tôi muốn tập trung vào giảm cân, có chấn thương đầu gối..."></textarea>
+                <label><i class="fas fa-sticky-note"></i> Ghi chú bổ sung (tùy chọn)</label>
+                <textarea id="requestNotes" rows="2" placeholder="Ví dụ: Có chấn thương đầu gối, muốn tập tại phòng gym..."></textarea>
             </div>
 
             <div class="form-actions">
@@ -133,6 +302,7 @@
                 </button>
             </div>
         </form>
+        </div>
     </div>
 </div>
 

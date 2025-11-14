@@ -1,6 +1,9 @@
+@model HealthWeb.Services.SettingsViewModel
 @{
     ViewData["Title"] = "Cài Đặt - HealthWeb";
     Layout = "_Layout";
+    
+    var model = Model ?? new HealthWeb.Services.SettingsViewModel();
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -43,30 +46,30 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="displayName">Họ và Tên</label>
-                    <input type="text" id="displayName" name="HoTen" placeholder="Nhập họ và tên">
+                    <input type="text" id="displayName" name="HoTen" placeholder="Nhập họ và tên" value="@(model.Profile?.HoTen ?? "")">
                 </div>
                 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="Email" placeholder="your.email@example.com">
+                    <input type="email" id="email" name="Email" placeholder="your.email@example.com" value="@(model.Profile?.Email ?? "")">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="phone">Số điện thoại</label>
-                    <input type="tel" id="phone" name="Phone" placeholder="0123456789">
+                    <input type="tel" id="phone" name="Phone" placeholder="0123456789" value="@(model.Profile?.Phone ?? "")">
                 </div>
                 
                 <div class="form-group">
                     <label for="city">Thành phố</label>
-                    <input type="text" id="city" name="ThanhPho" placeholder="Ví dụ: Hà Nội, TP.HCM">
+                    <input type="text" id="city" name="ThanhPho" placeholder="Ví dụ: Hà Nội, TP.HCM" value="@(model.Profile?.ThanhPho ?? "")">
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="bio">Tiểu sử</label>
-                <textarea id="bio" name="TieuSu" placeholder="Giới thiệu về bản thân, phương pháp tập luyện..."></textarea>
+                <textarea id="bio" name="TieuSu" placeholder="Giới thiệu về bản thân, phương pháp tập luyện...">@(model.Profile?.TieuSu ?? "")</textarea>
             </div>
 
             <button type="submit" class="save-btn" onclick="saveProfile()">
@@ -87,13 +90,13 @@
                     <label for="specialty">Chuyên môn</label>
                     <select id="specialty" name="ChuyenMon">
                         <option value="">Chọn chuyên môn</option>
-                        <option value="Gym">Gym / Tập tạ</option>
-                        <option value="Cardio">Cardio / Giảm cân</option>
-                        <option value="Yoga">Yoga / Stretching</option>
-                        <option value="Pilates">Pilates</option>
-                        <option value="Crossfit">Crossfit</option>
-                        <option value="MartialArts">Võ thuật</option>
-                        <option value="Rehabilitation">Phục hồi chức năng</option>
+                        <option value="Gym" selected="@(model.Professional?.ChuyenMon == "Gym")">Gym / Tập tạ</option>
+                        <option value="Cardio" selected="@(model.Professional?.ChuyenMon == "Cardio")">Cardio / Giảm cân</option>
+                        <option value="Yoga" selected="@(model.Professional?.ChuyenMon == "Yoga")">Yoga / Stretching</option>
+                        <option value="Pilates" selected="@(model.Professional?.ChuyenMon == "Pilates")">Pilates</option>
+                        <option value="Crossfit" selected="@(model.Professional?.ChuyenMon == "Crossfit")">Crossfit</option>
+                        <option value="MartialArts" selected="@(model.Professional?.ChuyenMon == "MartialArts")">Võ thuật</option>
+                        <option value="Rehabilitation" selected="@(model.Professional?.ChuyenMon == "Rehabilitation")">Phục hồi chức năng</option>
                     </select>
                 </div>
                 
@@ -101,24 +104,24 @@
                     <label for="experience">Kinh nghiệm</label>
                     <select id="experience" name="SoNamKinhNghiem">
                         <option value="">Chọn mức kinh nghiệm</option>
-                        <option value="0">Dưới 1 năm</option>
-                        <option value="1">1-3 năm</option>
-                        <option value="3">3-5 năm</option>
-                        <option value="5">5-10 năm</option>
-                        <option value="10">Trên 10 năm</option>
+                        <option value="0" selected="@(model.Professional?.SoNamKinhNghiem == 0)">Dưới 1 năm</option>
+                        <option value="1" selected="@(model.Professional?.SoNamKinhNghiem == 1)">1-3 năm</option>
+                        <option value="3" selected="@(model.Professional?.SoNamKinhNghiem == 3)">3-5 năm</option>
+                        <option value="5" selected="@(model.Professional?.SoNamKinhNghiem == 5)">5-10 năm</option>
+                        <option value="10" selected="@(model.Professional?.SoNamKinhNghiem == 10)">Trên 10 năm</option>
                     </select>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="price">Giá theo giờ (VNĐ)</label>
-                <input type="number" id="price" name="GiaTheoGio" placeholder="Ví dụ: 500000" min="0">
+                <input type="number" id="price" name="GiaTheoGio" placeholder="Ví dụ: 500000" min="0" value="@(model.Professional?.GiaTheoGio?.ToString() ?? "")">
                 <div class="info-text">Nhập giá dịch vụ theo giờ của bạn</div>
             </div>
 
             <div class="form-group">
                 <label for="certificates">Chứng chỉ / Bằng cấp</label>
-                <textarea id="certificates" name="ChungChi" placeholder="Liệt kê các chứng chỉ, bằng cấp liên quan..."></textarea>
+                <textarea id="certificates" name="ChungChi" placeholder="Liệt kê các chứng chỉ, bằng cấp liên quan...">@(model.Professional?.ChungChi ?? "")</textarea>
             </div>
 
             <button type="submit" class="save-btn" onclick="saveProfessional()">
@@ -136,7 +139,7 @@
             
             <div class="form-group">
                 <label for="availableHours">Giờ làm việc</label>
-                <textarea id="availableHours" name="GioRanh" placeholder="Ví dụ: Thứ 2-6: 6h-10h, 18h-22h | Thứ 7-CN: 8h-12h"></textarea>
+                <textarea id="availableHours" name="GioRanh" placeholder="Ví dụ: Thứ 2-6: 6h-10h, 18h-22h | Thứ 7-CN: 8h-12h">@(model.Schedule?.GioRanh ?? "")</textarea>
                 <div class="info-text">Mô tả thời gian bạn sẵn sàng nhận khách hàng</div>
             </div>
 
@@ -144,7 +147,7 @@
                 <div class="toggle-switch">
                     <label>Nhận khách hàng mới</label>
                     <label class="switch">
-                        <input type="checkbox" id="acceptClients" name="NhanKhach" checked>
+                        <input type="checkbox" id="acceptClients" name="NhanKhach" @((model.Schedule?.NhanKhach ?? true) ? "checked" : "")>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -153,7 +156,7 @@
 
             <div class="form-group">
                 <label for="maxClients">Số lượng khách hàng tối đa</label>
-                <input type="number" id="maxClients" name="MaxClients" placeholder="Ví dụ: 30" min="1" max="100">
+                <input type="number" id="maxClients" name="MaxClients" placeholder="Ví dụ: 30" min="1" max="100" value="@(model.Schedule?.MaxClients?.ToString() ?? "")">
                 <div class="info-text">Giới hạn số lượng khách hàng bạn có thể quản lý cùng lúc</div>
             </div>
 

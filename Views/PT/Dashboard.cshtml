@@ -1,6 +1,10 @@
+@model HealthWeb.Services.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard PT - HealthWeb";
     Layout = "_Layout";
+    
+    // Ensure Model is not null
+    var model = Model ?? new HealthWeb.Services.DashboardViewModel();
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -21,11 +25,11 @@
                     <i class="fas fa-users"></i>
                 </div>
             </div>
-            <div class="stat-card-value" id="totalClients">0</div>
+            <div class="stat-card-value">@(model.TotalClients)</div>
             <div class="stat-card-label">Tổng Khách Hàng</div>
             <div class="stat-card-trend trend-up">
                 <i class="fas fa-user-check"></i>
-                <span id="totalClientsSummary">0 khách đang hoạt động</span>
+                <span>@(model.TotalClients) khách đang hoạt động</span>
             </div>
         </div>
 
@@ -35,11 +39,11 @@
                     <i class="fas fa-calendar-check"></i>
                 </div>
             </div>
-            <div class="stat-card-value" id="todayBookings">0</div>
+            <div class="stat-card-value">@(model.TodayBookings)</div>
             <div class="stat-card-label">Lịch Hôm Nay</div>
             <div class="stat-card-trend">
                 <i class="fas fa-clock"></i>
-                <span id="todayBookingsSummary">0 buổi trong hôm nay</span>
+                <span>@(model.TodayBookings) buổi trong hôm nay</span>
             </div>
         </div>
 
@@ -49,11 +53,11 @@
                     <i class="fas fa-dollar-sign"></i>
                 </div>
             </div>
-            <div class="stat-card-value" id="monthlyRevenue">0đ</div>
+            <div class="stat-card-value">@(model.MonthlyRevenue.ToString("N0"))đ</div>
             <div class="stat-card-label">Thu Nhập Tháng Này</div>
             <div class="stat-card-trend trend-up">
                 <i class="fas fa-coins"></i>
-                <span id="monthlyRevenueSummary">0đ trong tháng này</span>
+                <span>@(model.MonthlyRevenue.ToString("N0"))đ trong tháng này</span>
             </div>
         </div>
 
@@ -63,11 +67,11 @@
                     <i class="fas fa-star"></i>
                 </div>
             </div>
-            <div class="stat-card-value" id="rating">0.0</div>
+            <div class="stat-card-value">@(model.Rating.ToString("F1"))</div>
             <div class="stat-card-label">Đánh Giá Trung Bình</div>
             <div class="stat-card-trend">
                 <i class="fas fa-comments"></i>
-                <span id="ratingReviews">0 đánh giá</span>
+                <span>@(model.Reviews) đánh giá</span>
             </div>
         </div>
     </div>
@@ -82,11 +86,63 @@
                     <i class="fas fa-eye"></i> Xem tất cả
                 </a>
             </div>
-            <div class="bookings-list" id="bookingsList">
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>Đang tải lịch hẹn...</p>
-                </div>
+            <div class="bookings-list">
+                @if (model.RecentBookings != null && model.RecentBookings.Any())
+                {
+                    @foreach (var booking in model.RecentBookings)
+                    {
+                        <div class="booking-item">
+                            <div class="booking-client">
+                                <div class="booking-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="booking-info">
+                                    <h4>@booking.ClientName</h4>
+                                    <p>@@@booking.Username</p>
+                                </div>
+                            </div>
+                            <div class="booking-details">
+                                <div class="booking-time">
+                                    <i class="fas fa-clock"></i>
+                                    <span>@booking.StartTime.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <div class="booking-type">
+                                    <i class="fas fa-dumbbell"></i>
+                                    <span>@booking.Type</span>
+                                </div>
+                                <div class="booking-status status-@(booking.Status.ToLower())">
+                                    @if (booking.Status == "Pending")
+                                    {
+                                        <span>Chờ duyệt</span>
+                                    }
+                                    else if (booking.Status == "Confirmed")
+                                    {
+                                        <span>Đã xác nhận</span>
+                                    }
+                                    else if (booking.Status == "Completed")
+                                    {
+                                        <span>Hoàn thành</span>
+                                    }
+                                    else if (booking.Status == "Cancelled")
+                                    {
+                                        <span>Đã hủy</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@booking.Status</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Chưa có lịch hẹn nào</p>
+                    </div>
+                }
             </div>
         </div>
 
@@ -117,5 +173,5 @@
     </div>
 </div>
 
-<script src="~/js/pt/dashboardPT.js"></script>
+@* Dữ liệu đã được render từ server, không cần JavaScript *@
 
