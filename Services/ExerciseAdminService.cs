@@ -22,9 +22,10 @@ public class ExerciseAdminService : IExerciseAdminService
     public async Task<ExerciseDashboardDto> GetExerciseDashboardAsync(CancellationToken cancellationToken = default)
     {
         // Lấy tất cả các mẫu bài tập và chi tiết của chúng
+        // Optimized: AsNoTracking() first, then Include() to avoid tracking overhead
         var templates = await _context.MauTapLuyens
-            .Include(t => t.ChiTietMauTapLuyens)
             .AsNoTracking()
+            .Include(t => t.ChiTietMauTapLuyens)
             .OrderBy(t => t.TenMauTapLuyen)
             .ToListAsync(cancellationToken);
 
@@ -58,9 +59,10 @@ public class ExerciseAdminService : IExerciseAdminService
     public async Task<ExerciseDetailDto?> GetExerciseDetailAsync(int exerciseId, CancellationToken cancellationToken = default)
     {
         // Tìm chi tiết bài tập
+        // Optimized: AsNoTracking() first, then Include()
         var detail = await _context.ChiTietMauTapLuyens
-            .Include(d => d.MauTapLuyen)
             .AsNoTracking()
+            .Include(d => d.MauTapLuyen)
             .Where(d => d.BaiTapId == exerciseId)
             .FirstOrDefaultAsync(cancellationToken);
 
