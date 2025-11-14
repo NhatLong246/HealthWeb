@@ -1,0 +1,214 @@
+@model HealthWeb.Services.ScheduleViewModel
+@{
+    ViewData["Title"] = "Lịch Trình - HealthWeb";
+    Layout = "_Layout";
+    
+    var model = Model ?? new HealthWeb.Services.ScheduleViewModel();
+    var weekStart = model.WeekStart;
+    var weekEnd = model.WeekEnd;
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    
+    // Calculate current week offset (0 = this week, -1 = last week, 1 = next week)
+    var startOfThisWeek = DateOnly.FromDateTime(DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 6) % 7));
+    var weekOffset = (weekStart.DayNumber - startOfThisWeek.DayNumber) / 7;
+    
+    var days = new[] { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+    var dayNames = new[] { "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật" };
+    
+    string GetDateLabel()
+    {
+        if (weekOffset == 0) return "Tuần này";
+        if (weekOffset == -1) return "Tuần trước";
+        if (weekOffset == 1) return "Tuần sau";
+        return $"{weekStart:dd/MM/yyyy} - {weekEnd:dd/MM/yyyy}";
+    }
+    
+    DateOnly GetDateForDay(int dayIndex)
+    {
+        return weekStart.AddDays(dayIndex);
+    }
+    
+    List<HealthWeb.Services.ScheduleBookingViewModel> GetBookingsForDay(int dayIndex)
+    {
+        var targetDate = GetDateForDay(dayIndex);
+        return model.Bookings
+            .Where(b => DateOnly.FromDateTime(b.StartTime) == targetDate)
+            .OrderBy(b => b.StartTime)
+            .ToList();
+    }
+    
+    List<HealthWeb.Services.ScheduleBookingViewModel> GetBookingsForTimeSlot(int dayIndex, int hour)
+    {
+        var targetDate = GetDateForDay(dayIndex);
+        return model.Bookings
+            .Where(b => DateOnly.FromDateTime(b.StartTime) == targetDate && b.StartTime.Hour == hour)
+            .ToList();
+    }
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/schedulePT.css">
+
+<div class="schedule-container">
+    <div class="schedule-header">
+        <h1><i class="fas fa-calendar-alt"></i> Lịch Trình</h1>
+        <div class="schedule-controls">
+            <div class="date-nav">
+                <a href="/PT/SchedulePT?start=@(weekStart.AddDays(-7).ToString("yyyy-MM-dd"))" class="date-nav-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <div class="current-date">@GetDateLabel()</div>
+                <a href="/PT/SchedulePT?start=@(weekStart.AddDays(7).ToString("yyyy-MM-dd"))" class="date-nav-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="switchView('grid')" id="gridViewBtn">
+                    <i class="fas fa-th"></i> Lưới
+                </button>
+                <button class="view-btn" onclick="switchView('list')" id="listViewBtn">
+                    <i class="fas fa-list"></i> Danh sách
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Grid View -->
+    <div class="calendar-grid" id="calendarGrid">
+        <!-- Time column header -->
+        <div></div>
+        
+        <!-- Day headers -->
+        @for (int i = 0; i < 7; i++)
+        {
+            var date = GetDateForDay(i);
+            var isToday = date == today;
+            <div class="day-header @(isToday ? "today" : "")">
+                <div>@days[i]</div>
+                <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.3rem;">@date.Day/@date.Month</div>
+            </div>
+        }
+        
+        <!-- Time slots (6 AM to 10 PM) -->
+        @for (int hour = 6; hour < 22; hour++)
+        {
+            <!-- Time label -->
+            <div class="time-slot">@($"{hour:D2}:00")</div>
+            
+            <!-- Cells for each day -->
+            @for (int dayIndex = 0; dayIndex < 7; dayIndex++)
+            {
+                var cellBookings = GetBookingsForTimeSlot(dayIndex, hour);
+                <div class="time-cell @(cellBookings.Any() ? "has-booking" : "")">
+                    @if (cellBookings.Any())
+                    {
+                        var booking = cellBookings.First();
+                        <div class="booking-badge @(booking.Status.ToLower())" title="@($"{booking.ClientName} - {booking.StartTime:HH:mm} ({booking.Type})")">
+                            @booking.ClientName.Split(' ').Last()
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <!-- List View -->
+    <div class="schedule-list" id="scheduleList" style="display: none;">
+        @for (int i = 0; i < 7; i++)
+        {
+            var date = GetDateForDay(i);
+            var isToday = date == today;
+            var dayBookings = GetBookingsForDay(i);
+            
+            <div class="schedule-day">
+                <div class="schedule-day-header">
+                    <span>@dayNames[i], @date.ToString("dd/MM/yyyy")@(isToday ? " (Hôm nay)" : "")</span>
+                    <span style="font-size: 0.9rem; opacity: 0.7;">@dayBookings.Count buổi</span>
+                </div>
+                <div class="day-bookings">
+                    @if (dayBookings.Any())
+                    {
+                        @foreach (var booking in dayBookings)
+                        {
+                            var endTime = booking.StartTime.AddMinutes(booking.Duration);
+                            <div class="booking-card @(booking.Status.ToLower())" onclick="viewBooking('@booking.ClientName')">
+                                <div class="booking-card-header">
+                                    <div class="booking-client-info">
+                                        <div class="booking-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="booking-client-details">
+                                            <h4>@booking.ClientName</h4>
+                                            <p>@booking.StartTime.ToString("HH:mm") - @endTime.ToString("HH:mm")</p>
+                                        </div>
+                                    </div>
+                                    <span class="booking-status-badge status-@(booking.Status.ToLower())">
+                                        @if (booking.Status == "Pending")
+                                        {
+                                            <text>Chờ duyệt</text>
+                                        }
+                                        else if (booking.Status == "Confirmed")
+                                        {
+                                            <text>Đã xác nhận</text>
+                                        }
+                                        else if (booking.Status == "Completed")
+                                        {
+                                            <text>Hoàn thành</text>
+                                        }
+                                        else if (booking.Status == "Cancelled")
+                                        {
+                                            <text>Đã hủy</text>
+                                        }
+                                        else
+                                        {
+                                            @booking.Status
+                                        }
+                                    </span>
+                                </div>
+                                <div class="booking-details">
+                                    <span><i class="fas fa-clock"></i> @booking.Duration phút</span>
+                                    <span><i class="fas fa-dumbbell"></i> @booking.Type</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-schedule">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>Không có lịch hẹn</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    // Client-side functions for UI interactions only
+    function switchView(view) {
+        const grid = document.getElementById('calendarGrid');
+        const list = document.getElementById('scheduleList');
+        const gridBtn = document.getElementById('gridViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+        
+        if (view === 'grid') {
+            grid.style.display = 'grid';
+            list.style.display = 'none';
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            grid.style.display = 'none';
+            list.style.display = 'block';
+            gridBtn.classList.remove('active');
+            listBtn.classList.add('active');
+        }
+    }
+    
+    function viewBooking(clientName) {
+        alert('Chi tiết lịch hẹn cho: ' + clientName);
+    }
+</script>
+

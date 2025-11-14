@@ -1,0 +1,140 @@
+/* Header Override - Match Layout Design - Dùng chung cho tất cả views PT */
+.header {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    padding: 1rem 2rem !important;
+}
+
+.logo {
+    justify-self: start !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.home-btn {
+    display: none !important;
+}
+
+.nav-links {
+    justify-self: center !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    flex-wrap: wrap !important;
+}
+
+.nav-links a {
+    color: inherit !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+}
+
+.header-actions {
+    justify-self: end !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    flex-wrap: nowrap !important;
+}
+
+.header-actions i {
+    font-size: 1.2rem !important;
+    cursor: pointer !important;
+    color: #94a3b8 !important;
+    transition: color 0.3s ease !important;
+}
+
+body.dark-mode .header-actions i {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .header-actions i:hover {
+    color: #4ade80 !important;
+}
+
+body.light-mode .header-actions i {
+    color: rgba(124, 45, 18, 0.7) !important;
+}
+
+body.light-mode .header-actions i:hover {
+    color: #ea580c !important;
+}
+
+.header-actions #userMenu {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+}
+
+.header-actions #userMenu span:first-child {
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.header-actions #userMenu span:first-child i {
+    font-size: 1.2rem !important;
+}
+
+.header-actions #userMenu span:nth-child(2) {
+    color: inherit !important;
+    font-weight: 500 !important;
+}
+
+.header-actions #logoutBtn {
+    padding: 0.5rem 1.5rem !important;
+    border: 1px solid #4ade80 !important;
+    background: transparent !important;
+    color: inherit !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+body.dark-mode .header-actions #logoutBtn {
+    border-color: #4ade80 !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .header-actions #logoutBtn:hover {
+    background: rgba(78, 222, 128, 0.1) !important;
+    border-color: #22c55e !important;
+}
+
+body.light-mode .header-actions #logoutBtn {
+    border-color: #ea580c !important;
+    color: #7c2d12 !important;
+}
+
+body.light-mode .header-actions #logoutBtn:hover {
+    background: rgba(251, 146, 60, 0.1) !important;
+    border-color: #dc2626 !important;
+}
+
+@media (max-width: 768px) {
+    .header {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+        padding: 1rem !important;
+    }
+
+    .nav-links {
+        justify-self: center !important;
+        gap: 1rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .header-actions {
+        justify-self: center !important;
+        gap: 0.5rem !important;
+    }
+
+    .header-actions #userMenu span:nth-child(2) {
+        display: none !important;
+    }
+}
+

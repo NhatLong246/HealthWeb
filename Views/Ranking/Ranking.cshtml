@@ -5,11 +5,181 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
 <style>
+    /* Fix Header Layout - Ensure all buttons stay in one row */
+    .header {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 1.5rem !important;
+        padding: 1rem 2rem !important;
+        overflow: hidden !important;
+    }
+    
+    /* Logo section - Left side */
+    .logo {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Home button next to logo */
+    .home-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        margin-left: 1rem !important;
+        flex-shrink: 0 !important;
+        color: inherit !important;
+        text-decoration: none !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .home-btn:hover {
+        background: rgba(78, 222, 128, 0.15) !important;
+        border-radius: 8px !important;
+    }
+    
+    body.light-mode .home-btn:hover {
+        background: rgba(251, 146, 60, 0.15) !important;
+    }
+    
+    /* Navigation links - Center */
+    .nav-links {
+        display: flex !important;
+        align-items: center !important;
+        gap: 2rem !important;
+        flex: 1 !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        min-width: 0 !important;
+    }
+    
+    .nav-links a {
+        white-space: nowrap !important;
+        font-size: 1rem !important;
+        font-weight: 500 !important;
+        color: inherit !important;
+        text-decoration: none !important;
+        transition: all 0.3s ease !important;
+        padding: 0.25rem 0 !important;
+    }
+    
+    .nav-links a:hover {
+        opacity: 0.8 !important;
+    }
+    
+    /* Header actions - Right side */
+    .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 1rem !important;
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+    }
+    
+    .header-actions i {
+        flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        color: #94a3b8 !important;
+        font-size: 1.2rem !important;
+    }
+    
+    body.light-mode .header-actions i {
+        color: #7c2d12 !important;
+    }
+    
+    .header-actions i:hover {
+        color: #4ade80 !important;
+        transform: scale(1.1) !important;
+    }
+    
+    body.light-mode .header-actions i:hover {
+        color: #ea580c !important;
+    }
+    
+    /* User menu text */
+    #userMenu {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        color: inherit !important;
+    }
+    
+    #userMenu span {
+        white-space: nowrap !important;
+        font-size: 0.95rem !important;
+    }
+    
+    /* Buttons in header actions */
+    .header-actions .btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        padding: 0.5rem 1.25rem !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .header-actions .btn-secondary {
+        border: 1px solid rgba(78, 222, 128, 0.3) !important;
+        background: transparent !important;
+        color: inherit !important;
+    }
+    
+    body.light-mode .header-actions .btn-secondary {
+        border-color: rgba(251, 146, 60, 0.3) !important;
+    }
+    
+    .header-actions .btn-secondary:hover {
+        border-color: #4ade80 !important;
+        background: rgba(78, 222, 128, 0.1) !important;
+    }
+    
+    body.light-mode .header-actions .btn-secondary:hover {
+        border-color: #ea580c !important;
+        background: rgba(251, 146, 60, 0.1) !important;
+    }
+    
+    .header-actions .btn-primary {
+        background: #4ade80 !important;
+        color: #0f172a !important;
+        border: none !important;
+    }
+    
+    body.light-mode .header-actions .btn-primary {
+        background: #ea580c !important;
+        color: #ffffff !important;
+    }
+    
+    .header-actions .btn-primary:hover {
+        background: #22c55e !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    body.light-mode .header-actions .btn-primary:hover {
+        background: #dc2626 !important;
+    }
+
     /* Ranking/Leaderboard Styles */
     .ranking-container {
         max-width: 1200px;
         margin: 2rem auto;
         padding: 2rem;
+        padding-top: 100px; /* Space for fixed header */
     }
 
     .ranking-header {
@@ -273,6 +443,18 @@
         border: 1px solid transparent;
     }
 
+    .leaderboard-item.current-user {
+        background: rgba(78, 222, 128, 0.2) !important;
+        border-color: rgba(78, 222, 128, 0.5) !important;
+        box-shadow: 0 0 10px rgba(78, 222, 128, 0.3);
+    }
+
+    body.light-mode .leaderboard-item.current-user {
+        background: rgba(251, 146, 60, 0.2) !important;
+        border-color: rgba(251, 146, 60, 0.5) !important;
+        box-shadow: 0 0 10px rgba(251, 146, 60, 0.3);
+    }
+
     body.light-mode .leaderboard-item:hover {
         background: rgba(251, 146, 60, 0.1);
         border-color: rgba(251, 146, 60, 0.3);
@@ -383,6 +565,7 @@
     @@media (max-width: 768px) {
         .ranking-container {
             padding: 1rem;
+            padding-top: 90px; /* Adjust for mobile header */
         }
 
         .podium-container {
@@ -433,10 +616,13 @@
 
     <!-- Period Tabs -->
     <div class="period-tabs">
+        <button class="period-tab active" data-period="All">
+            <i class="fas fa-globe"></i> Tất cả
+        </button>
         <button class="period-tab" data-period="Daily">
             <i class="fas fa-calendar-day"></i> Hôm nay
         </button>
-        <button class="period-tab active" data-period="Weekly">
+        <button class="period-tab" data-period="Weekly">
             <i class="fas fa-calendar-week"></i> Tuần này
         </button>
         <button class="period-tab" data-period="Monthly">
@@ -495,9 +681,37 @@
 </div>
 
 <script>
+// Global variables
+let currentUserId = null;
+let currentPeriod = 'Weekly';
+
+// Function to get userId from localStorage
+function getCurrentUserId() {
+    if (currentUserId !== null) {
+        return currentUserId;
+    }
+    
+    try {
+        const authData = localStorage.getItem('hw_is_auth');
+        const username = localStorage.getItem('hw_username');
+        if (authData === 'true' && username) {
+            // Có thể lưu userId vào localStorage khi login
+            currentUserId = localStorage.getItem('hw_userId') || null;
+            return currentUserId;
+        }
+    } catch (e) {
+        console.warn('Could not get user ID from localStorage:', e);
+    }
+    
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const periodTabs = document.querySelectorAll('.period-tab');
-    let currentPeriod = 'Weekly';
+    
+    // Lấy userId khi load page
+    currentUserId = getCurrentUserId();
+    currentPeriod = 'All';
 
     // Period tab click handler
     periodTabs.forEach(tab => {
@@ -526,19 +740,19 @@ async function loadLeaderboard(period) {
     podiumContainer.style.display = 'none';
     leaderboardContainer.style.display = 'none';
     emptyState.style.display = 'none';
+    document.getElementById('personalStatsContainer').style.display = 'none';
 
     try {
         const response = await fetch(`/Ranking/GetLeaderboard?period=${period}`);
-        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
-        console.log('Leaderboard data:', result); // Debug log
-        console.log('Result success:', result.success);
-        console.log('Result data:', result.data);
-        console.log('Result data length:', result.data?.length);
 
         if (result.success && result.data && result.data.length > 0) {
             const rankings = result.data;
-            console.log('First ranking item:', rankings[0]);
             
             // Display top 3 on podium
             const top3 = rankings.slice(0, 3);
@@ -547,59 +761,89 @@ async function loadLeaderboard(period) {
 
             // Display rest in list
             if (rankings.length > 3) {
-                displayLeaderboard(rankings.slice(3), leaderboardList);
+                displayLeaderboard(rankings.slice(3), leaderboardList, getCurrentUserId());
                 leaderboardContainer.style.display = 'block';
+            } else {
+                leaderboardContainer.style.display = 'none';
             }
 
-            // Load and display personal stats (TODO: get current user ID from auth)
-            // For now, assume user_0001 is current user
-            loadPersonalStats('user_0001', period);
-        } else {
-            console.log('No data or error:', result);
-            emptyState.style.display = 'block';
+            // Load and display personal stats
+            // Try to get userId from localStorage or use first user as fallback
+            let userId = getCurrentUserId();
             
-            // Hide personal stats when no data
-            document.getElementById('personalStatsContainer').style.display = 'none';
+            // If no userId from localStorage, try to find current user in rankings
+            if (!userId && rankings.length > 0) {
+                // Try to find user by checking if they match any ranking
+                // For demo, use first user or find by username
+                const username = localStorage.getItem('hw_username');
+                if (username) {
+                    const userInRankings = rankings.find(r => {
+                        const rUsername = (r.Username || r.username || '').toLowerCase();
+                        return rUsername === username.toLowerCase();
+                    });
+                    if (userInRankings) {
+                        userId = userInRankings.UserId || userInRankings.userId;
+                        console.log('Found user in rankings by username:', username, 'userId:', userId);
+                    }
+                }
+                
+                // Fallback to first user if still no userId
+                if (!userId && rankings.length > 0) {
+                    userId = rankings[0].UserId || rankings[0].userId;
+                    console.log('Using first user from rankings as fallback:', userId);
+                }
+            }
+            
+            console.log('Final userId for loading user info:', userId);
+            
+            // Always try to load personal stats if we have a userId
+            if (userId) {
+                loadPersonalStats(userId, period);
+            }
+        } else {
+            console.warn('No ranking data found:', result.message || 'Unknown error');
+            emptyState.style.display = 'block';
         }
     } catch (error) {
         console.error('Error loading leaderboard:', error);
-        console.error('Full error:', error);
         emptyState.style.display = 'block';
-        
-        // Hide personal stats on error
-        document.getElementById('personalStatsContainer').style.display = 'none';
+        emptyState.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Không thể tải dữ liệu xếp hạng. Vui lòng thử lại sau.</p>
+        `;
     } finally {
         loadingState.style.display = 'none';
     }
 }
 
-// Debug: log response
-async function debugLoadLeaderboard(period) {
-    console.log('Fetching leaderboard for period:', period);
-    const response = await fetch(`/Ranking/GetLeaderboard?period=${period}`);
-    const result = await response.json();
-    console.log('Response:', result);
-    return result;
-}
+// Removed debug function - no longer needed
 
 function displayPodium(top3, container) {
+    if (!top3 || top3.length === 0) {
+        container.innerHTML = '<p>Chưa có dữ liệu</p>';
+        return;
+    }
+
     // top3 is already ordered by ThuHang ASC [1, 2, 3]
-    // We need to display them in podium order: [2, 1, 3] (2nd, 1st, 3rd)
-    const podiumOrder = [1, 0, 2]; // indexes: second, first, third
+    // We need to display them in podium order: [1, 0, 2] (2nd, 1st, 3rd) 
+    // Visual order: [2nd (left), 1st (center), 3rd (right)]
+    const podiumOrder = [1, 0, 2]; // indexes: [2nd place, 1st place, 3rd place]
     const medals = ['🥈', '🥇', '🥉'];
     
     container.innerHTML = podiumOrder.map((idx, podiumIdx) => {
+        if (idx >= top3.length) return '';
+        
         const user = top3[idx];
         const rank = user.ThuHang || user.thuHang || (idx + 1);
         const medal = medals[podiumIdx];
         
-        // Try both PascalCase and camelCase
+        // Handle both PascalCase and camelCase
         const username = user.Username || user.username || 'Unknown';
-        const hoTen = user.HoTen || user.hoTen;
+        const hoTen = user.HoTen || user.hoTen || username;
         const tongDiem = user.TongDiem || user.tongDiem || 0;
         const anhDaiDien = user.AnhDaiDien || user.anhDaiDien;
         
-        const avatar = anhDaiDien ? `<img src="${anhDaiDien}" alt="${username}">` 
+        const avatar = anhDaiDien ? `<img src="${escapeHtml(anhDaiDien)}" alt="${escapeHtml(username)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` 
                       : `<i class="fas fa-user"></i>`;
         
         return `
@@ -611,7 +855,7 @@ function displayPodium(top3, container) {
                     ${avatar}
                 </div>
                 <div class="podium-stand">
-                    <div class="podium-name">${hoTen || username}</div>
+                    <div class="podium-name">${escapeHtml(hoTen)}</div>
                     <div class="podium-points">${formatNumber(tongDiem)} điểm</div>
                 </div>
             </div>
@@ -619,28 +863,37 @@ function displayPodium(top3, container) {
     }).join('');
 }
 
-function displayLeaderboard(rankings, container) {
+function displayLeaderboard(rankings, container, currentUserId = null) {
+    if (!rankings || rankings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Không có dữ liệu</p></div>';
+        return;
+    }
+
     container.innerHTML = rankings.map((user, idx) => {
-        const rank = idx + 4; // Starting from 4th place
+        const rank = user.ThuHang || user.thuHang || (idx + 4); // Starting from 4th place
         
-        // Try both PascalCase and camelCase
+        // Handle both PascalCase and camelCase
         const username = user.Username || user.username || 'Unknown';
-        const hoTen = user.HoTen || user.hoTen;
+        const hoTen = user.HoTen || user.hoTen || username;
         const tongDiem = user.TongDiem || user.tongDiem || 0;
+        const userId = user.UserId || user.userId;
         const anhDaiDien = user.AnhDaiDien || user.anhDaiDien;
         
-        const avatar = anhDaiDien ? `<img src="${anhDaiDien}" alt="${username}">` 
+        // Check if this is current user
+        const isCurrentUser = currentUserId && userId === currentUserId;
+        
+        const avatar = anhDaiDien ? `<img src="${escapeHtml(anhDaiDien)}" alt="${escapeHtml(username)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` 
                       : `<i class="fas fa-user"></i>`;
         
         return `
-            <div class="leaderboard-item">
+            <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}" ${isCurrentUser ? 'title="Đây là bạn!"' : ''}>
                 <div class="leaderboard-rank">${rank}</div>
                 <div class="leaderboard-avatar" style="background: linear-gradient(135deg, #4ade80, #22d3ee);">
                     ${avatar}
                 </div>
                 <div class="leaderboard-info">
-                    <div class="leaderboard-name">${hoTen || username}</div>
-                    <div class="leaderboard-username">@@${username}</div>
+                    <div class="leaderboard-name">${escapeHtml(hoTen)} ${isCurrentUser ? '<i class="fas fa-star" style="color: gold; margin-left: 5px;"></i>' : ''}</div>
+                    <div class="leaderboard-username">@@${escapeHtml(username)}</div>
                 </div>
                 <div class="leaderboard-points">
                     <i class="fas fa-fire"></i>
@@ -661,17 +914,36 @@ function getRankColor(rank) {
 }
 
 function formatNumber(num) {
+    if (num === null || num === undefined) return '0';
     return new Intl.NumberFormat('vi-VN').format(num);
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 async function loadPersonalStats(userId, period) {
+    if (!userId) {
+        document.getElementById('personalStatsContainer').style.display = 'none';
+        return;
+    }
+
     try {
-        const response = await fetch(`/Ranking/GetPersonalStats?userId=${userId}&period=${period}`);
+        const response = await fetch(`/Ranking/GetPersonalStats?userId=${encodeURIComponent(userId)}&period=${encodeURIComponent(period)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         
         if (result.success && result.data) {
             displayPersonalStats(result.data);
         } else {
+            console.warn('Personal stats not available:', result.message || 'Unknown error');
             document.getElementById('personalStatsContainer').style.display = 'none';
         }
     } catch (error) {
@@ -683,13 +955,24 @@ async function loadPersonalStats(userId, period) {
 function displayPersonalStats(data) {
     const personalStatsContainer = document.getElementById('personalStatsContainer');
     
-    // Update personal stats
-    document.getElementById('personalRank').textContent = `#${data.Rank || data.rank || 0}`;
-    document.getElementById('personalPoints').textContent = formatNumber(data.Points || data.points || 0);
-    document.getElementById('personalTime').textContent = `${data.TotalHours || data.totalHours || 0}h`;
-    document.getElementById('personalSessions').textContent = data.Sessions || data.sessions || 0;
+    if (!data) {
+        personalStatsContainer.style.display = 'none';
+        return;
+    }
+    
+    // Update personal stats - handle both PascalCase and camelCase
+    const rank = data.Rank || data.rank || 0;
+    const points = data.Points || data.points || 0;
+    const totalHours = data.TotalHours || data.totalHours || 0;
+    const sessions = data.Sessions || data.sessions || 0;
+    
+    document.getElementById('personalRank').textContent = `#${rank}`;
+    document.getElementById('personalPoints').textContent = formatNumber(points);
+    document.getElementById('personalTime').textContent = `${totalHours}h`;
+    document.getElementById('personalSessions').textContent = sessions;
     
     personalStatsContainer.style.display = 'block';
 }
+
 </script>
 

@@ -1,5 +1,6 @@
 using System;
 using HealthWeb.Models.EF;
+using HealthWeb.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using HealthWeb.Services;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,10 @@ builder.Services.AddScoped<ITransactionAdminService, TransactionAdminService>();
 builder.Services.AddScoped<IPTAdminService, PTAdminService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 
+
+// Add session support
+builder.Services.AddDistributedMemoryCache();
+
 // ✅ Thêm Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -45,15 +50,23 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
+
 // ✅ Thêm Session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;  // Lax cho dev
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+
 });
+
+// Add HttpContextAccessor for services
+builder.Services.AddHttpContextAccessor();
+
+// Register application services
+builder.Services.AddScoped<IRankingService, RankingService>();
+builder.Services.AddScoped<IPTService, PTService>();
+builder.Services.AddScoped<IFindPTService, FindPTService>();
 
 var app = builder.Build();
 
@@ -65,10 +78,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
+
+
+
 
 // ✅ Middleware thứ tự chính xác
 app.UseAuthentication();
+
 app.UseAuthorization();
 app.UseSession();
 

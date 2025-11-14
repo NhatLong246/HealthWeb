@@ -465,7 +465,17 @@ namespace HealthWeb.Controllers
         }
 
         // Endpoint kiểm tra phiên đăng nhập từ server
-        [HttpGet]
+        [HttpGet("Account/GetCurrentUserId")]
+        public IActionResult GetCurrentUserId()
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, userId = (string?)null });
+            }
+            return Json(new { success = true, userId = userId });
+        }
+
         public IActionResult IsAuthenticated()
         {
             var isCookieAuth = HttpContext.User?.Identity?.IsAuthenticated == true;

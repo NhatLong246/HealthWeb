@@ -1,0 +1,258 @@
+@model HealthWeb.Services.SettingsViewModel
+@{
+    ViewData["Title"] = "Cài Đặt - HealthWeb";
+    Layout = "_Layout";
+    
+    var model = Model ?? new HealthWeb.Services.SettingsViewModel();
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/settingsPT.css">
+
+<div class="settings-container">
+    @Html.AntiForgeryToken()
+    <div class="page-header">
+        <h1><i class="fas fa-cog"></i> Cài Đặt</h1>
+        <p>Quản lý thông tin và cài đặt tài khoản của bạn</p>
+    </div>
+
+    <!-- Settings Tabs -->
+    <div class="settings-tabs">
+        <button class="settings-tab active" onclick="switchTab('profile')">
+            <i class="fas fa-user"></i> Thông Tin Cá Nhân
+        </button>
+        <button class="settings-tab" onclick="switchTab('professional')">
+            <i class="fas fa-certificate"></i> Chuyên Môn
+        </button>
+        <button class="settings-tab" onclick="switchTab('schedule')">
+            <i class="fas fa-clock"></i> Lịch Làm Việc
+        </button>
+        <button class="settings-tab" onclick="switchTab('account')">
+            <i class="fas fa-key"></i> Tài Khoản
+        </button>
+        <button class="settings-tab" onclick="switchTab('notifications')">
+            <i class="fas fa-bell"></i> Thông Báo
+        </button>
+    </div>
+
+    <!-- Profile Settings -->
+    <div class="settings-content active" id="profileTab">
+        <div class="settings-section">
+            <div class="section-title">
+                <i class="fas fa-user-circle"></i> Thông Tin Cá Nhân
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="displayName">Họ và Tên</label>
+                    <input type="text" id="displayName" name="HoTen" placeholder="Nhập họ và tên" value="@(model.Profile?.HoTen ?? "")">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="Email" placeholder="your.email@example.com" value="@(model.Profile?.Email ?? "")">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">Số điện thoại</label>
+                    <input type="tel" id="phone" name="Phone" placeholder="0123456789" value="@(model.Profile?.Phone ?? "")">
+                </div>
+                
+                <div class="form-group">
+                    <label for="city">Thành phố</label>
+                    <input type="text" id="city" name="ThanhPho" placeholder="Ví dụ: Hà Nội, TP.HCM" value="@(model.Profile?.ThanhPho ?? "")">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Tiểu sử</label>
+                <textarea id="bio" name="TieuSu" placeholder="Giới thiệu về bản thân, phương pháp tập luyện...">@(model.Profile?.TieuSu ?? "")</textarea>
+            </div>
+
+            <button type="submit" class="save-btn" onclick="saveProfile()">
+                <i class="fas fa-save"></i> Lưu Thông Tin
+            </button>
+        </div>
+    </div>
+
+    <!-- Professional Settings -->
+    <div class="settings-content" id="professionalTab">
+        <div class="settings-section">
+            <div class="section-title">
+                <i class="fas fa-dumbbell"></i> Thông Tin Chuyên Môn
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="specialty">Chuyên môn</label>
+                    <select id="specialty" name="ChuyenMon">
+                        <option value="">Chọn chuyên môn</option>
+                        <option value="Gym" selected="@(model.Professional?.ChuyenMon == "Gym")">Gym / Tập tạ</option>
+                        <option value="Cardio" selected="@(model.Professional?.ChuyenMon == "Cardio")">Cardio / Giảm cân</option>
+                        <option value="Yoga" selected="@(model.Professional?.ChuyenMon == "Yoga")">Yoga / Stretching</option>
+                        <option value="Pilates" selected="@(model.Professional?.ChuyenMon == "Pilates")">Pilates</option>
+                        <option value="Crossfit" selected="@(model.Professional?.ChuyenMon == "Crossfit")">Crossfit</option>
+                        <option value="MartialArts" selected="@(model.Professional?.ChuyenMon == "MartialArts")">Võ thuật</option>
+                        <option value="Rehabilitation" selected="@(model.Professional?.ChuyenMon == "Rehabilitation")">Phục hồi chức năng</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="experience">Kinh nghiệm</label>
+                    <select id="experience" name="SoNamKinhNghiem">
+                        <option value="">Chọn mức kinh nghiệm</option>
+                        <option value="0" selected="@(model.Professional?.SoNamKinhNghiem == 0)">Dưới 1 năm</option>
+                        <option value="1" selected="@(model.Professional?.SoNamKinhNghiem == 1)">1-3 năm</option>
+                        <option value="3" selected="@(model.Professional?.SoNamKinhNghiem == 3)">3-5 năm</option>
+                        <option value="5" selected="@(model.Professional?.SoNamKinhNghiem == 5)">5-10 năm</option>
+                        <option value="10" selected="@(model.Professional?.SoNamKinhNghiem == 10)">Trên 10 năm</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="price">Giá theo giờ (VNĐ)</label>
+                <input type="number" id="price" name="GiaTheoGio" placeholder="Ví dụ: 500000" min="0" value="@(model.Professional?.GiaTheoGio?.ToString() ?? "")">
+                <div class="info-text">Nhập giá dịch vụ theo giờ của bạn</div>
+            </div>
+
+            <div class="form-group">
+                <label for="certificates">Chứng chỉ / Bằng cấp</label>
+                <textarea id="certificates" name="ChungChi" placeholder="Liệt kê các chứng chỉ, bằng cấp liên quan...">@(model.Professional?.ChungChi ?? "")</textarea>
+            </div>
+
+            <button type="submit" class="save-btn" onclick="saveProfessional()">
+                <i class="fas fa-save"></i> Lưu Chuyên Môn
+            </button>
+        </div>
+    </div>
+
+    <!-- Schedule Settings -->
+    <div class="settings-content" id="scheduleTab">
+        <div class="settings-section">
+            <div class="section-title">
+                <i class="fas fa-calendar-alt"></i> Lịch Làm Việc
+            </div>
+            
+            <div class="form-group">
+                <label for="availableHours">Giờ làm việc</label>
+                <textarea id="availableHours" name="GioRanh" placeholder="Ví dụ: Thứ 2-6: 6h-10h, 18h-22h | Thứ 7-CN: 8h-12h">@(model.Schedule?.GioRanh ?? "")</textarea>
+                <div class="info-text">Mô tả thời gian bạn sẵn sàng nhận khách hàng</div>
+            </div>
+
+            <div class="form-group">
+                <div class="toggle-switch">
+                    <label>Nhận khách hàng mới</label>
+                    <label class="switch">
+                        <input type="checkbox" id="acceptClients" name="NhanKhach" @((model.Schedule?.NhanKhach ?? true) ? "checked" : "")>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-text">Bật/tắt để kiểm soát việc nhận khách hàng mới</div>
+            </div>
+
+            <div class="form-group">
+                <label for="maxClients">Số lượng khách hàng tối đa</label>
+                <input type="number" id="maxClients" name="MaxClients" placeholder="Ví dụ: 30" min="1" max="100" value="@(model.Schedule?.MaxClients?.ToString() ?? "")">
+                <div class="info-text">Giới hạn số lượng khách hàng bạn có thể quản lý cùng lúc</div>
+            </div>
+
+            <button type="submit" class="save-btn" onclick="saveSchedule()">
+                <i class="fas fa-save"></i> Lưu Lịch Làm Việc
+            </button>
+        </div>
+    </div>
+
+    <!-- Account Settings -->
+    <div class="settings-content" id="accountTab">
+        <div class="settings-section">
+            <div class="section-title">
+                <i class="fas fa-shield-alt"></i> Bảo Mật Tài Khoản
+            </div>
+            
+            <div class="form-group">
+                <label for="currentPassword">Mật khẩu hiện tại</label>
+                <input type="password" id="currentPassword" name="CurrentPassword" placeholder="Nhập mật khẩu hiện tại">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newPassword">Mật khẩu mới</label>
+                    <input type="password" id="newPassword" name="NewPassword" placeholder="Nhập mật khẩu mới">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Xác nhận mật khẩu</label>
+                    <input type="password" id="confirmPassword" name="ConfirmPassword" placeholder="Nhập lại mật khẩu mới">
+                </div>
+            </div>
+
+            <button type="submit" class="save-btn" onclick="changePassword()">
+                <i class="fas fa-key"></i> Đổi Mật Khẩu
+            </button>
+        </div>
+    </div>
+
+    <!-- Notifications Settings -->
+    <div class="settings-content" id="notificationsTab">
+        <div class="settings-section">
+            <div class="section-title">
+                <i class="fas fa-bell"></i> Cài Đặt Thông Báo
+            </div>
+            
+            <div class="form-group">
+                <div class="toggle-switch">
+                    <label>Thông báo đặt lịch mới</label>
+                    <label class="switch">
+                        <input type="checkbox" id="notifyNewBooking" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-text">Nhận thông báo khi có khách hàng đặt lịch mới</div>
+            </div>
+
+            <div class="form-group">
+                <div class="toggle-switch">
+                    <label>Thông báo hủy lịch</label>
+                    <label class="switch">
+                        <input type="checkbox" id="notifyCancelBooking" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-text">Nhận thông báo khi khách hàng hủy lịch</div>
+            </div>
+
+            <div class="form-group">
+                <div class="toggle-switch">
+                    <label>Thông báo đánh giá</label>
+                    <label class="switch">
+                        <input type="checkbox" id="notifyReview" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-text">Nhận thông báo khi khách hàng đánh giá</div>
+            </div>
+
+            <div class="form-group">
+                <div class="toggle-switch">
+                    <label>Thông báo nhắc nhở lịch hẹn</label>
+                    <label class="switch">
+                        <input type="checkbox" id="notifyReminder" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-text">Nhận thông báo nhắc nhở trước lịch hẹn</div>
+            </div>
+
+            <button type="submit" class="save-btn" onclick="saveNotifications()">
+                <i class="fas fa-save"></i> Lưu Cài Đặt
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/pt/settingsPT.js"></script>
+
