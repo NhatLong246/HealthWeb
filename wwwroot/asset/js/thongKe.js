@@ -812,23 +812,42 @@
 
         container.innerHTML = '';
 
+        // Handle undefined or null
+        if (!activities || !Array.isArray(activities)) {
+            container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Chưa có hoạt động nào</p>';
+            return;
+        }
+
         if (activities.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Chưa có hoạt động nào</p>';
             return;
         }
 
         activities.forEach(activity => {
-            const timeAgo = getTimeAgo(activity.timestamp);
+            // Support both PascalCase (from API) and camelCase (fallback)
+            const timestamp = activity.Timestamp ?? activity.timestamp;
+            const type = activity.Type ?? activity.type ?? '';
+            const icon = activity.Icon ?? activity.icon ?? 'fa-circle';
+            const title = activity.Title ?? activity.title ?? '';
+            const description = activity.Description ?? activity.description ?? '';
+            
+            // Validate timestamp
+            if (!timestamp) {
+                console.warn('Activity missing timestamp:', activity);
+                return;
+            }
+            
+            const timeAgo = getTimeAgo(timestamp);
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
-            activityItem.setAttribute('data-category', activity.type);
+            activityItem.setAttribute('data-category', type);
 
             activityItem.innerHTML = `
                 <div class="activity-icon-wrapper">
-                    <i class="fas ${activity.icon} activity-icon"></i>
+                    <i class="fas ${icon} activity-icon"></i>
                 </div>
                 <div class="activity-content">
-                    <p><strong>${activity.title}:</strong> ${activity.description}</p>
+                    <p><strong>${title}:</strong> ${description}</p>
                     <span class="activity-time">${timeAgo}</span>
                 </div>
             `;
@@ -839,8 +858,27 @@
 
     // Helper function to calculate time ago
     function getTimeAgo(timestamp) {
+        if (!timestamp) return 'Không xác định';
+        
         const now = new Date();
-        const time = new Date(timestamp);
+        let time;
+        
+        // Handle both string and Date object
+        if (timestamp instanceof Date) {
+            time = timestamp;
+        } else if (typeof timestamp === 'string') {
+            time = new Date(timestamp);
+        } else {
+            console.warn('Invalid timestamp format:', timestamp);
+            return 'Không xác định';
+        }
+        
+        // Check if date is valid
+        if (isNaN(time.getTime())) {
+            console.warn('Invalid date:', timestamp);
+            return 'Không xác định';
+        }
+        
         const diffMs = now - time;
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
@@ -885,30 +923,44 @@
     function renderPTAnalytics(data) {
         if (!data) return;
 
-        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(data.totalPTs ?? 0));
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const totalPTs = data.TotalPTs ?? data.totalPTs ?? 0;
+        const active = data.Active ?? data.active ?? 0;
+        const onLeave = data.OnLeave ?? data.onLeave ?? 0;
+        const notAcceptingClients = data.NotAcceptingClients ?? data.notAcceptingClients ?? 0;
+        const averageClientsPerPT = data.AverageClientsPerPT ?? data.averageClientsPerPT ?? 0;
+        const averageRevenuePerPT = data.AverageRevenuePerPT ?? data.averageRevenuePerPT ?? 0;
+        const averageRating = data.AverageRating ?? data.averageRating ?? 0;
+        const cancelRate = data.CancelRate ?? data.cancelRate ?? 0;
+        const totalBookings = data.TotalBookings ?? data.totalBookings ?? 0;
+        const cancelledBookings = data.CancelledBookings ?? data.cancelledBookings ?? 0;
+        const ptRevenue = data.PTRevenue ?? data.ptRevenue ?? [];
+        const topPTs = data.TopPTs ?? data.topPTs ?? [];
+
+        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(totalPTs));
         // Card 2: Trạng thái PT
         const statusCard = document.querySelector('#panel-pt-analytics .analytics-card:nth-child(2)');
         if (statusCard) {
             const statusItems = statusCard.querySelectorAll('.metric-item .metric-value-small');
-            if (statusItems.length >= 1) statusItems[0].textContent = formatNumber(data.active ?? 0);
-            if (statusItems.length >= 2) statusItems[1].textContent = formatNumber(data.onLeave ?? 0);
-            if (statusItems.length >= 3) statusItems[2].textContent = formatNumber(data.notAcceptingClients ?? 0);
+            if (statusItems.length >= 1) statusItems[0].textContent = formatNumber(active);
+            if (statusItems.length >= 2) statusItems[1].textContent = formatNumber(onLeave);
+            if (statusItems.length >= 3) statusItems[2].textContent = formatNumber(notAcceptingClients);
         }
         
         // Card 3: Hiệu suất PT
         const performanceCard = document.querySelector('#panel-pt-analytics .analytics-card:nth-child(3)');
         if (performanceCard) {
             const performanceItems = performanceCard.querySelectorAll('.metric-item .metric-value-small');
-            if (performanceItems.length >= 1) performanceItems[0].textContent = (data.averageClientsPerPT ?? 0).toFixed(1);
-            if (performanceItems.length >= 2) performanceItems[1].textContent = formatNumber(Math.round(data.averageRevenuePerPT ?? 0)) + ' VNĐ';
-            if (performanceItems.length >= 3) performanceItems[2].textContent = `${(data.averageRating ?? 0).toFixed(1)}/5 ⭐`;
+            if (performanceItems.length >= 1) performanceItems[0].textContent = averageClientsPerPT.toFixed(1);
+            if (performanceItems.length >= 2) performanceItems[1].textContent = formatNumber(Math.round(averageRevenuePerPT)) + ' VNĐ';
+            if (performanceItems.length >= 3) performanceItems[2].textContent = `${averageRating.toFixed(1)}/5 ⭐`;
         }
-        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-value', `${(data.cancelRate ?? 0).toFixed(1)}%`);
-        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-details span:first-child strong', formatNumber(data.totalBookings ?? 0));
-        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-details span:last-child strong', formatNumber(data.cancelledBookings ?? 0));
+        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-value', `${cancelRate.toFixed(1)}%`);
+        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-details span:first-child strong', formatNumber(totalBookings));
+        updateTextContent('#panel-pt-analytics .analytics-card:nth-child(4) .metric-details span:last-child strong', formatNumber(cancelledBookings));
 
-        renderPTRevenueChart(data.ptRevenue);
-        renderTopPTs(data.topPTs);
+        renderPTRevenueChart(ptRevenue);
+        renderTopPTs(topPTs);
     }
 
     // Render PT Revenue Chart
@@ -920,8 +972,13 @@
             charts.ptRevenueChart.destroy();
         }
 
-        const labels = data.map(d => d.ptName);
-        const revenues = data.map(d => d.revenue);
+        // Handle undefined or null
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return;
+        }
+
+        const labels = data.map(d => d.PTName ?? d.ptName ?? '');
+        const revenues = data.map(d => d.Revenue ?? d.revenue ?? 0);
 
         charts.ptRevenueChart = new Chart(canvas, {
             type: 'bar',
@@ -949,49 +1006,73 @@
     function renderTopPTs(pts) {
         const container = document.querySelector('#panel-pt-analytics .top-list');
         if (!container) return;
+        
+        // Handle undefined or null
+        if (!pts || !Array.isArray(pts)) {
+            container.innerHTML = '<div class="empty-state">Không có dữ liệu</div>';
+            return;
+        }
 
-        container.innerHTML = pts.map((pt, index) => `
+        container.innerHTML = pts.map((pt, index) => {
+            // Support both PascalCase (from API) and camelCase (fallback)
+            const name = pt.Name ?? pt.name ?? 'Không xác định';
+            const revenue = pt.Revenue ?? pt.revenue ?? 0;
+            const rating = pt.Rating ?? pt.rating ?? 0;
+            
+            return `
             <div class="top-item">
                 <span class="rank">${index + 1}</span>
-                <span class="name">${pt.name}</span>
-                <span class="stat">${formatNumber(Math.round(pt.revenue))} VNĐ</span>
-                <span class="badge success">${(pt.rating ?? 0).toFixed(1)} ⭐</span>
+                <span class="name">${name}</span>
+                <span class="stat">${formatNumber(Math.round(revenue))} VNĐ</span>
+                <span class="badge success">${rating.toFixed(1)} ⭐</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     // Render Health Analytics
     function renderHealthAnalytics(data) {
         if (!data) return;
 
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const averageBMI = data.AverageBMI ?? data.averageBMI ?? 0;
+        const averageHeight = data.AverageHeight ?? data.averageHeight ?? 0;
+        const averageWeight = data.AverageWeight ?? data.averageWeight ?? 0;
+        const averageWaterIntake = data.AverageWaterIntake ?? data.averageWaterIntake ?? 0;
+        const bmiDistribution = data.BMIDistribution ?? data.bmiDistribution ?? {};
+        const healthLogRate = data.HealthLogRate ?? data.healthLogRate ?? 0;
+        const usersLogging5DaysPerWeek = data.UsersLogging5DaysPerWeek ?? data.usersLogging5DaysPerWeek ?? 0;
+        const bmiTrend = data.BMITrend ?? data.bmiTrend ?? [];
+        const diseaseTrend = data.DiseaseTrend ?? data.diseaseTrend ?? [];
+        const userLevels = data.UserLevels ?? data.userLevels ?? [];
+
         // Card 1: Chỉ số trung bình
         const averageCard = document.querySelector('#panel-health-analytics .analytics-card:nth-child(1)');
         if (averageCard) {
             const averageItems = averageCard.querySelectorAll('.metric-item .metric-value-small');
-            if (averageItems.length >= 1) averageItems[0].textContent = (data.averageBMI ?? 0).toFixed(1);
-            if (averageItems.length >= 2) averageItems[1].textContent = `${(data.averageHeight ?? 0).toFixed(1)} cm`;
-            if (averageItems.length >= 3) averageItems[2].textContent = `${(data.averageWeight ?? 0).toFixed(1)} kg`;
-            if (averageItems.length >= 4) averageItems[3].textContent = `${(data.averageWaterIntake ?? 0).toFixed(1)} lít`;
+            if (averageItems.length >= 1) averageItems[0].textContent = averageBMI.toFixed(1);
+            if (averageItems.length >= 2) averageItems[1].textContent = `${averageHeight.toFixed(1)} cm`;
+            if (averageItems.length >= 3) averageItems[2].textContent = `${averageWeight.toFixed(1)} kg`;
+            if (averageItems.length >= 4) averageItems[3].textContent = `${averageWaterIntake.toFixed(1)} lít`;
         }
 
         // Card 2: Phân bố BMI
-        const bmiDist = data.bmiDistribution ?? {};
         const bmiCard = document.querySelector('#panel-health-analytics .analytics-card:nth-child(2)');
         if (bmiCard) {
             const bmiItems = bmiCard.querySelectorAll('.metric-item .metric-value-small');
-            if (bmiItems.length >= 1) bmiItems[0].textContent = `${(bmiDist.normal ?? 0).toFixed(1)}%`;
-            if (bmiItems.length >= 2) bmiItems[1].textContent = `${(bmiDist.overweight ?? 0).toFixed(1)}%`;
-            if (bmiItems.length >= 3) bmiItems[2].textContent = `${(bmiDist.obese ?? 0).toFixed(1)}%`;
-            if (bmiItems.length >= 4) bmiItems[3].textContent = `${(bmiDist.underweight ?? 0).toFixed(1)}%`;
+            if (bmiItems.length >= 1) bmiItems[0].textContent = `${(bmiDistribution.Normal ?? bmiDistribution.normal ?? 0).toFixed(1)}%`;
+            if (bmiItems.length >= 2) bmiItems[1].textContent = `${(bmiDistribution.Overweight ?? bmiDistribution.overweight ?? 0).toFixed(1)}%`;
+            if (bmiItems.length >= 3) bmiItems[2].textContent = `${(bmiDistribution.Obese ?? bmiDistribution.obese ?? 0).toFixed(1)}%`;
+            if (bmiItems.length >= 4) bmiItems[3].textContent = `${(bmiDistribution.Underweight ?? bmiDistribution.underweight ?? 0).toFixed(1)}%`;
         }
 
         // Card 3: Tỷ lệ người dùng có bệnh nền
-        updateTextContent('#panel-health-analytics .analytics-card:nth-child(3) .metric-value', `${(data.healthLogRate ?? 0).toFixed(1)}%`);
-        updateTextContent('#panel-health-analytics .analytics-card:nth-child(3) .metric-details span:first-child strong', formatNumber(data.usersLogging5DaysPerWeek ?? 0));
+        updateTextContent('#panel-health-analytics .analytics-card:nth-child(3) .metric-value', `${healthLogRate.toFixed(1)}%`);
+        updateTextContent('#panel-health-analytics .analytics-card:nth-child(3) .metric-details span:first-child strong', formatNumber(usersLogging5DaysPerWeek));
 
-        renderBMITrendChart(data.bmiTrend);
-        renderDiseaseTrendChart(data.diseaseTrend);
-        renderUserLevelChart(data.userLevels);
+        renderBMITrendChart(bmiTrend);
+        renderDiseaseTrendChart(diseaseTrend);
+        renderUserLevelChart(userLevels);
     }
 
     // Helper function to calculate nice Y-axis ticks (max 5 ticks)
@@ -1083,8 +1164,15 @@
 
         if (!data || data.length === 0) return;
 
-        const labels = data.map(d => new Date(d.date).toLocaleDateString('vi-VN'));
-        const bmis = data.map(d => parseFloat(d.averageBMI.toFixed(1)));
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const labels = data.map(d => {
+            const dateStr = d.Date ?? d.date;
+            return dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
+        });
+        const bmis = data.map(d => {
+            const avgBMI = d.AverageBMI ?? d.averageBMI ?? 0;
+            return parseFloat(avgBMI.toFixed(1));
+        });
         
         // Calculate nice Y-axis ticks
         const minBMI = Math.min(...bmis);
@@ -1213,8 +1301,12 @@
                 return;
         }
 
-        const labels = data.map(d => new Date(d.date).toLocaleDateString('vi-VN'));
-        const userCounts = data.map(d => d.userCount);
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const labels = data.map(d => {
+            const dateStr = d.Date ?? d.date;
+            return dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
+        });
+        const userCounts = data.map(d => d.UserCount ?? d.userCount ?? 0);
         
         // Calculate nice Y-axis ticks
         const minCount = Math.min(...userCounts);
@@ -1363,8 +1455,9 @@
                 return;
             }
 
-        const labels = data.map(d => d.level || 'Không xác định');
-        const userCounts = data.map(d => d.userCount);
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const labels = data.map(d => d.Level ?? d.level ?? 'Không xác định');
+        const userCounts = data.map(d => d.UserCount ?? d.userCount ?? 0);
 
         // Color scheme for different levels
         const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -1452,28 +1545,40 @@
     function renderGoalsAnalytics(data) {
         if (!data) return;
 
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const totalGoals = data.TotalGoals ?? data.totalGoals ?? 0;
+        const completedGoals = data.CompletedGoals ?? data.completedGoals ?? 0;
+        const inProgressGoals = data.InProgressGoals ?? data.inProgressGoals ?? 0;
+        const cancelledGoals = data.CancelledGoals ?? data.cancelledGoals ?? 0;
+        const completedPercent = data.CompletedPercent ?? data.completedPercent ?? 0;
+        const inProgressPercent = data.InProgressPercent ?? data.inProgressPercent ?? 0;
+        const cancelledPercent = data.CancelledPercent ?? data.cancelledPercent ?? 0;
+        const averageCompletionDays = data.AverageCompletionDays ?? data.averageCompletionDays ?? 0;
+        const goalTypeDistribution = data.GoalTypeDistribution ?? data.goalTypeDistribution ?? [];
+        const topGoalTypes = data.TopGoalTypes ?? data.topGoalTypes ?? [];
+
         // Card 1: Tổng mục tiêu
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(data.totalGoals ?? 0));
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:first-child strong', formatNumber(data.completedGoals ?? 0));
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(2) strong', formatNumber(data.inProgressGoals ?? 0));
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:last-child strong', formatNumber(data.cancelledGoals ?? 0));
+        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(totalGoals));
+        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:first-child strong', formatNumber(completedGoals));
+        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(2) strong', formatNumber(inProgressGoals));
+        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:last-child strong', formatNumber(cancelledGoals));
 
         // Card 2: Phân bố mục tiêu theo trạng thái
         const statusCard = document.querySelector('#panel-goals-analytics .analytics-card:nth-child(2)');
         if (statusCard) {
             const statusItems = statusCard.querySelectorAll('.metric-item .metric-value-small');
-            if (statusItems.length >= 1) statusItems[0].textContent = `${(data.completedPercent ?? 0).toFixed(1)}%`;
-            if (statusItems.length >= 2) statusItems[1].textContent = `${(data.inProgressPercent ?? 0).toFixed(1)}%`;
-            if (statusItems.length >= 3) statusItems[2].textContent = `${(data.cancelledPercent ?? 0).toFixed(1)}%`;
+            if (statusItems.length >= 1) statusItems[0].textContent = `${completedPercent.toFixed(1)}%`;
+            if (statusItems.length >= 2) statusItems[1].textContent = `${inProgressPercent.toFixed(1)}%`;
+            if (statusItems.length >= 3) statusItems[2].textContent = `${cancelledPercent.toFixed(1)}%`;
         }
 
         // Card 3: Thời gian hoàn thành TB
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(3) .metric-value', `${Math.round(data.averageCompletionDays ?? 0)} ngày`);
+        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(3) .metric-value', `${Math.round(averageCompletionDays)} ngày`);
 
-        renderGoalsTypeChart(data.goalTypeDistribution || []);
+        renderGoalsTypeChart(goalTypeDistribution);
         // Load workout type distribution data for the chart
         loadWorkoutTypeDistribution();
-        renderTopGoalTypes(data.topGoalTypes || []);
+        renderTopGoalTypes(topGoalTypes);
     }
 
     // Render Goals Type Chart
@@ -1485,8 +1590,14 @@
             charts.goalsTypeChart.destroy();
         }
 
-        const labels = data.map(d => d.goalType);
-        const counts = data.map(d => d.count);
+        // Handle undefined or null
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return;
+        }
+
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const labels = data.map(d => d.GoalType ?? d.goalType ?? '');
+        const counts = data.map(d => d.Count ?? d.count ?? 0);
 
         charts.goalsTypeChart = new Chart(canvas, {
             type: 'pie',
@@ -1534,7 +1645,8 @@
             const data = await response.json();
             
             // Render the chart with typeDistribution data
-            renderWorkoutTypeChart(data.typeDistribution || []);
+            const typeDistribution = data.TypeDistribution ?? data.typeDistribution ?? [];
+            renderWorkoutTypeChart(typeDistribution);
         } catch (error) {
             console.error('Error loading workout type distribution:', error);
             // Render empty chart on error
@@ -1546,14 +1658,26 @@
     function renderTopGoalTypes(types) {
         const container = document.querySelector('#panel-goals-analytics .top-list');
         if (!container) return;
+        
+        // Handle undefined or null
+        if (!types || !Array.isArray(types)) {
+            container.innerHTML = '<div class="empty-state">Không có dữ liệu</div>';
+            return;
+        }
 
-        container.innerHTML = types.map((type, index) => `
+        container.innerHTML = types.map((type, index) => {
+            // Support both PascalCase (from API) and camelCase (fallback)
+            const goalType = type.GoalType ?? type.goalType ?? 'Không xác định';
+            const count = type.Count ?? type.count ?? 0;
+            
+            return `
             <div class="top-item">
                 <span class="rank">${index + 1}</span>
-                <span class="name">${type.goalType}</span>
-                <span class="stat">${formatNumber(type.count)} mục tiêu</span>
+                <span class="name">${goalType}</span>
+                <span class="stat">${formatNumber(count)} mục tiêu</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
 
@@ -1566,8 +1690,14 @@
             charts.workoutTypeChart.destroy();
         }
 
-        const labels = data.map(d => d.type);
-        const counts = data.map(d => d.count);
+        // Handle undefined or null
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return;
+        }
+
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const labels = data.map(d => d.Type ?? d.type ?? '');
+        const counts = data.map(d => d.Count ?? d.count ?? 0);
 
         charts.workoutTypeChart = new Chart(canvas, {
             type: 'doughnut',
@@ -1595,21 +1725,25 @@
     function renderNutritionAnalytics(data) {
         if (!data) return;
 
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const activePlans = data.ActivePlans ?? data.activePlans ?? 0;
+        const averageCaloriesPerDay = data.AverageCaloriesPerDay ?? data.averageCaloriesPerDay ?? 0;
+        const macroDistribution = data.MacroDistribution ?? data.macroDistribution ?? {};
+        
         // Debug: log macro distribution data
         console.log('Nutrition Analytics Data:', data);
-        console.log('Macro Distribution:', data.macroDistribution);
+        console.log('Macro Distribution:', macroDistribution);
 
-        updateTextContent('#panel-nutrition-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(data.activePlans ?? 0));
-        updateTextContent('#panel-nutrition-analytics .analytics-card:nth-child(2) .metric-value', Math.round(data.averageCaloriesPerDay ?? 0));
+        updateTextContent('#panel-nutrition-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(activePlans));
+        updateTextContent('#panel-nutrition-analytics .analytics-card:nth-child(2) .metric-value', Math.round(averageCaloriesPerDay));
         
         // Update macro distribution with proper fallback (display as average grams, not percentage)
-        const macro = data.macroDistribution || {};
-        const protein = macro.Protein ?? macro.protein ?? 0;
-        const carbs = macro.Carbs ?? macro.carbs ?? 0;
-        const fat = macro.Fat ?? macro.fat ?? 0;
+        const protein = macroDistribution.Protein ?? macroDistribution.protein ?? 0;
+        const carbs = macroDistribution.Carbs ?? macroDistribution.carbs ?? 0;
+        const fat = macroDistribution.Fat ?? macroDistribution.fat ?? 0;
         
         console.log('Macro values:', { protein, carbs, fat });
-        console.log('Full macro object:', macro);
+        console.log('Full macro object:', macroDistribution);
         
         // Display as average grams (always show value, even if 0)
         const proteinText = protein > 0 ? `${protein.toFixed(1)}g` : '0g';
@@ -1663,8 +1797,9 @@
             console.error('Macro card not found!');
         }
 
-        renderTop3FavoriteFoodsChart(data.top3FavoriteFoods || []);
-        renderNutritionMacroChart(data.macroDistribution);
+        const top3FavoriteFoods = data.Top3FavoriteFoods ?? data.top3FavoriteFoods ?? [];
+        renderTop3FavoriteFoodsChart(top3FavoriteFoods);
+        renderNutritionMacroChart(macroDistribution);
     }
 
     // Render Top Foods by Macro Nutrients Chart (bar chart)
@@ -1708,21 +1843,21 @@
         }
 
         // Data contains: [Top Protein Food, Top Carbs Food, Top Fat Food]
-        // Handle both camelCase and PascalCase
-        const proteinFood = data[0] || {};
-        const carbsFood = data[1] || {};
-        const fatFood = data[2] || {};
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const proteinFood = data[0] ?? {};
+        const carbsFood = data[1] ?? {};
+        const fatFood = data[2] ?? {};
 
         const labels = [
-            proteinFood.foodName || proteinFood.FoodName || 'Giàu đạm nhất',
-            carbsFood.foodName || carbsFood.FoodName || 'Giàu Carbohydrate nhất',
-            fatFood.foodName || fatFood.FoodName || 'Giàu chất béo nhất'
+            proteinFood.FoodName ?? proteinFood.foodName ?? 'Giàu đạm nhất',
+            carbsFood.FoodName ?? carbsFood.foodName ?? 'Giàu Carbohydrate nhất',
+            fatFood.FoodName ?? fatFood.foodName ?? 'Giàu chất béo nhất'
         ];
         
         const values = [
-            proteinFood.logCount || proteinFood.LogCount || 0,
-            carbsFood.logCount || carbsFood.LogCount || 0,
-            fatFood.logCount || fatFood.LogCount || 0
+            proteinFood.LogCount ?? proteinFood.logCount ?? 0,
+            carbsFood.LogCount ?? carbsFood.logCount ?? 0,
+            fatFood.LogCount ?? fatFood.logCount ?? 0
         ];
 
         console.log('Top Foods by Macro Nutrients:', { labels, values, rawData: data });
@@ -1889,16 +2024,24 @@
     function renderFinanceAnalytics(data) {
         if (!data) return;
 
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const totalTransactions = data.TotalTransactions ?? data.totalTransactions ?? 0;
+        const successfulTransactions = data.SuccessfulTransactions ?? data.successfulTransactions ?? 0;
+        const failedTransactions = data.FailedTransactions ?? data.failedTransactions ?? 0;
+        const averageRevenuePerPT = data.AverageRevenuePerPT ?? data.averageRevenuePerPT ?? 0;
+        const paymentMethodDistribution = data.PaymentMethodDistribution ?? data.paymentMethodDistribution ?? [];
+        const revenueTrend = data.RevenueTrend ?? data.revenueTrend ?? [];
+
         // Card 1: Tổng giao dịch
-        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(data.totalTransactions));
-        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(1) strong', formatNumber(data.successfulTransactions));
-        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(2) strong', formatNumber(data.failedTransactions));
+        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(totalTransactions));
+        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(1) strong', formatNumber(successfulTransactions));
+        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(2) strong', formatNumber(failedTransactions));
 
         // Card 2: TB doanh thu/PT
-        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(2) .metric-value', formatNumber(Math.round(data.averageRevenuePerPT)));
+        updateTextContent('#panel-finance-analytics .analytics-card:nth-child(2) .metric-value', formatNumber(Math.round(averageRevenuePerPT)));
 
-        renderPaymentMethodChart(data.paymentMethodDistribution);
-        renderRevenueTrendChart(data.revenueTrend);
+        renderPaymentMethodChart(paymentMethodDistribution);
+        renderRevenueTrendChart(revenueTrend);
     }
 
     // Render Payment Method Chart
@@ -1910,8 +2053,13 @@
             charts.paymentMethodChart.destroy();
         }
 
-        const labels = data.map(d => d.method);
-        const amounts = data.map(d => d.amount);
+        // Handle undefined or null
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return;
+        }
+
+        const labels = data.map(d => d.Method ?? d.method ?? '');
+        const amounts = data.map(d => d.Amount ?? d.amount ?? 0);
 
         charts.paymentMethodChart = new Chart(canvas, {
             type: 'pie',
@@ -1963,13 +2111,18 @@
             return;
         }
 
-        // Handle both camelCase and PascalCase
+        // Handle undefined or null
+        if (!data || !Array.isArray(data)) {
+            return;
+        }
+        
+        // Support both PascalCase (from API) and camelCase (fallback)
         const labels = data.map(d => {
-            const dateStr = d.date || d.Date;
-            return new Date(dateStr).toLocaleDateString('vi-VN');
+            const dateStr = d.Date ?? d.date;
+            return dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
         });
-        const revenues = data.map(d => d.revenue || d.Revenue || 0);
-        const profits = data.map(d => d.profit || d.Profit || 0);
+        const revenues = data.map(d => d.Revenue ?? d.revenue ?? 0);
+        const profits = data.map(d => d.Profit ?? d.profit ?? 0);
 
         charts.revenueTrendChart = new Chart(canvas, {
             type: 'bar',
