@@ -19,9 +19,29 @@ public class RequireBasicInfoMiddleware
     {
         // Bỏ qua static files (css, js, images, etc.)
         var path = context.Request.Path.Value?.ToLower() ?? "";
-        if (path.StartsWith("/css/") || path.StartsWith("/js/") || path.StartsWith("/lib/") || 
-            path.StartsWith("/images/") || path.StartsWith("/img/") || path.StartsWith("/assets/") ||
-            path.StartsWith("/favicon") || path.Contains("."))
+        
+        // Kiểm tra các đường dẫn static files phổ biến
+        if (path.StartsWith("/css/") || 
+            path.StartsWith("/js/") || 
+            path.StartsWith("/lib/") || 
+            path.StartsWith("/images/") || 
+            path.StartsWith("/img/") || 
+            path.StartsWith("/assets/") ||
+            path.StartsWith("/asset/") ||
+            path.StartsWith("/favicon") ||
+            path.StartsWith("/_content/") ||
+            path.StartsWith("/_framework/"))
+        {
+            await _next(context);
+            return;
+        }
+        
+        // Bỏ qua các file có extension (css, js, png, jpg, etc.)
+        if (path.Contains(".") && 
+            (path.EndsWith(".css") || path.EndsWith(".js") || path.EndsWith(".png") || 
+             path.EndsWith(".jpg") || path.EndsWith(".jpeg") || path.EndsWith(".gif") || 
+             path.EndsWith(".svg") || path.EndsWith(".ico") || path.EndsWith(".woff") || 
+             path.EndsWith(".woff2") || path.EndsWith(".ttf") || path.EndsWith(".eot")))
         {
             await _next(context);
             return;

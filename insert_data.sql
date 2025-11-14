@@ -191,19 +191,76 @@ SELECT v.KeHoachID, v.TenBaiTap, v.SoHiep, v.SoLan, v.CaloTieuHaoDuKien,
     v.ThoiGianPhut, v.NgayTrongTuan, v.Tuan, v.ThuTuHienThi, v.DanhGiaDoKho, 
     v.DanhGiaHieuQua, v.VideoUrl, v.CanhBao, v.NoiDung, v.HuongDan
 FROM (VALUES
+    -- plan_0001: Kế Hoạch Giảm Cân 12 Tuần (3 buổi/tuần)
     ('plan_0001', N'Yoga - Tư Thế Plank', NULL, NULL, 150.0, 1, 1, 1, 1, 1, 4, NULL, N'Giữ bụng căng', N'Giữ tư thế plank, siết cơ lõi', N'Giữ lưng thẳng, hít thở đều'),
     ('plan_0001', N'Yoga - Tư Thế Chiến Binh', NULL, NULL, 150.0, 2, 2, 1, 2, 2, 4, NULL, N'Giữ thăng bằng', N'Chùng chân trước, tay nâng cao', N'Bước rộng, giữ tư thế'),
-    ('plan_0002', N'Tay Trước - Tập Curls Cơ Bản', 3, 12, 200.0, NULL, 3, 1, 1, 1, 4, NULL, N'Giữ khuỷu tay cố định', N'Tập cơ tay trước với curls', N'Hít vào khi hạ tạ'),
-    ('plan_0003', N'Bụng - Tập Plank', NULL, NULL, 150.0, 1, 4, 1, 1, 1, 5, NULL, N'Giữ bụng căng', N'Giữ tư thế plank', N'Giữ lưng thẳng'),
-    ('plan_0003', N'Bụng - Tập Russian Twist', 3, 20, 150.0, NULL, 5, 1, 2, 2, 4, NULL, N'Không cong lưng', N'Xoay người', N'Giữ tạ nhẹ'),
-    ('plan_0004', N'Chân - Tập Squat', 3, 15, 300.0, NULL, 6, 1, 1, 1, 5, NULL, N'Giữ lưng thẳng', N'Hạ thấp người', N'Hạ thấp mông'),
+    ('plan_0001', N'Yoga - Tư Thế Cây', NULL, NULL, 100.0, 1, 3, 1, 3, 1, 4, NULL, N'Giữ cân bằng', N'Đứng một chân, giữ thăng bằng', N'Tập trung hít thở'),
+    ('plan_0001', N'Yoga - Tư Thế Downward Dog', NULL, NULL, 200.0, 1, 1, 2, 4, 2, 4, NULL, N'Kéo giãn toàn thân', N'Kéo giãn toàn thân, giữ vai và hông thẳng', N'Hít thở sâu'),
+    ('plan_0001', N'Yoga - Tư Thế Triangle', NULL, NULL, 150.0, 1, 2, 2, 5, 2, 4, NULL, N'Kéo giãn bên hông', N'Kéo giãn bên hông, giữ hông ổn định', N'Giữ tư thế ổn định'),
+    
+    -- plan_0002: Kế Hoạch Tăng Cơ Tay 4 Tuần (4 buổi/tuần)
+    ('plan_0002', N'Tay Trước - Tập Curls Cơ Bản', 3, 12, 200.0, NULL, 1, 1, 1, 1, 4, NULL, N'Giữ khuỷu tay cố định', N'Tập cơ tay trước với curls', N'Hít vào khi hạ tạ'),
+    ('plan_0002', N'Tay Sau - Tập Tricep Dips', 3, 12, 200.0, NULL, 1, 1, 2, 1, 4, NULL, N'Giữ lưng thẳng', N'Chống đẩy ngược, tập trung cơ tay sau', N'Không khóa khuỷu tay'),
+    ('plan_0002', N'Tay Trước - Tập Hammer Curls', 4, 10, 250.0, NULL, 3, 1, 3, 2, 4, NULL, N'Giữ khuỷu tay sát thân', N'Nâng tạ với lòng bàn tay hướng vào nhau', N'Siết cơ bắp tay'),
+    ('plan_0002', N'Tay Sau - Tập Pushdown', 4, 12, 250.0, NULL, 3, 1, 4, 2, 4, NULL, N'Giữ khuỷu tay sát thân', N'Đẩy cáp xuống, tập trung cơ tay sau', N'Không đung đưa người'),
+    ('plan_0002', N'Tay Trước - Tập Preacher Curl', 4, 10, 250.0, NULL, 5, 1, 5, 2, 5, NULL, N'Giữ tay trên ghế', N'Nâng tạ trên ghế preacher', N'Siết bắp tay mạnh'),
+    ('plan_0002', N'Tay Sau - Tập Skull Crusher', 4, 10, 250.0, NULL, 5, 1, 6, 2, 5, NULL, N'Không khóa khuỷu tay', N'Nâng thanh tạ nằm, tập trung cơ tay sau', N'Chuyển động chậm'),
+    
+    -- plan_0003: Kế Hoạch Tập Cơ Bụng 8 Tuần (3 buổi/tuần)
+    ('plan_0003', N'Bụng - Tập Plank', NULL, NULL, 150.0, 1, 1, 1, 1, 1, 5, NULL, N'Giữ bụng căng', N'Giữ tư thế plank', N'Giữ lưng thẳng'),
+    ('plan_0003', N'Bụng - Tập Russian Twist', 3, 20, 150.0, NULL, 1, 1, 2, 2, 4, NULL, N'Không cong lưng', N'Xoay người', N'Giữ tạ nhẹ'),
+    ('plan_0003', N'Bụng - Tập Bicycle Crunch', 3, 20, 200.0, NULL, 3, 1, 3, 2, 4, NULL, N'Siết cơ bụng chéo', N'Đạp xe trên không, siết cơ bụng chéo', N'Chuyển động đều'),
+    ('plan_0003', N'Bụng - Tập Leg Raise', 3, 12, 200.0, NULL, 3, 1, 4, 2, 4, NULL, N'Tập trung cơ bụng dưới', N'Nâng chân trên xà, tập trung cơ bụng dưới', N'Không đung đưa'),
+    ('plan_0003', N'Bụng - Tập Cable Crunch', 4, 12, 200.0, NULL, 5, 1, 5, 2, 5, NULL, N'Kéo cáp xuống', N'Kéo cáp xuống, tập trung cơ bụng trên', N'Siết cơ bụng mạnh'),
+    
+    -- plan_0004: Kế Hoạch Tăng Cơ Chân 12 Tuần (4 buổi/tuần)
+    ('plan_0004', N'Chân - Tập Squat', 3, 15, 300.0, NULL, 1, 1, 1, 1, 5, NULL, N'Giữ lưng thẳng', N'Hạ thấp người', N'Hạ thấp mông'),
+    ('plan_0004', N'Chân - Tập Leg Press', 4, 12, 350.0, NULL, 1, 1, 2, 2, 5, NULL, N'Ép chân trên máy', N'Ép chân trên máy, siết cơ chân và đùi', N'Không khóa đầu gối'),
+    ('plan_0004', N'Chân - Tập Calf Raise', 3, 15, 200.0, NULL, 3, 1, 3, 1, 4, NULL, N'Nâng gót chân', N'Nâng gót chân, tập trung cơ bắp chân', N'Giữ thăng bằng'),
+    ('plan_0004', N'Chân - Tập Leg Curl', 4, 12, 300.0, NULL, 3, 1, 4, 2, 5, NULL, N'Cuốn chân trên máy', N'Cuốn chân trên máy, siết cơ chân sau', N'Chuyển động chậm'),
+    ('plan_0004', N'Chân - Tập Step Up', 3, 12, 300.0, NULL, 5, 1, 5, 1, 4, NULL, N'Bước lên hộp', N'Bước lên hộp, siết cơ chân và đùi', N'Giữ lưng thẳng'),
+    ('plan_0004', N'Đùi - Tập Lunges', 3, 12, 250.0, NULL, 5, 1, 6, 2, 5, NULL, N'Giữ đầu gối không vượt mũi chân', N'Chùng chân trước, giữ lưng thẳng', N'Bước dài'),
+    
+    -- plan_0005: Kế Hoạch Tăng Cơ Đùi 4 Tuần (5 buổi/tuần)
     ('plan_0005', N'Đùi - Tập Lunges', 3, 12, 250.0, NULL, 1, 1, 1, 1, 5, NULL, N'Giữ đầu gối không vượt mũi chân', N'Chùng chân trước', N'Bước dài'),
-    ('plan_0006', N'Mông - Tập Glute Bridge', 3, 15, 200.0, NULL, 2, 1, 1, 1, 4, NULL, N'Giữ lưng thẳng', N'Nâng hông', N'Siết cơ mông'),
-    ('plan_0007', N'Ngực - Tập Push Ups', 3, 15, 250.0, NULL, 3, 1, 1, 1, 4, NULL, N'Không khóa khuỷu tay', N'Hít đất', N'Siết cơ ngực'),
-    ('plan_0007', N'Ngực - Tập Bench Press', 4, 10, 350.0, NULL, 4, 1, 2, 2, 5, NULL, N'Không khóa khuỷu tay', N'Đẩy thanh tạ nằm', N'Hít vào khi hạ tạ'),
-    ('plan_0008', N'Vai - Tập Shoulder Press', 3, 12, 250.0, NULL, 5, 1, 1, 1, 5, NULL, N'Giữ lưng thẳng', N'Đẩy tạ tay lên', N'Giữ khuỷu ổn định'),
-    ('plan_0009', N'Lưng - Tập Lat Pulldown', 3, 12, 250.0, NULL, 6, 1, 1, 1, 5, NULL, N'Không kéo quá thấp', N'Kéo cáp xuống', N'Tập trung cơ lưng trên'),
-    ('plan_0010', N'Yoga - Tư Thế Cobra', NULL, NULL, 100.0, 1, 1, 1, 1, 1, 4, NULL, N'Chuyển động chậm', N'Nâng ngực', N'Kéo giãn lưng')
+    ('plan_0005', N'Đùi - Tập Leg Extension', 4, 12, 300.0, NULL, 1, 1, 2, 2, 5, NULL, N'Duỗi chân trên máy', N'Duỗi chân trên máy, tập trung cơ đùi trước', N'Không khóa đầu gối'),
+    ('plan_0005', N'Đùi - Tập Goblet Squat', 4, 10, 350.0, NULL, 2, 1, 3, 1, 5, NULL, N'Cầm tạ ấm', N'Cầm tạ ấm, hạ squat, siết cơ đùi', N'Giữ lưng thẳng'),
+    ('plan_0005', N'Đùi - Tập Hack Squat', 4, 10, 350.0, NULL, 3, 1, 4, 1, 5, NULL, N'Ép đùi trên máy', N'Ép đùi trên máy hack squat, giữ lưng thẳng', N'Siết cơ đùi mạnh'),
+    ('plan_0005', N'Chân - Tập Squat', 3, 15, 300.0, NULL, 4, 1, 5, 1, 5, NULL, N'Giữ lưng thẳng', N'Hạ thấp người, tập trung cơ chân', N'Hạ thấp mông'),
+    
+    -- plan_0006: Kế Hoạch Tập Cơ Mông 6 Tuần (3 buổi/tuần)
+    ('plan_0006', N'Mông - Tập Glute Bridge', 3, 15, 200.0, NULL, 1, 1, 1, 1, 4, NULL, N'Giữ lưng thẳng', N'Nâng hông', N'Siết cơ mông'),
+    ('plan_0006', N'Mông - Tập Hip Thrust', 4, 10, 300.0, NULL, 1, 1, 2, 2, 5, NULL, N'Nâng thanh tạ', N'Nâng thanh tạ, siết cơ mông mạnh', N'Giữ lưng thẳng'),
+    ('plan_0006', N'Mông - Tập Romanian Deadlift', 4, 10, 300.0, NULL, 3, 1, 3, 1, 5, NULL, N'Nâng thanh tạ', N'Nâng thanh tạ, siết cơ mông và đùi sau', N'Giữ lưng thẳng'),
+    ('plan_0006', N'Mông - Tập Cable Kickback', 4, 12, 300.0, NULL, 3, 1, 4, 2, 5, NULL, N'Đá chân với cáp', N'Đá chân với cáp, siết cơ mông', N'Giữ thăng bằng'),
+    ('plan_0006', N'Chân - Tập Squat', 3, 15, 300.0, NULL, 5, 1, 5, 1, 5, NULL, N'Giữ lưng thẳng', N'Hạ thấp người, siết cơ mông', N'Hạ thấp mông'),
+    
+    -- plan_0007: Kế Hoạch Tăng Cơ Ngực 12 Tuần (5 buổi/tuần)
+    ('plan_0007', N'Ngực - Tập Push Ups', 3, 15, 250.0, NULL, 1, 1, 1, 1, 4, NULL, N'Không khóa khuỷu tay', N'Hít đất', N'Siết cơ ngực'),
+    ('plan_0007', N'Ngực - Tập Bench Press', 4, 10, 350.0, NULL, 1, 1, 2, 2, 5, NULL, N'Không khóa khuỷu tay', N'Đẩy thanh tạ nằm', N'Hít vào khi hạ tạ'),
+    ('plan_0007', N'Ngực - Tập Fly Machine', 4, 12, 300.0, NULL, 2, 1, 3, 1, 5, NULL, N'Ép ngực trên máy', N'Ép ngực trên máy, siết cơ ngực giữa', N'Chuyển động chậm'),
+    ('plan_0007', N'Ngực - Tập Incline Press', 4, 10, 350.0, NULL, 3, 1, 4, 1, 5, NULL, N'Đẩy thanh tạ trên ghế nghiêng', N'Đẩy thanh tạ trên ghế nghiêng, siết ngực trên', N'Giữ lưng thẳng'),
+    ('plan_0007', N'Ngực - Tập Cable Crossover', 4, 12, 350.0, NULL, 4, 1, 5, 1, 5, NULL, N'Kéo cáp chéo', N'Kéo cáp chéo, siết cơ ngực giữa', N'Siết cơ ngực mạnh'),
+    
+    -- plan_0008: Kế Hoạch Tăng Cơ Vai 8 Tuần (4 buổi/tuần)
+    ('plan_0008', N'Vai - Tập Shoulder Press', 3, 12, 250.0, NULL, 1, 1, 1, 1, 5, NULL, N'Giữ lưng thẳng', N'Đẩy tạ tay lên', N'Giữ khuỷu ổn định'),
+    ('plan_0008', N'Vai - Tập Lateral Raise', 4, 12, 200.0, NULL, 1, 1, 2, 2, 4, NULL, N'Nâng tạ ngang vai', N'Nâng tạ ngang vai, siết cơ vai bên', N'Chuyển động chậm'),
+    ('plan_0008', N'Vai - Tập Front Raise', 3, 12, 200.0, NULL, 3, 1, 3, 1, 4, NULL, N'Nâng tạ trước', N'Nâng tạ trước, siết cơ vai trước', N'Giữ lưng thẳng'),
+    ('plan_0008', N'Vai - Tập Rear Delt Fly', 4, 12, 250.0, NULL, 3, 1, 4, 2, 5, NULL, N'Nâng tạ hoặc cáp', N'Nâng tạ hoặc cáp, siết cơ vai sau', N'Giữ lưng thẳng'),
+    ('plan_0008', N'Vai - Tập Upright Row', 4, 12, 250.0, NULL, 5, 1, 5, 1, 5, NULL, N'Kéo thanh tạ đứng', N'Kéo thanh tạ đứng, siết cơ vai và lưng trên', N'Giữ khuỷu cao'),
+    
+    -- plan_0009: Kế Hoạch Tăng Cơ Xô 12 Tuần (4 buổi/tuần)
+    ('plan_0009', N'Lưng - Tập Lat Pulldown', 3, 12, 250.0, NULL, 1, 1, 1, 1, 5, NULL, N'Không kéo quá thấp', N'Kéo cáp xuống', N'Tập trung cơ lưng trên'),
+    ('plan_0009', N'Lưng - Tập Pull Ups', 3, 10, 300.0, NULL, 1, 1, 2, 2, 5, NULL, N'Hít xà đơn', N'Hít xà đơn, tập trung cơ lưng trên', N'Không đung đưa'),
+    ('plan_0009', N'Lưng - Tập Bent Over Row', 4, 10, 300.0, NULL, 3, 1, 3, 1, 5, NULL, N'Kéo thanh tạ', N'Kéo thanh tạ, siết cơ lưng giữa', N'Giữ lưng thẳng'),
+    ('plan_0009', N'Lưng - Tập Seated Row', 4, 12, 300.0, NULL, 3, 1, 4, 2, 5, NULL, N'Kéo cáp ngồi', N'Kéo cáp ngồi, siết cơ lưng giữa', N'Giữ lưng thẳng'),
+    ('plan_0009', N'Lưng - Tập Deadlift', 4, 8, 400.0, NULL, 5, 1, 5, 1, 5, NULL, N'Nâng thanh tạ', N'Nâng thanh tạ, giữ lưng thẳng, siết lưng dưới', N'Chuyển động chậm'),
+    
+    -- plan_0010: Kế Hoạch Tăng Cơ Cổ 4 Tuần (3 buổi/tuần)
+    ('plan_0010', N'Yoga - Tư Thế Cobra', NULL, NULL, 100.0, 1, 1, 1, 1, 1, 4, NULL, N'Chuyển động chậm', N'Nâng ngực', N'Kéo giãn lưng'),
+    ('plan_0010', N'Yoga - Tư Thế Wheel', NULL, NULL, 200.0, 1, 2, 1, 2, 2, 5, NULL, N'Nâng lưng cong', N'Nâng lưng cong, kéo giãn ngực và lưng', N'Hít thở sâu'),
+    ('plan_0010', N'Yoga - Tư Thế Headstand', NULL, NULL, 250.0, 1, 3, 1, 3, 3, 5, NULL, N'Đảo ngược cơ thể', N'Đảo ngược cơ thể, giữ cân bằng', N'Hít thở đều'),
+    ('plan_0010', N'Yoga - Tư Thế Lotus', NULL, NULL, 100.0, 1, 1, 2, 4, 1, 4, NULL, N'Ngồi thiền', N'Ngồi thiền, giữ lưng thẳng', N'Tập trung hít thở')
 ) v(KeHoachID, TenBaiTap, SoHiep, SoLan, CaloTieuHaoDuKien, ThoiGianPhut, NgayTrongTuan, Tuan, ThuTuHienThi, DanhGiaDoKho, DanhGiaHieuQua, VideoUrl, CanhBao, NoiDung, HuongDan)
 WHERE NOT EXISTS (SELECT 1 FROM ChiTietKeHoachTapLuyen c WHERE c.KeHoachID = v.KeHoachID AND c.ThuTuHienThi = v.ThuTuHienThi);
 

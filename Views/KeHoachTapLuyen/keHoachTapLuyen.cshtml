@@ -53,6 +53,10 @@
         <div class="card">
             <div class="card-title">
                 <h3><span class="title-icon" aria-hidden="true">📚</span> Danh Sách Các Bài Tập</h3>
+                <div class="card-title-actions">
+                    <button class="btn ghost small" id="btnViewAllExercises">Xem tất cả bài tập</button>
+                    <button class="btn primary small" id="btnAddNewExercise">Thêm mới bài tập</button>
+                </div>
             </div>
             <div id="exercise-list" class="exercise-list"></div>
             <div class="actions">
@@ -95,6 +99,17 @@
                     <h4>Lời Khuyên Dành Cho Bạn</h4>
                     <p>Giữ nhịp thở ổn định và tăng khối lượng từ từ.</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section Nhật Ký Hoàn Thành Bài Tập -->
+        <div class="card">
+            <div class="card-title">
+                <h3><span class="title-icon" aria-hidden="true">📝</span> Nhật Ký Hoàn Thành Bài Tập</h3>
+                <button class="btn ghost small" id="btnRefreshJournal">Làm mới</button>
+            </div>
+            <div id="exercise-journal" class="exercise-journal">
+                <div style="text-align: center; padding: 2rem; color: var(--muted);">Đang tải nhật ký...</div>
             </div>
         </div>
 

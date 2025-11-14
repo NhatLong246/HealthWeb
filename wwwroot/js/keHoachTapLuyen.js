@@ -2,6 +2,7 @@
 let currentPlan = null;
 let exercises = [];
 let currentWeek = 1; // Tuần hiện tại
+let showingAllExercises = false; // Flag để biết đang hiển thị tất cả hay theo ngày
 
 // Tham chiếu DOM
 const listContainer = document.getElementById("exercise-list");
@@ -150,6 +151,9 @@ function renderWeek(now = new Date()) {
       // Highlight ngày được chọn
       weekGrid.querySelectorAll(".day").forEach(d => d.classList.remove("selected"));
       node.classList.add("selected");
+      // Reset nút "Xem tất cả"
+      if (btnViewAllExercises) btnViewAllExercises.classList.remove('active');
+      if (btnAddNewExercise) btnAddNewExercise.classList.remove('active');
     });
     weekGrid.appendChild(node);
   }
@@ -473,7 +477,7 @@ btnReset.addEventListener("click", () => {
 });
 
 // Ghi nhận lần tập khi bấm Xong
-btnDone?.addEventListener("click", () => {
+btnDone?.addEventListener("click", async () => {
   if (rafId) {
     cancelAnimationFrame(rafId);
     rafId = null;
@@ -482,7 +486,17 @@ btnDone?.addEventListener("click", () => {
   }
   const seconds = Math.floor(elapsed / 1000);
   if (seconds <= 0 || !currentExerciseId) return;
+  
+  // Lưu vào localStorage (giữ nguyên logic cũ)
   saveSession(currentExerciseId, seconds);
+  
+  // Tìm bài tập hiện tại
+  const currentExercise = exercises.find(e => e.chiTietId === currentExerciseId);
+  if (!currentExercise) return;
+  
+  // Hiển thị modal để nhập thông tin hoàn thành
+  showCompleteExerciseModal(currentExercise, seconds);
+  
   startTime = 0; elapsed = 0; timerEl.textContent = "00:00:00";
   renderSessions(currentExerciseId);
   timerWrap?.classList.remove('running');
@@ -547,16 +561,30 @@ async function loadPlanData() {
     
     if (data.success && data.keHoach) {
       currentPlan = data.keHoach;
-      exercises = data.keHoach.chiTietBaiTap || [];
+      // Lưu tất cả bài tập vào biến tạm
+      const allExercises = data.keHoach.chiTietBaiTap || [];
+      
+      console.log('Loaded plan data - Total exercises:', allExercises.length);
+      console.log('Exercises:', allExercises);
       
       // Cập nhật thông tin chi tiết
       updatePlanDetails();
       
-      // Render danh sách bài tập
+      // Hiển thị tất cả bài tập mặc định (không filter theo ngày)
+      exercises = allExercises;
       renderList();
       
-      // Load bài tập cho tuần hiện tại
-      loadExercisesForCurrentWeek();
+      // Highlight ngày hôm nay trong lịch nhưng không filter bài tập
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const ngayTrongTuan = dayOfWeek === 0 ? 7 : dayOfWeek;
+      if (weekGrid) {
+        const days = weekGrid.querySelectorAll('.day');
+        if (days[ngayTrongTuan - 1]) {
+          days.forEach(d => d.classList.remove('selected'));
+          days[ngayTrongTuan - 1].classList.add('selected');
+        }
+      }
     } else {
       // Không có kế hoạch
       if (listContainer) {
@@ -674,13 +702,19 @@ async function loadExercisesForCurrentWeek() {
 // Load bài tập cho ngày cụ thể
 async function loadExercisesForDay(tuan, ngayTrongTuan) {
   try {
+    showingAllExercises = false;
+    console.log(`Loading exercises for Tuan: ${tuan}, NgayTrongTuan: ${ngayTrongTuan}`);
     const response = await fetch(`/KeHoachTapLuyen/GetExercisesByDay?tuan=${tuan}&ngayTrongTuan=${ngayTrongTuan}`);
     const data = await response.json();
     
+    console.log('GetExercisesByDay response:', data);
+    
     if (data.success && data.exercises) {
       exercises = data.exercises;
+      console.log(`Loaded ${exercises.length} exercises for day`);
       renderList();
     } else {
+      console.warn('No exercises found for this day');
       exercises = [];
       renderList();
     }
@@ -691,12 +725,112 @@ async function loadExercisesForDay(tuan, ngayTrongTuan) {
   }
 }
 
-// Khởi tạo
+// Load tất cả bài tập trong kế hoạch
+async function loadAllExercises() {
+  try {
+    showingAllExercises = true;
+    console.log('Loading all exercises...');
+    const response = await fetch('/KeHoachTapLuyen/GetAllExercises');
+    const data = await response.json();
+    
+    console.log('GetAllExercises response:', data);
+    
+    if (data.success && data.exercises) {
+      exercises = data.exercises;
+      console.log(`Loaded ${exercises.length} total exercises`);
+      renderList();
+    } else {
+      console.warn('No exercises found');
+      exercises = [];
+      renderList();
+    }
+  } catch (error) {
+    console.error('Error loading all exercises:', error);
+    exercises = [];
+    renderList();
+  }
+}
+
+// Xử lý nút "Xem tất cả bài tập"
+const btnViewAllExercises = document.getElementById('btnViewAllExercises');
+if (btnViewAllExercises) {
+  btnViewAllExercises.addEventListener('click', async () => {
+    await loadAllExercises();
+    // Highlight nút
+    btnViewAllExercises.classList.add('active');
+    const btnAddNew = document.getElementById('btnAddNewExercise');
+    if (btnAddNew) btnAddNew.classList.remove('active');
+  });
+}
+
+// Xử lý nút "Thêm mới bài tập"
+const btnAddNewExercise = document.getElementById('btnAddNewExercise');
+if (btnAddNewExercise) {
+  btnAddNewExercise.addEventListener('click', () => {
+    // Chuyển đến trang Mục tiêu với tham số để quay lại
+    const returnUrl = encodeURIComponent(window.location.pathname);
+    window.location.href = `/MucTieu?returnUrl=${returnUrl}&action=addExercise`;
+  });
+}
+
+// Kiểm tra nếu quay lại từ trang MucTieu với thông tin thêm bài tập
 document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const action = urlParams.get('action');
+  const mauTapLuyenId = urlParams.get('mauTapLuyenId');
+  const baiTapIds = urlParams.get('baiTapIds');
+  
+  if (action === 'addExercise' && mauTapLuyenId) {
+    // Thêm bài tập vào kế hoạch
+    addExercisesFromTemplate(parseInt(mauTapLuyenId), baiTapIds ? JSON.parse(decodeURIComponent(baiTapIds)) : null);
+    
+    // Xóa tham số từ URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  
   loadPlanData();
   // init schedule
   if (rangeTabs) switchRange("week");
 });
+
+// Hàm thêm bài tập từ mẫu vào kế hoạch
+async function addExercisesFromTemplate(mauTapLuyenId, baiTapIds) {
+  try {
+    const response = await fetch('/KeHoachTapLuyen/AddExercisesFromTemplate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        mauTapLuyenId: mauTapLuyenId,
+        baiTapIds: baiTapIds
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Reload danh sách bài tập
+      if (showingAllExercises) {
+        await loadAllExercises();
+      } else {
+        // Load lại bài tập cho ngày hiện tại
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const ngayTrongTuan = dayOfWeek === 0 ? 7 : dayOfWeek;
+        await loadExercisesForDay(currentWeek, ngayTrongTuan);
+      }
+      
+      // Hiển thị thông báo thành công
+      alert(data.message || 'Đã thêm bài tập thành công');
+    } else {
+      alert(data.message || 'Có lỗi xảy ra khi thêm bài tập');
+    }
+  } catch (error) {
+    console.error('Error adding exercises:', error);
+    alert('Có lỗi xảy ra khi thêm bài tập');
+  }
+}
 
 // ---------- ANIMATIONS (GSAP) ----------
 window.addEventListener("load", () => {
@@ -741,6 +875,255 @@ document.addEventListener('click', (e)=>{
   btn.style.setProperty('--x', `${e.clientX - rect.left}px`);
   btn.style.setProperty('--y', `${e.clientY - rect.top}px`);
   setTimeout(()=>btn.classList.remove('active'), 400);
+});
+
+// ========== NHẬT KÝ HOÀN THÀNH BÀI TẬP ==========
+
+// Hiển thị modal để nhập thông tin hoàn thành bài tập
+function showCompleteExerciseModal(exercise, seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const displayMinutes = minutes % 60;
+  const displaySeconds = seconds % 60;
+  const timeStr = hours > 0 
+    ? `${hours}:${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`
+    : `${displayMinutes}:${displaySeconds.toString().padStart(2, '0')}`;
+
+  // Tạo modal HTML
+  const modalHTML = `
+    <div id="completeExerciseModal" class="modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+      <div class="modal-content" style="background: var(--bg, #fff); padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin-top: 0;">Hoàn thành bài tập: ${exercise.tenBaiTap}</h3>
+        <form id="completeExerciseForm">
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Thời gian tập (phút)</label>
+            <input type="number" id="thoiLuongThucTe" value="${minutes}" min="0" step="1" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px;">
+          </div>
+          ${exercise.soHiep ? `
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Số hiệp thực tế</label>
+            <input type="number" id="soHiepThucTe" value="${exercise.soHiep}" min="0" step="1" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px;">
+          </div>
+          ` : ''}
+          ${exercise.soLan ? `
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Số lần thực tế</label>
+            <input type="number" id="soLanThucTe" value="${exercise.soLan}" min="0" step="1" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px;">
+          </div>
+          ` : ''}
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Calo tiêu hao (ước tính)</label>
+            <input type="number" id="caloTieuHao" value="${exercise.caloTieuHaoDuKien || 0}" min="0" step="0.1" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px;">
+          </div>
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Đánh giá bài tập (1-5)</label>
+            <select id="danhGiaBaiTap" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px;">
+              <option value="5">5 - Xuất sắc</option>
+              <option value="4" selected>4 - Tốt</option>
+              <option value="3">3 - Bình thường</option>
+              <option value="2">2 - Khó</option>
+              <option value="1">1 - Rất khó</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom: 1rem;">
+            <label>Ghi chú (tùy chọn)</label>
+            <textarea id="ghiChu" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border, #ddd); border-radius: 4px; resize: vertical;"></textarea>
+          </div>
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn ghost" id="btnCancelComplete" style="flex: 1;">Hủy</button>
+            <button type="submit" class="btn primary" style="flex: 1;">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // Thêm modal vào DOM
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  const modal = document.getElementById('completeExerciseModal');
+  const form = document.getElementById('completeExerciseForm');
+  const btnCancel = document.getElementById('btnCancelComplete');
+
+  // Xử lý submit form
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      chiTietId: exercise.chiTietId,
+      thoiLuongThucTePhut: parseInt(document.getElementById('thoiLuongThucTe').value) || null,
+      soHiepThucTe: exercise.soHiep ? parseInt(document.getElementById('soHiepThucTe').value) || null : null,
+      soLanThucTe: exercise.soLan ? parseInt(document.getElementById('soLanThucTe').value) || null : null,
+      caloTieuHao: parseFloat(document.getElementById('caloTieuHao').value) || null,
+      danhGiaBaiTap: parseInt(document.getElementById('danhGiaBaiTap').value) || null,
+      ghiChu: document.getElementById('ghiChu').value || null
+    };
+
+    const success = await completeExercise(data);
+    if (success) {
+      modal.remove();
+      // Reload nhật ký
+      loadExerciseJournal();
+      // Hiển thị thông báo thành công
+      alert('Đã lưu nhật ký hoàn thành bài tập!');
+    }
+  });
+
+  // Xử lý hủy
+  btnCancel.addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // Đóng khi click bên ngoài
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+// Gọi API để hoàn thành bài tập
+async function completeExercise(data) {
+  try {
+    const response = await fetch('/KeHoachTapLuyen/CompleteExercise', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      return true;
+    } else {
+      alert(result.message || 'Lỗi khi lưu nhật ký');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error completing exercise:', error);
+    alert('Lỗi khi lưu nhật ký');
+    return false;
+  }
+}
+
+// Load nhật ký hoàn thành bài tập
+async function loadExerciseJournal() {
+  const journalContainer = document.getElementById('exercise-journal');
+  if (!journalContainer) return;
+
+  try {
+    journalContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Đang tải nhật ký...</div>';
+    
+    const response = await fetch('/KeHoachTapLuyen/GetExerciseJournal?limit=50');
+    const data = await response.json();
+
+    if (data.success && data.journal) {
+      renderExerciseJournal(data.journal);
+    } else {
+      journalContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Chưa có nhật ký hoàn thành bài tập</div>';
+    }
+  } catch (error) {
+    console.error('Error loading exercise journal:', error);
+    journalContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger, #ef4444);">Lỗi khi tải nhật ký</div>';
+  }
+}
+
+// Render nhật ký hoàn thành bài tập
+function renderExerciseJournal(journal) {
+  const journalContainer = document.getElementById('exercise-journal');
+  if (!journalContainer) return;
+
+  if (journal.length === 0) {
+    journalContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Chưa có nhật ký hoàn thành bài tập</div>';
+    return;
+  }
+
+  // Nhóm theo ngày
+  const groupedByDate = {};
+  journal.forEach(entry => {
+    const date = entry.ngayHoanThanh;
+    if (!groupedByDate[date]) {
+      groupedByDate[date] = [];
+    }
+    groupedByDate[date].push(entry);
+  });
+
+  // Render HTML
+  let html = '<div class="journal-list">';
+  
+  Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a)).forEach(date => {
+    const entries = groupedByDate[date];
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('vi-VN', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    html += `<div class="journal-date-group" style="margin-bottom: 2rem;">`;
+    html += `<h4 style="margin-bottom: 1rem; color: var(--primary, #ea580c);">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</h4>`;
+    
+    entries.forEach(entry => {
+      html += `<div class="journal-entry" style="background: var(--card-bg, #f9fafb); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid var(--primary, #ea580c);">`;
+      html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">`;
+      html += `<strong style="font-size: 1.1rem;">${entry.tenBaiTap}</strong>`;
+      if (entry.danhGiaBaiTap) {
+        const stars = '⭐'.repeat(entry.danhGiaBaiTap);
+        html += `<span style="color: var(--warning, #f59e0b);">${stars}</span>`;
+      }
+      html += `</div>`;
+      
+      html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.9rem; color: var(--muted, #6b7280);">`;
+      if (entry.soHiepThucTe && entry.soLanThucTe) {
+        html += `<div><span style="font-weight: 600;">Hiệp/Lần:</span> ${entry.soHiepThucTe} x ${entry.soLanThucTe}</div>`;
+      }
+      if (entry.thoiLuongThucTePhut) {
+        html += `<div><span style="font-weight: 600;">Thời gian:</span> ${entry.thoiLuongThucTePhut} phút</div>`;
+      }
+      if (entry.caloTieuHao) {
+        html += `<div><span style="font-weight: 600;">Calo:</span> ${entry.caloTieuHao.toFixed(0)} kcal</div>`;
+      }
+      html += `</div>`;
+      
+      if (entry.ghiChu) {
+        html += `<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border, #e5e7eb); font-style: italic; color: var(--muted, #6b7280);">${entry.ghiChu}</div>`;
+      }
+      
+      html += `</div>`;
+    });
+    
+    html += `</div>`;
+  });
+  
+  html += '</div>';
+  journalContainer.innerHTML = html;
+
+  // Animation
+  if (window.gsap) {
+    gsap.from(journalContainer.querySelectorAll('.journal-entry'), {
+      opacity: 0,
+      y: 20,
+      stagger: 0.05,
+      duration: 0.3,
+      ease: 'power2.out'
+    });
+  }
+}
+
+// Event listener cho nút refresh journal
+const btnRefreshJournal = document.getElementById('btnRefreshJournal');
+if (btnRefreshJournal) {
+  btnRefreshJournal.addEventListener('click', () => {
+    loadExerciseJournal();
+  });
+}
+
+// Load nhật ký khi trang được tải
+document.addEventListener('DOMContentLoaded', () => {
+  // Delay một chút để đảm bảo DOM đã sẵn sàng
+  setTimeout(() => {
+    loadExerciseJournal();
+  }, 500);
 });
 
 // remove 3D tilt & parallax (revert to simpler state)

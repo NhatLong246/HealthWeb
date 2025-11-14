@@ -340,7 +340,38 @@ body.light-mode .card:hover {
 .card-title {
     display: flex;
     align-items: center;
-    justify-content: space-between
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.card-title h3 {
+    margin: 0;
+}
+
+.card-title-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.card-title-actions .btn.small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.card-title-actions .btn.active {
+    background: var(--primary);
+    color: #fff;
+}
+
+body.dark-mode .card-title-actions .btn.active {
+    background: #4ade80;
+    color: #0f172a;
+}
+
+body.light-mode .card-title-actions .btn.active {
+    background: #ea580c;
+    color: #fff;
 }
 
 .tabs {
