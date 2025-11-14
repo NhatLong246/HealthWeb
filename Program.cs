@@ -77,12 +77,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Static files phải được xử lý trước tất cả middleware khác
 app.UseStaticFiles();
+
+app.UseHttpsRedirection();
 app.UseRouting();
-
-
-
 
 // ✅ Middleware thứ tự chính xác
 app.UseAuthentication();

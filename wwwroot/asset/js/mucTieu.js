@@ -810,3 +810,54 @@ window.loadYouTubeVideo = function(wrapper) {
     }
 })();
 
+// Xử lý nút "Bắt Đầu" - kiểm tra nếu đang ở chế độ thêm bài tập
+(function(){
+    document.addEventListener('DOMContentLoaded', function(){
+        const startBtn = document.querySelector('.btn.start-orange');
+        if(!startBtn) return;
+        
+        startBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            
+            // Kiểm tra xem có tham số returnUrl và action=addExercise không
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnUrl = urlParams.get('returnUrl');
+            const action = urlParams.get('action');
+            
+            if(returnUrl && action === 'addExercise'){
+                // Chế độ thêm bài tập vào kế hoạch hiện tại
+                const selectedCard = document.querySelector('.exercise-card.selected');
+                if(!selectedCard){
+                    alert('Vui lòng chọn một bài tập để thêm vào kế hoạch');
+                    return;
+                }
+                
+                const mauTapLuyenId = selectedCard.getAttribute('data-mau-tap-luyen-id');
+                if(!mauTapLuyenId){
+                    alert('Không tìm thấy thông tin bài tập');
+                    return;
+                }
+                
+                // Lấy danh sách bài tập được chọn (nếu có checkbox hoặc selection)
+                // Hiện tại sẽ thêm tất cả bài tập trong mẫu
+                const baiTapIds = null; // Có thể mở rộng để cho phép chọn từng bài tập
+                
+                // Chuyển về trang KeHoachTapLuyen với thông tin bài tập
+                const params = new URLSearchParams({
+                    action: 'addExercise',
+                    mauTapLuyenId: mauTapLuyenId
+                });
+                if(baiTapIds && baiTapIds.length > 0){
+                    params.set('baiTapIds', encodeURIComponent(JSON.stringify(baiTapIds)));
+                }
+                
+                window.location.href = decodeURIComponent(returnUrl) + '?' + params.toString();
+            } else {
+                // Logic tạo kế hoạch mới (giữ nguyên logic hiện tại)
+                // TODO: Implement logic tạo kế hoạch mới nếu cần
+                alert('Chức năng tạo kế hoạch mới đang được phát triển');
+            }
+        });
+    });
+})();
+
