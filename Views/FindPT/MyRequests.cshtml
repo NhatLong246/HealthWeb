@@ -1,0 +1,371 @@
+@{
+    ViewData["Title"] = "Yêu cầu của tôi - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/findpt/findpt.css">
+
+<div class="find-pt-container">
+    <div class="find-pt-header">
+        <h1><i class="fas fa-list-alt"></i> Yêu cầu của tôi</h1>
+        <p>Xem và quản lý các yêu cầu tập luyện với PT của bạn</p>
+    </div>
+
+    <div id="requestsList" class="requests-list-container">
+        <div style="text-align: center; padding: 3rem;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #4ade80; margin-bottom: 1rem;"></i>
+            <p>Đang tải danh sách yêu cầu...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .requests-list-container {
+        margin-top: 2rem;
+    }
+
+    .request-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    body.light-mode .request-card {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .request-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .request-pt-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .pt-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #fff;
+        overflow: hidden;
+    }
+
+    .pt-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .pt-details h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.25rem;
+    }
+
+    .pt-details p {
+        margin: 0;
+        opacity: 0.7;
+        font-size: 0.9rem;
+    }
+
+    .request-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-pending {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    .status-confirmed {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+
+    .status-completed {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+    }
+
+    .status-cancelled {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+
+    .request-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-item i {
+        color: #4ade80;
+        width: 20px;
+    }
+
+    .detail-item span {
+        opacity: 0.8;
+    }
+
+    .request-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .btn-action {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-pay {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #fff;
+    }
+
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(78, 222, 128, 0.4);
+    }
+
+    .btn-cancel {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 2px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-cancel:hover {
+        background: rgba(239, 68, 68, 0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        opacity: 0.7;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadMyRequests();
+    });
+
+    async function loadMyRequests() {
+        const container = document.getElementById('requestsList');
+        
+        try {
+            const response = await fetch('/FindPT/MyRequests/Data');
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có yêu cầu nào</h3>
+                        <p>Bạn chưa có yêu cầu tập luyện nào. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            const requests = result.data;
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có yêu cầu nào</h3>
+                        <p>Bạn chưa có yêu cầu tập luyện nào. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = requests.map(request => {
+                const statusClass = `status-${(request.status || 'pending').toLowerCase()}`;
+                const statusText = formatStatus(request.status || 'Pending');
+                const dateTime = new Date(request.dateTime);
+                const formattedDate = dateTime.toLocaleDateString('vi-VN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let actionsHtml = '';
+                
+                // Hiển thị nút thanh toán nếu booking đã được confirm và chưa thanh toán
+                if (request.status === 'Confirmed') {
+                    const bookingId = request.bookingId || '';
+                    if (bookingId) {
+                        const paymentUrl = `/Payment/${encodeURIComponent(bookingId)}`;
+                        console.log('Payment URL:', paymentUrl, 'BookingId:', bookingId);
+                        actionsHtml += `
+                            <a href="${paymentUrl}" class="btn-action btn-pay" 
+                               onclick="event.preventDefault(); window.location.href='${paymentUrl}'; return false;"
+                               style="text-decoration: none; color: inherit;">
+                                <i class="fas fa-credit-card"></i> Thanh toán
+                            </a>
+                        `;
+                    }
+                }
+                
+                // Hiển thị nút hủy nếu có thể hủy
+                if (request.canCancel) {
+                    actionsHtml += `
+                        <button onclick="cancelRequest('${request.bookingId}')" class="btn-action btn-cancel">
+                            <i class="fas fa-times"></i> Hủy yêu cầu
+                        </button>
+                    `;
+                }
+
+                return `
+                    <div class="request-card">
+                        <div class="request-header">
+                            <div class="request-pt-info">
+                                <div class="pt-avatar">
+                                    ${request.ptAvatar && request.ptAvatar !== '/images/default-avatar.png' 
+                                        ? `<img src="${request.ptAvatar}" alt="${request.ptName}">` 
+                                        : `<i class="fas fa-user"></i>`}
+                                </div>
+                                <div class="pt-details">
+                                    <h3>${escapeHtml(request.ptName || 'N/A')}</h3>
+                                    <p>PT ID: ${escapeHtml(request.ptId || 'N/A')}</p>
+                                </div>
+                            </div>
+                            <div class="request-status ${statusClass}">
+                                ${statusText}
+                            </div>
+                        </div>
+                        <div class="request-details">
+                            <div class="detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-dumbbell"></i>
+                                <span>${escapeHtml(request.sessionType || 'N/A')}</span>
+                            </div>
+                        </div>
+                        ${request.notes ? `
+                            <div style="margin-top: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.5); border-radius: 8px;">
+                                <strong>Ghi chú:</strong> ${escapeHtml(request.notes)}
+                            </div>
+                        ` : ''}
+                        ${actionsHtml ? `
+                            <div class="request-actions">
+                                ${actionsHtml}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading requests:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Lỗi khi tải danh sách</h3>
+                    <p>Vui lòng thử lại sau</p>
+                </div>
+            `;
+        }
+    }
+
+    function formatStatus(status) {
+        const statusMap = {
+            'Pending': 'Chờ xác nhận',
+            'Confirmed': 'Đã xác nhận',
+            'Completed': 'Hoàn thành',
+            'Cancelled': 'Đã hủy'
+        };
+        return statusMap[status] || status;
+    }
+
+    async function cancelRequest(bookingId) {
+        if (!confirm('Bạn có chắc muốn hủy yêu cầu này?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/FindPT/CancelRequest/${bookingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Đã hủy yêu cầu thành công');
+                await loadMyRequests();
+            } else {
+                alert(result.message || 'Không thể hủy yêu cầu');
+            }
+        } catch (error) {
+            console.error('Error cancelling request:', error);
+            alert('Có lỗi xảy ra khi hủy yêu cầu');
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getAntiForgeryToken() {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        return token ? token.value : '';
+    }
+</script>
+

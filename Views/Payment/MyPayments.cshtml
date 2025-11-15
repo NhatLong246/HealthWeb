@@ -1,0 +1,559 @@
+@{
+    ViewData["Title"] = "Thanh toán PT - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .payments-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .payments-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .payments-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .payments-header p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+    }
+
+    .payments-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    body.light-mode .stat-card {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon.pending {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    .stat-icon.completed {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+
+    .stat-icon.total {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .payments-list {
+        margin-top: 2rem;
+    }
+
+    .payment-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    body.light-mode .payment-card {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .payment-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .payment-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .payment-pt-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .pt-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #fff;
+        overflow: hidden;
+    }
+
+    .pt-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .pt-details h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.25rem;
+    }
+
+    .pt-details p {
+        margin: 0;
+        opacity: 0.7;
+        font-size: 0.9rem;
+    }
+
+    .payment-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-pending {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    .status-completed {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+
+    .payment-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-item i {
+        color: #4ade80;
+        width: 20px;
+    }
+
+    .payment-amount {
+        text-align: right;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #4ade80;
+        margin: 1rem 0;
+    }
+
+    .payment-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .btn-action {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-pay {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #fff;
+    }
+
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(78, 222, 128, 0.4);
+    }
+
+    .btn-view {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+        border: 2px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-view:hover {
+        background: rgba(59, 130, 246, 0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        opacity: 0.7;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .loading-state i {
+        font-size: 3rem;
+        color: #4ade80;
+        margin-bottom: 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @@keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+</style>
+
+<div class="payments-container">
+    <div class="payments-header">
+        <h1><i class="fas fa-credit-card"></i> Thanh toán PT</h1>
+        <p>Quản lý và thanh toán các buổi tập với huấn luyện viên</p>
+    </div>
+
+    <div class="payments-stats" id="paymentsStats">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Chờ thanh toán</div>
+                    <div class="stat-value" id="pendingCount">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon completed">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Đã thanh toán</div>
+                    <div class="stat-value" id="completedCount">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon total">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Tổng tiền đã thanh toán</div>
+                    <div class="stat-value" id="totalAmount">0 đ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="payments-list" id="paymentsList">
+        <div class="loading-state">
+            <i class="fas fa-spinner"></i>
+            <p>Đang tải danh sách thanh toán...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Kiểm tra nếu có query parameter paymentSuccess
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentSuccess = urlParams.get('paymentSuccess');
+        
+        if (paymentSuccess === 'true') {
+            // Hiển thị thông báo thành công
+            showNotification('Thanh toán thành công!', 'success');
+            
+            // Xóa query parameter để tránh hiển thị lại khi refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        await loadPayments();
+        
+        // Nếu vừa thanh toán thành công, refresh lại sau 2 giây để đảm bảo data được cập nhật
+        if (paymentSuccess === 'true') {
+            setTimeout(async () => {
+                await loadPayments();
+            }, 2000);
+        }
+    });
+    
+    function showNotification(message, type) {
+        // Tạo notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        `;
+        
+        if (type === 'success') {
+            notification.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+            notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+        } else {
+            notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            notification.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+        }
+        
+        document.body.appendChild(notification);
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 5000);
+    }
+
+    async function loadPayments() {
+        const container = document.getElementById('paymentsList');
+        
+        try {
+            const response = await fetch('/Payment/MyPayments/Data');
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có thanh toán nào</h3>
+                        <p>Bạn chưa có booking nào cần thanh toán. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                updateStats([]);
+                return;
+            }
+
+            const bookings = result.data;
+            
+            if (bookings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có thanh toán nào</h3>
+                        <p>Bạn chưa có booking nào cần thanh toán. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                updateStats([]);
+                return;
+            }
+
+            // Update stats
+            updateStats(bookings);
+
+            // Render payments list
+            container.innerHTML = bookings.map(booking => {
+                const statusClass = `status-${(booking.paymentStatus || 'pending').toLowerCase()}`;
+                const statusText = formatPaymentStatus(booking.paymentStatus || 'Pending');
+                const dateTime = new Date(booking.dateTime);
+                const formattedDate = dateTime.toLocaleDateString('vi-VN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const amount = booking.amount || 0;
+                const isPaid = booking.paymentStatus === 'Completed';
+
+                let actionsHtml = '';
+                
+                if (!isPaid) {
+                    actionsHtml = `
+                        <a href="/Payment/${encodeURIComponent(booking.bookingId)}" class="btn-action btn-pay">
+                            <i class="fas fa-credit-card"></i> Thanh toán ngay
+                        </a>
+                    `;
+                } else {
+                    actionsHtml = `
+                        <a href="/Payment/${encodeURIComponent(booking.bookingId)}" class="btn-action btn-view">
+                            <i class="fas fa-eye"></i> Xem chi tiết
+                        </a>
+                    `;
+                }
+
+                return `
+                    <div class="payment-card">
+                        <div class="payment-card-header">
+                            <div class="payment-pt-info">
+                                <div class="pt-avatar">
+                                    ${booking.ptAvatar && booking.ptAvatar !== '/images/default-avatar.png' 
+                                        ? `<img src="${escapeHtml(booking.ptAvatar)}" alt="${escapeHtml(booking.ptName)}">` 
+                                        : `<i class="fas fa-user"></i>`}
+                                </div>
+                                <div class="pt-details">
+                                    <h3>${escapeHtml(booking.ptName || 'N/A')}</h3>
+                                    <p>PT ID: ${escapeHtml(booking.ptId || 'N/A')}</p>
+                                </div>
+                            </div>
+                            <div class="payment-status ${statusClass}">
+                                ${statusText}
+                            </div>
+                        </div>
+                        <div class="payment-details">
+                            <div class="detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-dumbbell"></i>
+                                <span>${escapeHtml(booking.sessionType || 'N/A')}</span>
+                            </div>
+                            ${booking.paymentMethod ? `
+                                <div class="detail-item">
+                                    <i class="fas fa-wallet"></i>
+                                    <span>${escapeHtml(booking.paymentMethod)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="payment-amount">
+                            ${amount.toLocaleString('vi-VN')} đ
+                        </div>
+                        ${booking.notes ? `
+                            <div style="margin-top: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.5); border-radius: 8px;">
+                                <strong>Ghi chú:</strong> ${escapeHtml(booking.notes)}
+                            </div>
+                        ` : ''}
+                        <div class="payment-actions">
+                            ${actionsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading payments:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Lỗi khi tải danh sách</h3>
+                    <p>Vui lòng thử lại sau</p>
+                </div>
+            `;
+        }
+    }
+
+    function updateStats(bookings) {
+        const pending = bookings.filter(b => b.paymentStatus !== 'Completed').length;
+        const completed = bookings.filter(b => b.paymentStatus === 'Completed').length;
+        const totalAmount = bookings
+            .filter(b => b.paymentStatus === 'Completed')
+            .reduce((sum, b) => sum + (b.amount || 0), 0);
+
+        document.getElementById('pendingCount').textContent = pending;
+        document.getElementById('completedCount').textContent = completed;
+        document.getElementById('totalAmount').textContent = totalAmount.toLocaleString('vi-VN') + ' đ';
+    }
+
+    function formatPaymentStatus(status) {
+        const statusMap = {
+            'Pending': 'Chờ thanh toán',
+            'Completed': 'Đã thanh toán',
+            'Refunded': 'Đã hoàn tiền'
+        };
+        return statusMap[status] || status;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+

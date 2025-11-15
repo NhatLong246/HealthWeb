@@ -5,6 +5,7 @@ using HealthWeb.Models.EF;
 using System.Security.Cryptography;
 using System.Text;
 using System.Reflection;
+using System;
 
 namespace HealthWeb.Services
 {
@@ -1793,6 +1794,7 @@ namespace HealthWeb.Services
 
                 // Tìm booking đầu tiên với requestId này
                 var firstBooking = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
                     .FirstOrDefaultAsync(d => d.DatLichId == requestId && d.Ptid == ptId);
 
                 if (firstBooking == null)
@@ -1802,6 +1804,7 @@ namespace HealthWeb.Services
 
                 // Lấy tất cả bookings cùng client và cùng ngày tạo (cùng request group)
                 var requestGroup = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
                     .Where(d => d.Ptid == ptId &&
                                d.KhacHangId == firstBooking.KhacHangId &&
                                d.NgayTao == firstBooking.NgayTao &&
@@ -1815,10 +1818,62 @@ namespace HealthWeb.Services
 
                 var clientId = firstBooking.KhacHangId;
 
-                // Cập nhật tất cả bookings trong group thành Confirmed
+                // Lấy thông tin PT để tính giá
+                var ptInfo = await _context.HuanLuyenViens
+                    .Include(h => h.User)
+                    .FirstOrDefaultAsync(h => h.Ptid == ptId);
+                var ptName = ptInfo?.User?.HoTen ?? ptInfo?.User?.Username ?? "PT";
+                var ptPrice = ptInfo?.GiaTheoGio ?? 0;
+                const double COMMISSION_RATE = 0.15; // 15% hoa hồng app
+
+                // Cập nhật tất cả bookings trong group thành Confirmed và tạo transaction cho mỗi booking
                 foreach (var booking in requestGroup)
                 {
                     booking.TrangThai = "Confirmed";
+                    
+                    // Tạo transaction cho mỗi booking (nếu chưa có)
+                    if (booking.GiaoDich == null && ptPrice > 0)
+                    {
+                        var amount = ptPrice;
+                        var commission = amount * COMMISSION_RATE;
+                        var ptRevenue = amount - commission;
+                        
+                        // Tạo transaction ID (tối đa 20 ký tự: txn_ + 8 ký tự date + _ + 6 ký tự GUID = 19 ký tự)
+                        var dateStr = DateTime.Now.ToString("yyMMdd"); // 6 ký tự thay vì 8
+                        var guidPart = Guid.NewGuid().ToString("N").Substring(0, 6); // 6 ký tự thay vì 8
+                        var transactionId = $"txn_{dateStr}_{guidPart}"; // Tổng: 4 + 1 + 6 + 1 + 6 = 18 ký tự
+                        
+                        // Đảm bảo transaction ID là duy nhất
+                        int attempts = 0;
+                        while (await _context.GiaoDiches.AnyAsync(g => g.GiaoDichId == transactionId) && attempts < 10)
+                        {
+                            guidPart = Guid.NewGuid().ToString("N").Substring(0, 6);
+                            transactionId = $"txn_{dateStr}_{guidPart}";
+                            attempts++;
+                        }
+                        
+                        if (attempts >= 10)
+                        {
+                            _logger.LogError("Failed to generate unique transaction ID after 10 attempts");
+                            return (false, "Không thể tạo mã giao dịch duy nhất. Vui lòng thử lại.");
+                        }
+                        
+                        var transaction = new GiaoDich
+                        {
+                            GiaoDichId = transactionId,
+                            DatLichId = booking.DatLichId,
+                            KhachHangId = booking.KhacHangId,
+                            Ptid = ptId,
+                            SoTien = amount,
+                            HoaHongApp = commission,
+                            SoTienPtnhan = ptRevenue,
+                            TrangThaiThanhToan = "Pending",
+                            PhuongThucThanhToan = null, // Sẽ được set khi thanh toán
+                            NgayGiaoDich = DateTime.Now
+                        };
+                        
+                        _context.GiaoDiches.Add(transaction);
+                    }
                 }
 
                 // Tạo hoặc cập nhật QuyenPtKhachHang để client xuất hiện trong danh sách với trạng thái Active
@@ -1847,17 +1902,11 @@ namespace HealthWeb.Services
                     }
                 }
 
-                // Lấy thông tin PT để hiển thị trong thông báo
-                var ptInfo = await _context.HuanLuyenViens
-                    .Include(h => h.User)
-                    .FirstOrDefaultAsync(h => h.Ptid == ptId);
-                var ptName = ptInfo?.User?.HoTen ?? ptInfo?.User?.Username ?? "PT";
-
                 // Tạo thông báo cho client
                 var notification = new ThongBao
                 {
                     UserId = clientId,
-                    NoiDung = $"PT {ptName} đã chấp nhận yêu cầu tập luyện của bạn. Bạn đã được thêm vào danh sách khách hàng với {requestGroup.Count} buổi tập đã được xác nhận.",
+                    NoiDung = $"PT {ptName} đã chấp nhận yêu cầu tập luyện của bạn. Bạn đã được thêm vào danh sách khách hàng với {requestGroup.Count} buổi tập đã được xác nhận. Vui lòng thanh toán để hoàn tất đặt lịch.",
                     Loai = "PT",
                     MaLienQuan = null, // Có thể set booking ID nếu cần
                     DaDoc = false,
