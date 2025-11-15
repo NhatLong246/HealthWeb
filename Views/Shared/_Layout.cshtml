@@ -321,6 +321,19 @@
                     if(registerBtn) registerBtn.style.display='none';
                     if(!document.getElementById('userMenuContainer')){
                         const username = status.username || 'User';
+                        
+                        // Kiểm tra xem user có phải PT không
+                        let isPT = false;
+                        try {
+                            const ptCheckResponse = await fetch('/PT/Dashboard/StatsData');
+                            if (ptCheckResponse.ok) {
+                                const ptCheckResult = await ptCheckResponse.json();
+                                isPT = ptCheckResult.success;
+                            }
+                        } catch (e) {
+                            // Ignore error
+                        }
+                        
                         const container = document.createElement('div');
                         container.id = 'userMenuContainer';
                         container.className = 'user-menu-container';
@@ -355,6 +368,12 @@
                                     <i class="fas fa-credit-card"></i>
                                     <span>Thanh toán PT</span>
                                 </a>
+                                ${isPT ? `
+                                <a href="/Payment/PT/Invoices" class="dropdown-item pt-invoices-item">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Hóa đơn khách hàng</span>
+                                </a>
+                                ` : ''}
                                 <div class="dropdown-divider"></div>
                                 <a href="/Account/LogoutGet" class="dropdown-item">
                                     <i class="fas fa-sign-out-alt"></i>

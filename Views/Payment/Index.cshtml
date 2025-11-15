@@ -283,13 +283,6 @@
             <div class="payment-methods">
                 <h3>Chọn phương thức thanh toán</h3>
                 <div class="payment-method-grid">
-                    <div class="payment-method-card" data-method="MoMo" onclick="selectPaymentMethod('MoMo')">
-                        <div class="payment-method-icon" style="color: #A50064;">
-                            <i class="fas fa-mobile-alt"></i>
-                        </div>
-                        <div class="payment-method-name">MoMo</div>
-                        <div class="payment-method-desc">Ví điện tử MoMo</div>
-                    </div>
                     <div class="payment-method-card" data-method="ZaloPay" onclick="selectPaymentMethod('ZaloPay')">
                         <div class="payment-method-icon" style="color: #0068FF;">
                             <i class="fab fa-cc-paypal"></i>
@@ -421,12 +414,17 @@
         }
     }
 
-    // Add anti-forgery token
+    // Add anti-forgery token và tự động chọn ZaloPay
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.createElement('form');
         form.style.display = 'none';
         form.innerHTML = '@Html.AntiForgeryToken()';
         document.body.appendChild(form);
+        
+        // Tự động chọn ZaloPay nếu chưa thanh toán
+        if (transactionId && '@Model.PaymentStatus' !== 'Completed') {
+            selectPaymentMethod('ZaloPay');
+        }
     });
 </script>
 

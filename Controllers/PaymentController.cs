@@ -55,6 +55,78 @@ public class PaymentController : Controller
         return View(paymentInfo);
     }
 
+    // GET: /Payment/PT/Invoices - Trang hóa đơn cho PT
+    [HttpGet("PT/Invoices")]
+    public IActionResult PTInvoices()
+    {
+        return View();
+    }
+
+    // API: Lấy danh sách hóa đơn của khách hàng cho PT
+    [HttpGet("PT/Invoices/Data")]
+    public async Task<IActionResult> GetPTInvoicesData()
+    {
+        try
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            // Lấy PT ID từ user
+            var pt = await _context.HuanLuyenViens
+                .FirstOrDefaultAsync(h => h.UserId == userId);
+            
+            if (pt == null || string.IsNullOrEmpty(pt.Ptid))
+            {
+                return Json(new { success = false, message = "Bạn chưa đăng ký làm PT" });
+            }
+
+            var ptId = pt.Ptid;
+
+            // Lấy tất cả transaction của khách hàng với PT này
+            var invoices = await _context.GiaoDiches
+                .Include(t => t.DatLich)
+                    .ThenInclude(b => b.KhacHang)
+                .Include(t => t.DatLich)
+                    .ThenInclude(b => b.Pt)
+                        .ThenInclude(pt => pt.User)
+                .Where(t => t.Ptid == ptId)
+                .OrderByDescending(t => t.NgayGiaoDich)
+                .Select(t => new
+                {
+                    transactionId = t.GiaoDichId,
+                    bookingId = t.DatLichId,
+                    clientId = t.KhachHangId,
+                    clientName = t.DatLich != null && t.DatLich.KhacHang != null 
+                        ? (string.IsNullOrWhiteSpace(t.DatLich.KhacHang.HoTen) 
+                            ? t.DatLich.KhacHang.Username 
+                            : t.DatLich.KhacHang.HoTen) 
+                        : "N/A",
+                    clientAvatar = t.DatLich != null && t.DatLich.KhacHang != null
+                        ? (t.DatLich.KhacHang.AnhDaiDien ?? "/images/default-avatar.png")
+                        : "/images/default-avatar.png",
+                    dateTime = t.DatLich != null ? t.DatLich.NgayGioDat : (DateTime?)null,
+                    sessionType = t.DatLich != null ? (t.DatLich.LoaiBuoiTap ?? "In-person") : "N/A",
+                    amount = t.SoTien,
+                    commission = t.HoaHongApp ?? 0,
+                    ptRevenue = t.SoTienPtnhan ?? 0,
+                    paymentStatus = t.TrangThaiThanhToan ?? "Pending",
+                    paymentMethod = t.PhuongThucThanhToan,
+                    transactionDate = t.NgayGiaoDich
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = invoices });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PT invoices data");
+            return Json(new { success = false, message = "Không thể tải danh sách hóa đơn" });
+        }
+    }
+
     // API: Lấy danh sách booking cần thanh toán
     [HttpGet("MyPayments/Data")]
     public async Task<IActionResult> GetMyPaymentsData()
