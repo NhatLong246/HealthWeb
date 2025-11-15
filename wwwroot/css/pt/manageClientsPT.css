@@ -1020,3 +1020,343 @@ body.light-mode .btn-cancel-reject:hover {
     }
 }
 
+/* Workout Plan Modal */
+.workout-plan-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.workout-plan-modal-content {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 90%;
+    background: rgba(17, 24, 39, 0.95);
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .workout-plan-modal-content {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.workout-plan-modal .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.workout-plan-modal .form-group select.form-control {
+    cursor: pointer;
+}
+
+.workout-plan-modal .form-group select.form-control option {
+    background: #1f2937;
+    color: #ffffff;
+    padding: 0.5rem;
+}
+
+body.light-mode .workout-plan-modal .form-group select.form-control option {
+    background: #ffffff;
+    color: #1f2937;
+}
+
+.workout-plan-modal .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.workout-plan-modal label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+
+body.light-mode .workout-plan-modal label {
+    color: #1f2937;
+}
+
+.workout-plan-modal .required {
+    color: #ef4444;
+}
+
+.workout-plan-modal .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.workout-plan-modal .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.workout-plan-modal .form-control:read-only {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+body.light-mode .workout-plan-modal .form-control {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #1f2937;
+}
+
+body.light-mode .workout-plan-modal .form-control::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+body.light-mode .workout-plan-modal .form-control:read-only {
+    background: #e5e7eb !important;
+    color: #374151 !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.workout-plan-modal .form-control:focus {
+    outline: none;
+    border-color: #4ade80;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+    color: #ffffff;
+}
+
+body.light-mode .workout-plan-modal .form-control:focus {
+    background: #ffffff;
+    border-color: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+    color: #1f2937;
+}
+
+/* Exercises List */
+.exercises-list {
+    margin-top: 1rem;
+}
+
+.exercise-row {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+body.light-mode .exercise-row {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.exercise-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .exercise-row-header {
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.exercise-row-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+body.light-mode .exercise-row-header h5 {
+    color: #1f2937;
+}
+
+.btn-remove-exercise {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-remove-exercise:hover {
+    background: #dc2626;
+}
+
+.exercise-row-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Workout Plan Display */
+.workout-plan-display {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+body.light-mode .workout-plan-display {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.workout-plan-display h5 {
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+    color: var(--text-primary);
+}
+
+.plan-info {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.plan-info span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.plan-info i {
+    color: #4ade80;
+}
+
+.plan-exercises h6 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.plan-exercises ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.plan-exercises li {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-left: 3px solid #4ade80;
+}
+
+body.light-mode .plan-exercises li {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.exercise-meta {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    color: var(--text-secondary);
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .form-actions {
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary, .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4ade80, #22d3ee);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.light-mode .btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+body.light-mode .btn-secondary:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .workout-plan-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .workout-plan-modal .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .plan-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+}
+

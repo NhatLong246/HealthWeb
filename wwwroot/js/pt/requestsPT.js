@@ -5,7 +5,8 @@ function getToken() {
 
 // Accept request
 async function acceptRequest(requestId) {
-    if (!confirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?')) {
+    const confirmed = await customConfirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?', 'Xác nhận chấp nhận yêu cầu', 'question');
+    if (!confirmed) {
         return;
     }
 
@@ -24,7 +25,7 @@ async function acceptRequest(requestId) {
         const result = await response.json();
 
         if (result.success) {
-            alert(result.message);
+            await customAlert(result.message, 'Thành công', 'success');
             // Remove the request card from the list
             const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
             if (requestCard) {
@@ -45,11 +46,11 @@ async function acceptRequest(requestId) {
                 }, 300);
             }
         } else {
-            alert(result.message || 'Có lỗi xảy ra khi chấp nhận yêu cầu');
+            await customAlert(result.message || 'Có lỗi xảy ra khi chấp nhận yêu cầu', 'Lỗi', 'error');
         }
     } catch (error) {
         console.error('Error accepting request:', error);
-        alert('Có lỗi xảy ra khi chấp nhận yêu cầu');
+        await customAlert('Có lỗi xảy ra khi chấp nhận yêu cầu', 'Lỗi', 'error');
     }
 }
 
@@ -84,7 +85,7 @@ async function rejectRequest(event) {
     const reason = document.getElementById('rejectReason')?.value;
 
     if (!requestId || !reason || reason.trim() === '') {
-        alert('Vui lòng nhập lý do từ chối');
+        await customAlert('Vui lòng nhập lý do từ chối', 'Cảnh báo', 'warning');
         return;
     }
 
@@ -104,7 +105,7 @@ async function rejectRequest(event) {
         const result = await response.json();
 
         if (result.success) {
-            alert(result.message);
+            await customAlert(result.message, 'Thành công', 'success');
             closeRejectModal();
             // Remove the request card from the list
             const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
@@ -126,11 +127,11 @@ async function rejectRequest(event) {
                 }, 300);
             }
         } else {
-            alert(result.message || 'Có lỗi xảy ra khi từ chối yêu cầu');
+            await customAlert(result.message || 'Có lỗi xảy ra khi từ chối yêu cầu', 'Lỗi', 'error');
         }
     } catch (error) {
         console.error('Error rejecting request:', error);
-        alert('Có lỗi xảy ra khi từ chối yêu cầu');
+        await customAlert('Có lỗi xảy ra khi từ chối yêu cầu', 'Lỗi', 'error');
     }
 }
 

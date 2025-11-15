@@ -253,7 +253,13 @@ body.light-mode .header-actions #logoutBtn:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+}
+
+body.dark-mode .filter-group label {
+    color: #e2e8f0;
 }
 
 .filter-group select,
@@ -304,6 +310,117 @@ body.light-mode .header-actions #logoutBtn:hover {
     margin-bottom: 1.5rem;
 }
 
+/* Active Filters Display */
+.active-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f1f5f9;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.active-filters-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.active-filters-label i {
+    color: #4ade80;
+}
+
+.active-filters-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.active-filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.active-filter-tag i {
+    color: #4ade80;
+    font-size: 0.8rem;
+}
+
+.active-filter-tag .filter-label {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.active-filter-tag .filter-value {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.btn-clear-all-filters {
+    padding: 0.5rem 1rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.btn-clear-all-filters:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+/* Dark mode styles for active filters */
+body.dark-mode .active-filters {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .active-filters-label {
+    color: #cbd5e1;
+}
+
+body.dark-mode .active-filter-tag {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+}
+
+body.dark-mode .active-filter-tag .filter-label {
+    color: #94a3b8;
+}
+
+body.dark-mode .active-filter-tag .filter-value {
+    color: #e2e8f0;
+}
+
+body.dark-mode .results-header h2 {
+    color: #e2e8f0;
+}
+
 .pt-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -340,6 +457,25 @@ body.light-mode .header-actions #logoutBtn:hover {
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid #4ade80;
+}
+
+.pt-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #4ade80;
+    background: linear-gradient(135deg, #4ade80 0%, #22d3ee 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pt-avatar-initial {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .pt-info h3 {
@@ -574,6 +710,17 @@ body.dark-mode .pt-detail-header {
     object-fit: cover;
     border: 4px solid #4ade80;
     box-shadow: 0 4px 12px rgba(78, 222, 128, 0.3);
+}
+
+.pt-detail-avatar.pt-avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border: 4px solid #4ade80;
+    box-shadow: 0 4px 12px rgba(78, 222, 128, 0.3);
+}
+
+.pt-detail-avatar.pt-avatar-placeholder .pt-avatar-initial {
+    font-size: 3rem;
 }
 
 .pt-detail-info {
@@ -932,13 +1079,12 @@ body.dark-mode .pt-detail-action {
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.4rem;
-    font-weight: 600;
-    color: #1e293b;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    color: #1e293b;
     font-size: 0.9rem;
 }
 
@@ -1018,10 +1164,24 @@ body.dark-mode .pt-detail-action {
 .btn-secondary {
     background: #e2e8f0;
     color: #1e293b;
+    font-weight: 600;
 }
 
 .btn-secondary:hover {
     background: #cbd5e1;
+    color: #0f172a;
+}
+
+body.dark-mode .btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Dark Mode Support */
@@ -1138,6 +1298,181 @@ body.dark-mode .form-hint {
 
 .required {
     color: #ef4444;
+    margin-left: 0.25rem;
+}
+
+/* Remove duplicate asterisks from required inputs */
+.form-group select[required]::before,
+.form-group input[required]::before,
+.form-group textarea[required]::before,
+.date-schedule-date input[required]::before,
+.date-schedule-times input[required]::before {
+    display: none;
+}
+
+.form-group select[required]::after,
+.form-group input[required]::after,
+.form-group textarea[required]::after,
+.date-schedule-date input[required]::after,
+.date-schedule-times input[required]::after {
+    display: none;
+}
+
+/* Date Schedule Container */
+#dateScheduleContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.date-schedule-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+body.dark-mode .date-schedule-item {
+    background: rgba(51, 65, 85, 0.5);
+    border-color: rgba(71, 85, 105, 0.5);
+}
+
+.date-schedule-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.date-schedule-date {
+    flex: 1;
+}
+
+.date-schedule-date label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 0.9rem;
+}
+
+.date-schedule-date label .required {
+    margin-left: 0;
+}
+
+body.dark-mode .date-schedule-date label {
+    color: #ffffff;
+}
+
+.date-schedule-date input[type="date"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: #ffffff;
+    color: #1e293b;
+}
+
+body.dark-mode .date-schedule-date input[type="date"] {
+    background: #334155;
+    border-color: #475569;
+    color: #ffffff;
+}
+
+.btn-remove-date {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+    align-self: flex-start;
+    margin-top: 1.75rem;
+}
+
+.btn-remove-date:hover {
+    background: #dc2626;
+}
+
+.date-schedule-times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+body.dark-mode .date-schedule-times {
+    border-top-color: rgba(71, 85, 105, 0.5);
+}
+
+.date-schedule-times .time-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.date-schedule-times .time-slot label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 110px;
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0;
+}
+
+.date-schedule-times .time-slot label .required {
+    margin-left: 0;
+}
+
+body.dark-mode .date-schedule-times .time-slot label {
+    color: #94a3b8;
+}
+
+.date-schedule-times .time-slot input[type="time"] {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: #ffffff;
+    color: #1e293b;
+}
+
+body.dark-mode .date-schedule-times .time-slot input[type="time"] {
+    background: #334155;
+    border-color: #475569;
+    color: #ffffff;
+}
+
+.btn-add-date {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.btn-add-date:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 222, 128, 0.3);
 }
 
 .request-modal-content {

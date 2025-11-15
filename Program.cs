@@ -67,6 +67,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 
 var app = builder.Build();
 
@@ -88,6 +89,9 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.UseSession();
+
+// ✅ Middleware restore session từ cookie (sau khi có session và auth)
+app.UseMiddleware<HealthWeb.Middleware.RestoreSessionMiddleware>();
 
 // ✅ Middleware kiểm tra thông tin cơ bản (sau khi đã có session và auth)
 app.UseMiddleware<HealthWeb.Middleware.RequireBasicInfoMiddleware>();
