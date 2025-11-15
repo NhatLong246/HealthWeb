@@ -332,48 +332,99 @@
     .modal {
         display: none;
         position: fixed;
-        z-index: 1000;
+        z-index: 10000;
         left: 0;
         top: 0;
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(5px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translateY(50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .modal-content {
-        background: rgba(30, 41, 59, 0.95);
-        margin: 5% auto;
-        padding: 2rem;
+        background: rgba(30, 41, 59, 0.98);
+        padding: 0;
         border-radius: 20px;
         width: 90%;
-        max-width: 600px;
-        max-height: 80vh;
-        overflow-y: auto;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.3s ease;
     }
 
     body.light-mode .modal-content {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body.light-mode .modal-header {
+        border-bottom-color: rgba(251, 146, 60, 0.2);
     }
 
     .modal-header h2 {
         font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
     }
 
     .close-modal {
         background: transparent;
         border: none;
-        font-size: 2rem;
+        font-size: 1.5rem;
         cursor: pointer;
         color: inherit;
         line-height: 1;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .close-modal:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-body {
+        padding: 1.5rem 2rem;
+        overflow-y: auto;
+        flex: 1;
     }
 
     .search-food {
@@ -382,19 +433,25 @@
 
     .search-food input {
         width: 100%;
-        padding: 1rem;
+        padding: 0.875rem 1rem;
         border: 2px solid rgba(148, 163, 184, 0.3);
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.05);
         color: #fff;
         font-size: 1rem;
         outline: none;
+        transition: all 0.3s ease;
     }
 
     body.light-mode .search-food input {
         background: #fff;
         color: #7c2d12;
         border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .search-food input:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 0 3px rgba(78, 222, 128, 0.1);
     }
 
     .food-list {
@@ -406,15 +463,300 @@
         padding: 1rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+
+    body.light-mode .food-list-item {
+        border-bottom-color: rgba(251, 146, 60, 0.2);
     }
 
     .food-list-item:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(78, 222, 128, 0.1);
+        transform: translateX(5px);
     }
 
     .food-list-item:last-child {
         border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .food-list-empty {
+        text-align: center;
+        padding: 3rem;
+        opacity: 0.6;
+    }
+
+    /* Food Detail Form Dialog */
+    .food-detail-dialog {
+        display: none;
+        position: fixed;
+        z-index: 10001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .food-detail-dialog.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .food-detail-content {
+        background: rgba(30, 41, 59, 0.98);
+        padding: 2rem;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.3s ease;
+    }
+
+    body.light-mode .food-detail-content {
+        background: rgba(255, 255, 255, 0.98);
+    }
+
+    .food-detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .food-detail-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    .form-group select {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        padding-right: 2.5rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background-color: rgba(30, 41, 59, 0.8);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 12px;
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+    }
+
+    body.light-mode .form-group input {
+        background: #fff;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    body.light-mode .form-group select {
+        background-color: #fff;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237c2d12' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 12px;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .form-group select option {
+        background: rgba(30, 41, 59, 0.95);
+        color: #fff;
+        padding: 0.5rem;
+    }
+
+    body.light-mode .form-group select option {
+        background: #fff;
+        color: #7c2d12;
+    }
+
+    .form-group input:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 0 3px rgba(78, 222, 128, 0.1);
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-group select:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 0 3px rgba(78, 222, 128, 0.1);
+        background-color: rgba(30, 41, 59, 0.95);
+    }
+
+    body.light-mode .form-group input:focus {
+        background-color: #fff;
+    }
+
+    body.light-mode .form-group select:focus {
+        background-color: #fff;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4ade80, #22d3ee);
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(78, 222, 128, 0.4);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+    }
+
+    body.light-mode .btn-secondary {
+        background: rgba(251, 146, 60, 0.1);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .food-info-preview {
+        background: rgba(78, 222, 128, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(78, 222, 128, 0.3);
+    }
+
+    body.light-mode .food-info-preview {
+        background: rgba(251, 146, 60, 0.1);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .food-info-preview .food-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .food-info-preview .food-macros {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    /* Delete Confirmation Dialog */
+    .delete-confirm-dialog {
+        display: none;
+        position: fixed;
+        z-index: 10002;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .delete-confirm-dialog.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .delete-confirm-content {
+        background: rgba(30, 41, 59, 0.98);
+        padding: 2rem;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.3s ease;
+        text-align: center;
+    }
+
+    body.light-mode .delete-confirm-content {
+        background: rgba(255, 255, 255, 0.98);
+    }
+
+    .delete-confirm-icon {
+        font-size: 3rem;
+        color: #ef4444;
+        margin-bottom: 1rem;
+    }
+
+    .delete-confirm-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .delete-confirm-message {
+        font-size: 0.95rem;
+        opacity: 0.8;
+        margin-bottom: 2rem;
+    }
+
+    .delete-confirm-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: #fff;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
     }
 
     /* Stats Section */
@@ -1030,13 +1372,81 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2>Thêm món ăn</h2>
-            <button class="close-modal" onclick="closeAddMealModal()">&times;</button>
+            <button class="close-modal" onclick="closeAddMealModal()" title="Đóng">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <div class="search-food">
-            <input type="text" id="searchFoodInput" placeholder="Tìm kiếm món ăn..." onkeyup="searchFood()">
+        <div class="modal-body">
+            <div class="search-food">
+                <input type="text" id="searchFoodInput" placeholder="Tìm kiếm món ăn..." autocomplete="off">
+            </div>
+            <div class="food-list" id="foodList">
+                <div class="food-list-empty">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Đang tải danh sách món ăn...</p>
+                </div>
+            </div>
         </div>
-        <div class="food-list" id="foodList">
-            <!-- Food items will be loaded here -->
+    </div>
+</div>
+
+<!-- Food Detail Dialog -->
+<div id="foodDetailDialog" class="food-detail-dialog">
+    <div class="food-detail-content">
+        <div class="food-detail-header">
+            <h3>Thông tin món ăn</h3>
+            <button class="close-modal" onclick="closeFoodDetailDialog()" title="Đóng">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="foodInfoPreview" class="food-info-preview">
+            <!-- Food info will be displayed here -->
+        </div>
+        <form id="foodDetailForm" onsubmit="submitFoodDetail(event)">
+            <div class="form-group">
+                <label for="luongThucAn">Lượng thực phẩm</label>
+                <input type="number" id="luongThucAn" name="luongThucAn" min="1" step="0.1" required placeholder="Nhập số lượng">
+            </div>
+            <div class="form-group">
+                <label for="donViTinh">Đơn vị</label>
+                <input type="text" id="donViTinh" name="donViTinh" readonly>
+            </div>
+            <div class="form-group">
+                <label for="ghiChu">Bữa ăn</label>
+                <select id="ghiChu" name="ghiChu">
+                    <option value="Bữa Sáng">Bữa Sáng</option>
+                    <option value="Bữa Trưa">Bữa Trưa</option>
+                    <option value="Bữa Tối">Bữa Tối</option>
+                    <option value="Bữa Phụ">Bữa Phụ</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeFoodDetailDialog()">Hủy</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Thêm vào nhật ký
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<div id="deleteConfirmDialog" class="delete-confirm-dialog">
+    <div class="delete-confirm-content">
+        <div class="delete-confirm-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="delete-confirm-title">Xác nhận xóa</div>
+        <div class="delete-confirm-message">
+            Bạn có chắc chắn muốn xóa món ăn này khỏi nhật ký?
+        </div>
+        <div class="delete-confirm-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmDialog()">
+                <i class="fas fa-times"></i> Hủy
+            </button>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteMeal()">
+                <i class="fas fa-trash"></i> Xóa
+            </button>
         </div>
     </div>
 </div>
@@ -1058,57 +1468,203 @@
             window.location.href = `/DinhDuong?selectedDate=${date}`;
         }
 
+        let selectedFood = null;
+
         function openAddMealModal() {
-            document.getElementById('addMealModal').style.display = 'block';
+            const modal = document.getElementById('addMealModal');
+            modal.classList.add('show');
+            
+            // Setup search input listeners
+            setupSearchInput();
+            
             loadFoods();
+            
+            // Focus search input
+            setTimeout(() => {
+                const searchInput = document.getElementById('searchFoodInput');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }, 100);
         }
 
         function closeAddMealModal() {
-            document.getElementById('addMealModal').style.display = 'none';
+            const modal = document.getElementById('addMealModal');
+            modal.classList.remove('show');
             document.getElementById('searchFoodInput').value = '';
+            document.getElementById('foodList').innerHTML = '<div class="food-list-empty"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Đang tải danh sách món ăn...</p></div>';
         }
 
         async function loadFoods(search = '') {
+            const foodList = document.getElementById('foodList');
+            
             try {
+                foodList.innerHTML = '<div class="food-list-empty"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Đang tải...</p></div>';
+                
                 const response = await fetch(`/DinhDuong/GetMonAn?search=${encodeURIComponent(search)}`);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
                 const result = await response.json();
                 
-                if (result.success) {
+                if (result.success && result.data && Array.isArray(result.data)) {
                     allFoods = result.data;
                     displayFoods(allFoods);
+                } else {
+                    throw new Error('Invalid response format');
                 }
             } catch (error) {
                 console.error('Error loading foods:', error);
+                foodList.innerHTML = '<div class="food-list-empty"><i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Không thể tải danh sách món ăn. Vui lòng thử lại.</p></div>';
             }
         }
 
-        function searchFood() {
-            const search = document.getElementById('searchFoodInput').value;
-            loadFoods(search);
+        // Search with debounce
+        let searchTimeout;
+        
+        // Setup search input event listeners when DOM is ready
+        function setupSearchInput() {
+            const searchInput = document.getElementById('searchFoodInput');
+            if (searchInput) {
+                // Remove existing listeners by cloning
+                const newInput = searchInput.cloneNode(true);
+                searchInput.parentNode.replaceChild(newInput, searchInput);
+                
+                newInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    const search = this.value.trim();
+                    searchTimeout = setTimeout(() => {
+                        loadFoods(search);
+                    }, 300);
+                });
+
+                // Search on Enter
+                newInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        loadFoods(this.value.trim());
+                    }
+                });
+            }
+        }
+        
+        // Setup on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupSearchInput);
+        } else {
+            setupSearchInput();
         }
 
         function displayFoods(foods) {
             const foodList = document.getElementById('foodList');
-            foodList.innerHTML = foods.map(food => `
-                <div class="food-list-item" onclick="selectFood('${food.monAnId}', '${food.tenMonAn || ''}')">
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${food.tenMonAn || 'N/A'}</div>
-                    <div style="font-size: 0.85rem; opacity: 0.7;">
-                        ${food.luongCalo ? Math.round(food.luongCalo) + ' kcal' : ''}
-                        ${food.protein ? ' • P: ' + Math.round(food.protein * 10) / 10 + 'g' : ''}
-                        ${food.carbohydrate ? ' • C: ' + Math.round(food.carbohydrate * 10) / 10 + 'g' : ''}
-                        ${food.chatBeo ? ' • F: ' + Math.round(food.chatBeo * 10) / 10 + 'g' : ''}
+            
+            if (!foods || foods.length === 0) {
+                foodList.innerHTML = '<div class="food-list-empty"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Không tìm thấy món ăn nào.</p></div>';
+                return;
+            }
+            
+            foodList.innerHTML = foods.map(food => {
+                const tenMonAn = escapeHtml(food.tenMonAn || 'N/A');
+                const monAnId = escapeHtml(food.monAnId || '');
+                const donViTinh = escapeHtml(food.donViTinh || 'g');
+                const luongCalo = food.luongCalo ? Math.round(food.luongCalo) : 0;
+                const protein = food.protein ? Math.round(food.protein * 10) / 10 : 0;
+                const carbohydrate = food.carbohydrate ? Math.round(food.carbohydrate * 10) / 10 : 0;
+                const chatBeo = food.chatBeo ? Math.round(food.chatBeo * 10) / 10 : 0;
+                
+                return `
+                    <div class="food-list-item" onclick="selectFood('${monAnId}', '${tenMonAn}', '${donViTinh}', ${luongCalo}, ${protein}, ${carbohydrate}, ${chatBeo})">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${tenMonAn}</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">
+                            ${luongCalo > 0 ? luongCalo + ' kcal' : ''}
+                            ${protein > 0 ? ' • P: ' + protein + 'g' : ''}
+                            ${carbohydrate > 0 ? ' • C: ' + carbohydrate + 'g' : ''}
+                            ${chatBeo > 0 ? ' • F: ' + chatBeo + 'g' : ''}
+                            <span style="opacity: 0.5;"> • ${donViTinh}/100g</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        function selectFood(monAnId, tenMonAn) {
-            const luong = prompt(`Nhập lượng ${tenMonAn} (${prompt('Đơn vị (g/ml):') || 'g'}):`);
-            if (!luong || isNaN(luong)) return;
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function selectFood(monAnId, tenMonAn, donViTinh, luongCalo, protein, carbohydrate, chatBeo) {
+            selectedFood = {
+                monAnId: monAnId,
+                tenMonAn: tenMonAn,
+                donViTinh: donViTinh,
+                luongCalo: luongCalo,
+                protein: protein,
+                carbohydrate: carbohydrate,
+                chatBeo: chatBeo
+            };
             
-            const ghiChu = prompt('Ghi chú (Bữa sáng/trưa/tối):') || 'Bữa ăn';
+            openFoodDetailDialog();
+        }
+
+        function openFoodDetailDialog() {
+            if (!selectedFood) return;
             
-            addMeal(monAnId, parseFloat(luong), ghiChu);
+            const dialog = document.getElementById('foodDetailDialog');
+            const preview = document.getElementById('foodInfoPreview');
+            const donViTinhInput = document.getElementById('donViTinh');
+            const luongThucAnInput = document.getElementById('luongThucAn');
+            
+            // Set preview
+            preview.innerHTML = `
+                <div class="food-name">${escapeHtml(selectedFood.tenMonAn)}</div>
+                <div class="food-macros">
+                    ${selectedFood.luongCalo > 0 ? selectedFood.luongCalo + ' kcal' : ''}
+                    ${selectedFood.protein > 0 ? ' • P: ' + selectedFood.protein + 'g' : ''}
+                    ${selectedFood.carbohydrate > 0 ? ' • C: ' + selectedFood.carbohydrate + 'g' : ''}
+                    ${selectedFood.chatBeo > 0 ? ' • F: ' + selectedFood.chatBeo + 'g' : ''}
+                    <span style="opacity: 0.7;"> (trên 100${selectedFood.donViTinh})</span>
+                </div>
+            `;
+            
+            // Set form values
+            donViTinhInput.value = selectedFood.donViTinh;
+            luongThucAnInput.value = '100';
+            luongThucAnInput.placeholder = `Nhập số lượng (${selectedFood.donViTinh})`;
+            
+            dialog.classList.add('show');
+            
+            // Focus on amount input
+            setTimeout(() => {
+                luongThucAnInput.focus();
+                luongThucAnInput.select();
+            }, 100);
+        }
+
+        function closeFoodDetailDialog() {
+            const dialog = document.getElementById('foodDetailDialog');
+            dialog.classList.remove('show');
+            selectedFood = null;
+            document.getElementById('foodDetailForm').reset();
+        }
+
+        function submitFoodDetail(event) {
+            event.preventDefault();
+            
+            if (!selectedFood) return;
+            
+            const luongThucAn = parseFloat(document.getElementById('luongThucAn').value);
+            const ghiChu = document.getElementById('ghiChu').value;
+            
+            if (!luongThucAn || luongThucAn <= 0) {
+                alert('Vui lòng nhập lượng thực phẩm hợp lệ');
+                return;
+            }
+            
+            addMeal(selectedFood.monAnId, luongThucAn, ghiChu);
         }
 
         async function addMeal(monAnId, luongThucAn, ghiChu) {
@@ -1127,25 +1683,241 @@
                     })
                 });
                 
+                // Kiểm tra response có phải JSON không
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    showNotification('Lỗi server: ' + (text.substring(0, 100) || 'Không thể xử lý phản hồi'), 'error');
+                    return;
+                }
+                
                 const result = await response.json();
                 if (result.success) {
+                    closeFoodDetailDialog();
                     closeAddMealModal();
-                    loadNutritionData();
+                    
+                    // Show success notification
+                    showNotification('Đã thêm món ăn vào nhật ký!', 'success');
+                    
+                    // Cập nhật UI động thay vì reload trang
+                    await updateNutritionUI();
                 } else {
-                    alert(result.message || 'Có lỗi xảy ra');
+                    showNotification(result.message || 'Có lỗi xảy ra', 'error');
                 }
             } catch (error) {
                 console.error('Error adding meal:', error);
-                alert('Có lỗi xảy ra khi thêm món ăn');
+                showNotification('Có lỗi xảy ra khi thêm món ăn: ' + error.message, 'error');
             }
         }
 
-        function addMealFromPopular(monAnId, tenMonAn) {
-            selectFood(monAnId, tenMonAn);
+        // Cập nhật UI động sau khi thêm/xóa món ăn
+        async function updateNutritionUI() {
+            try {
+                const date = document.getElementById('selectedDate').value;
+                const response = await fetch(`/DinhDuong/GetNutritionData?selectedDate=${encodeURIComponent(date)}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch nutrition data');
+                }
+                
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const { meals, summary } = result.data;
+                    
+                    // Cập nhật summary cards
+                    document.getElementById('totalCalo').textContent = summary.tongCalo;
+                    document.getElementById('totalProtein').textContent = summary.tongProtein;
+                    document.getElementById('totalCarbs').textContent = summary.tongCarbs;
+                    document.getElementById('totalFat').textContent = summary.tongChatBeo;
+                    
+                    // Cập nhật meal list
+                    const mealList = document.getElementById('mealList');
+                    if (meals && meals.length > 0) {
+                        mealList.innerHTML = meals.map(meal => {
+                            const luong = meal.luongThucAn ?? 0;
+                            const calo = Math.round(meal.luongCalo * luong / 100);
+                            const protein = Math.round(meal.protein * luong / 100 * 10) / 10;
+                            const carbs = Math.round(meal.carbohydrate * luong / 100 * 10) / 10;
+                            const fat = Math.round(meal.chatBeo * luong / 100 * 10) / 10;
+                            
+                            return `
+                                <div class="meal-item" data-id="${escapeHtml(meal.dinhDuongId)}">
+                                    <div class="meal-info">
+                                        <div class="meal-name">${escapeHtml(meal.tenMonAn || 'N/A')}</div>
+                                        <div class="meal-details">
+                                            <span>${luong} ${escapeHtml(meal.donViTinh || 'g')}</span>
+                                            <span>•</span>
+                                            <span>${calo} kcal</span>
+                                            <span>•</span>
+                                            <span>P: ${protein}g</span>
+                                            <span>•</span>
+                                            <span>C: ${carbs}g</span>
+                                            <span>•</span>
+                                            <span>F: ${fat}g</span>
+                                        </div>
+                                        ${meal.ghiChu ? `
+                                            <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem;">
+                                                <i class="fas fa-tag"></i> ${escapeHtml(meal.ghiChu)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div class="meal-actions">
+                                        <button onclick="removeMeal('${escapeHtml(meal.dinhDuongId)}')" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        mealList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-utensils"></i>
+                                <p>Chưa có món ăn nào được thêm vào hôm nay</p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating nutrition UI:', error);
+                // Fallback: reload trang sau 2 giây để thông báo có thời gian hiển thị
+                setTimeout(() => {
+                    loadNutritionData();
+                }, 2000);
+            }
         }
 
-        async function removeMeal(dinhDuongId) {
-            if (!confirm('Bạn có chắc muốn xóa món ăn này?')) return;
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                color: white;
+                font-weight: 500;
+                z-index: 10002;
+                animation: slideInRight 0.3s ease;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            `;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @@keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        async function addMealFromPopular(monAnId, tenMonAn) {
+            // Tìm món ăn từ danh sách đã load hoặc load từ server
+            const food = allFoods.find(f => f.monAnId === monAnId);
+            
+            if (food) {
+                selectFood(
+                    food.monAnId,
+                    food.tenMonAn || tenMonAn,
+                    food.donViTinh || 'g',
+                    food.luongCalo || 0,
+                    food.protein || 0,
+                    food.carbohydrate || 0,
+                    food.chatBeo || 0
+                );
+            } else {
+                // Nếu chưa có trong danh sách, load từ server
+                try {
+                    const response = await fetch(`/DinhDuong/GetMonAn?search=${encodeURIComponent(tenMonAn)}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        const foundFood = result.data.find(f => f.monAnId === monAnId);
+                        if (foundFood) {
+                            selectFood(
+                                foundFood.monAnId,
+                                foundFood.tenMonAn || tenMonAn,
+                                foundFood.donViTinh || 'g',
+                                foundFood.luongCalo || 0,
+                                foundFood.protein || 0,
+                                foundFood.carbohydrate || 0,
+                                foundFood.chatBeo || 0
+                            );
+                        } else {
+                            // Fallback với thông tin tối thiểu
+                            selectFood(monAnId, tenMonAn, 'g', 0, 0, 0, 0);
+                        }
+                    } else {
+                        selectFood(monAnId, tenMonAn, 'g', 0, 0, 0, 0);
+                    }
+                } catch (error) {
+                    console.error('Error loading food details:', error);
+                    selectFood(monAnId, tenMonAn, 'g', 0, 0, 0, 0);
+                }
+            }
+        }
+
+        let pendingDeleteMealId = null;
+
+        function removeMeal(dinhDuongId) {
+            pendingDeleteMealId = dinhDuongId;
+            openDeleteConfirmDialog();
+        }
+
+        function openDeleteConfirmDialog() {
+            const dialog = document.getElementById('deleteConfirmDialog');
+            dialog.classList.add('show');
+        }
+
+        function closeDeleteConfirmDialog() {
+            const dialog = document.getElementById('deleteConfirmDialog');
+            dialog.classList.remove('show');
+            pendingDeleteMealId = null;
+        }
+
+        async function confirmDeleteMeal() {
+            if (!pendingDeleteMealId) return;
+            
+            const dinhDuongId = pendingDeleteMealId;
+            closeDeleteConfirmDialog();
             
             try {
                 const response = await fetch('/DinhDuong/RemoveFromNhatKy', {
@@ -1160,23 +1932,57 @@
                 
                 const result = await response.json();
                 if (result.success) {
-                    loadNutritionData();
+                    showNotification('Đã xóa món ăn khỏi nhật ký!', 'success');
+                    // Cập nhật UI động
+                    await updateNutritionUI();
                 } else {
-                    alert(result.message || 'Có lỗi xảy ra');
+                    showNotification(result.message || 'Có lỗi xảy ra', 'error');
                 }
             } catch (error) {
                 console.error('Error removing meal:', error);
-                alert('Có lỗi xảy ra khi xóa món ăn');
+                showNotification('Có lỗi xảy ra khi xóa món ăn', 'error');
             }
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('addMealModal');
-            if (event.target == modal) {
+            const addMealModal = document.getElementById('addMealModal');
+            const foodDetailDialog = document.getElementById('foodDetailDialog');
+            const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
+            
+            if (event.target == addMealModal) {
                 closeAddMealModal();
             }
+            
+            if (event.target == foodDetailDialog) {
+                closeFoodDetailDialog();
+            }
+            
+            if (event.target == deleteConfirmDialog) {
+                closeDeleteConfirmDialog();
+            }
         }
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const addMealModal = document.getElementById('addMealModal');
+                const foodDetailDialog = document.getElementById('foodDetailDialog');
+                const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
+                
+                if (addMealModal.classList.contains('show')) {
+                    closeAddMealModal();
+                }
+                
+                if (foodDetailDialog.classList.contains('show')) {
+                    closeFoodDetailDialog();
+                }
+                
+                if (deleteConfirmDialog.classList.contains('show')) {
+                    closeDeleteConfirmDialog();
+                }
+            }
+        });
     </script>
 }
 

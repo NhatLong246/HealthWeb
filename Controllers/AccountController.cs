@@ -132,10 +132,14 @@ namespace HealthWeb.Controllers
                     new Claim(ClaimTypes.Role, user.Role ?? "Client")
                 };
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                
+                // Nếu chọn "Ghi nhớ đăng nhập", cookie sẽ tồn tại 30 ngày, nếu không thì 1 giờ
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+                    ExpiresUtc = model.RememberMe 
+                        ? DateTimeOffset.UtcNow.AddDays(30) 
+                        : DateTimeOffset.UtcNow.AddHours(1)
                 };
 
                 await HttpContext.SignInAsync(
