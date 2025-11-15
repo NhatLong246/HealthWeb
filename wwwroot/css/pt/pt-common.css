@@ -14,8 +14,34 @@
     gap: 0.5rem !important;
 }
 
+/* Đảm bảo nút home hiển thị trong các trang PT */
 .home-btn {
-    display: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    background: rgba(78, 222, 128, 0.1) !important;
+    color: #4ade80 !important;
+    text-decoration: none !important;
+    transition: all 0.3s ease !important;
+    font-size: 1.1rem !important;
+    margin-left: 1rem !important;
+}
+
+.home-btn:hover {
+    background: rgba(78, 222, 128, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+body.light-mode .home-btn {
+    background: rgba(234, 88, 12, 0.1) !important;
+    color: #ea580c !important;
+}
+
+body.light-mode .home-btn:hover {
+    background: rgba(234, 88, 12, 0.2) !important;
 }
 
 .nav-links {

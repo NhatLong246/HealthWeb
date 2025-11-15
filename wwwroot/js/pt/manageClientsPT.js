@@ -149,6 +149,11 @@ async function openClientDetail(clientId) {
         }
 
         content.innerHTML = html;
+        
+        // Load workout plan after detail is loaded
+        if (typeof loadClientWorkoutPlan === 'function') {
+            loadClientWorkoutPlan(clientId);
+        }
     } catch (error) {
         console.error('Error loading client detail:', error);
         content.innerHTML = `
@@ -194,7 +199,8 @@ function getToken() {
 
 // Accept client request
 async function acceptClientRequest(requestId, clientId) {
-    if (!confirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?')) {
+    const confirmed = await customConfirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?', 'Xác nhận chấp nhận yêu cầu', 'question');
+    if (!confirmed) {
         return;
     }
 
@@ -213,16 +219,16 @@ async function acceptClientRequest(requestId, clientId) {
         const result = await response.json();
 
         if (result.success) {
-            alert(result.message);
+            showSuccess(result.message);
             // Đóng modal và reload trang để cập nhật danh sách với trạng thái mới
             closeClientDetail();
             window.location.reload();
         } else {
-            alert(result.message || 'Có lỗi xảy ra khi chấp nhận yêu cầu');
+            showError(result.message || 'Có lỗi xảy ra khi chấp nhận yêu cầu');
         }
     } catch (error) {
         console.error('Error accepting request:', error);
-        alert('Có lỗi xảy ra khi chấp nhận yêu cầu');
+        showError('Có lỗi xảy ra khi chấp nhận yêu cầu');
     }
 }
 
@@ -256,7 +262,7 @@ async function rejectClientRequest(requestId, clientId) {
     const reason = reasonInput?.value?.trim();
 
     if (!reason || reason === '') {
-        alert('Vui lòng nhập lý do từ chối');
+        showWarning('Vui lòng nhập lý do từ chối');
         return;
     }
 
@@ -276,16 +282,16 @@ async function rejectClientRequest(requestId, clientId) {
         const result = await response.json();
 
         if (result.success) {
-            alert(result.message);
+            showSuccess(result.message);
             // Đóng modal và reload trang để xóa client khỏi danh sách
             closeClientDetail();
             window.location.reload();
         } else {
-            alert(result.message || 'Có lỗi xảy ra khi từ chối yêu cầu');
+            showError(result.message || 'Có lỗi xảy ra khi từ chối yêu cầu');
         }
     } catch (error) {
         console.error('Error rejecting request:', error);
-        alert('Có lỗi xảy ra khi từ chối yêu cầu');
+        showError('Có lỗi xảy ra khi từ chối yêu cầu');
     }
 }
 

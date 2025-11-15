@@ -182,5 +182,18 @@
             </div>
         </div>
     }
+
+    <!-- Workout Plan Section -->
+    <div class="detail-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4><i class="fas fa-dumbbell"></i> Kế Hoạch Tập Luyện</h4>
+            <button class="btn-primary" onclick="openWorkoutPlanModal('@(model.Id)', '@(model.Goal ?? "")')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <i class="fas fa-plus"></i> Sắp xếp bài tập
+            </button>
+        </div>
+        <div id="workoutPlanContent_@(model.Id)">
+            <p style="opacity: 0.6; margin: 1rem 0;">Chưa có kế hoạch tập luyện</p>
+        </div>
+    </div>
 </div>
 
