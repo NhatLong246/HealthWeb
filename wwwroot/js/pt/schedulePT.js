@@ -32,5 +32,5 @@ function switchView(view) {
 function viewBooking(clientName) {
     // TODO: Open booking details modal
     console.log('View booking for:', clientName);
-    alert('Chi tiết lịch hẹn cho: ' + clientName);
+        customAlert('Chi tiết lịch hẹn cho: ' + clientName, 'Thông tin lịch hẹn', 'info');
 }

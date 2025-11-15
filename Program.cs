@@ -67,6 +67,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 
 var app = builder.Build();
 

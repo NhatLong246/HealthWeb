@@ -135,9 +135,6 @@
                                     <button onclick="openClientDetail('@client.Id')" class="action-btn btn-primary">
                                         <i class="fas fa-eye"></i> Xem
                                     </button>
-                                    <a href="/PT/ClientSchedule/@client.Id" class="action-btn btn-secondary">
-                                        <i class="fas fa-calendar"></i> Lịch
-                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -176,6 +173,67 @@
     </div>
 </div>
 
+<!-- Workout Plan Modal -->
+<div id="workoutPlanModal" class="workout-plan-modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeWorkoutPlanModal()"></div>
+    <div class="modal-content workout-plan-modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-dumbbell"></i> Sắp Xếp Bài Tập</h2>
+            <button class="modal-close" onclick="closeWorkoutPlanModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="workoutPlanClientId">
+            <div class="form-group">
+                <label><i class="fas fa-bullseye"></i> Mục tiêu của khách hàng</label>
+                <input type="text" id="workoutPlanGoal" readonly class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-list"></i> Chọn từ template (tùy chọn)</label>
+                <select id="workoutPlanTemplate" class="form-control" onchange="loadTemplateExercises()">
+                    <option value="">-- Chọn template hoặc tạo mới --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-clipboard-list"></i> Tên kế hoạch <span class="required">*</span></label>
+                <input type="text" id="workoutPlanName" class="form-control" placeholder="VD: Kế hoạch tập luyện 4 tuần">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label><i class="fas fa-calendar-week"></i> Số tuần <span class="required">*</span></label>
+                    <input type="number" id="workoutPlanWeeks" class="form-control" min="1" max="52" value="4">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label><i class="fas fa-calendar-day"></i> Số buổi/tuần <span class="required">*</span></label>
+                    <input type="number" id="workoutPlanSessionsPerWeek" class="form-control" min="1" max="7" value="3">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-dumbbell"></i> Danh sách bài tập</label>
+                <div id="workoutExercisesList" class="exercises-list">
+                    <!-- Exercises will be added here -->
+                </div>
+                <button type="button" class="btn-secondary" onclick="addExerciseRow()" style="margin-top: 1rem;">
+                    <i class="fas fa-plus"></i> Thêm bài tập
+                </button>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeWorkoutPlanModal()">Hủy</button>
+                <button type="button" class="btn-primary" onclick="saveWorkoutPlan()">
+                    <i class="fas fa-save"></i> Lưu kế hoạch
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 <script src="~/js/pt/manageClientsPT.js"></script>
+<script src="~/js/pt/workoutPlanPT.js"></script>
 
