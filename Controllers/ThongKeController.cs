@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HealthWeb.Models.EF;
 using HealthWeb.Models.Entities;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HealthWeb.Controllers
 {
@@ -20,6 +21,12 @@ namespace HealthWeb.Controllers
         [Route("/ThongKe")]
         public IActionResult Index()
         {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                ViewData["RequireLogin"] = true;
+                ViewData["LoginMessage"] = "Vui lòng đăng nhập để sử dụng tính năng này.";
+            }
             return View("ThongKe");
         }
 

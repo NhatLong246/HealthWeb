@@ -61,11 +61,10 @@ public class UserAdminService : IUserAdminService
                 ? Math.Round(goalProgressValues.Average(), 2)
                 : 0;
 
+            // Đếm tổng số cảnh báo sức khỏe (tổng số bản ghi có BenhId, không phải số user)
             var totalHealthAlerts = await _context.LuuTruSucKhoes
                 .AsNoTracking()
                 .Where(l => !string.IsNullOrWhiteSpace(l.BenhId) && clientUserIds.Contains(l.UserId))
-                .Select(l => l.UserId)
-                .Distinct()
                 .CountAsync(cancellationToken);
 
             var totalExercises = await _context.NhatKyHoanThanhBaiTaps

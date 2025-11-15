@@ -19,7 +19,6 @@ namespace HealthWeb.Controllers
     {
         public string DinhDuongId { get; set; } = null!;
     }
-    [Authorize]
     public class DinhDuongController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -38,7 +37,9 @@ namespace HealthWeb.Controllers
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToAction("Login", "Account");
+                ViewData["RequireLogin"] = true;
+                ViewData["LoginMessage"] = "Vui lòng đăng nhập để sử dụng tính năng này.";
+                return View("DinhDuong");
             }
 
             // Mặc định là ngày hôm nay

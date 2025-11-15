@@ -49,12 +49,6 @@ function loadSidebar() {
                             <span>Quản lý giao dịch</span>
                         </a>
                     </li>
-                    <li class="nav-item ${currentPage === 'hethongbaomat' ? 'active' : ''}">
-                        <a href="/Admin/HeThongBaoMat" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            <span>Hệ thống & bảo mật</span>
-                        </a>
-                    </li>
                 </ul>
             </nav>
             
@@ -150,7 +144,6 @@ function getCurrentPage() {
     if (filename.includes('quanlibaitap')) return 'quanlibaitap';
     if (filename.includes('quanlidinhduong')) return 'quanlidinhduong';
     if (filename.includes('quanligiaodich')) return 'quanligiaodich';
-    if (filename.includes('hethongbaomat')) return 'hethongbaomat';
 
     return 'thongke';
 }

@@ -246,7 +246,18 @@ public class NutritionAdminService : INutritionAdminService
             return null;
         }
 
-        return input.Trim();
+        var trimmed = input.Trim();
+        
+        // Đảm bảo URL hợp lệ (có thể là URL từ Unsplash hoặc đường dẫn local)
+        if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+        
+        // Nếu không phải URL hợp lệ, trả về null
+        return null;
     }
 }
 
