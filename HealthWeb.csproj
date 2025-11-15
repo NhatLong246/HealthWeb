@@ -13,10 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="BookReaderWebApp\**" />
-    <Content Remove="BookReaderWebApp\**" />
-    <EmbeddedResource Remove="BookReaderWebApp\**" />
-    <None Remove="BookReaderWebApp\**" />
+    <Compile Remove="HealthWeb\**" />
+    <Content Remove="HealthWeb\**" />
+    <EmbeddedResource Remove="HealthWeb\**" />
+    <None Remove="HealthWeb\**" />
   </ItemGroup>
 
   <ItemGroup>
