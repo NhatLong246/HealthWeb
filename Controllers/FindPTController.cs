@@ -113,8 +113,15 @@ namespace HealthWeb.Controllers
             }
         }
 
-        // API: Lấy danh sách yêu cầu của user
+        // GET: /FindPT/MyRequests - Trang hiển thị yêu cầu của user
         [HttpGet("FindPT/MyRequests")]
+        public IActionResult MyRequests()
+        {
+            return View();
+        }
+
+        // API: Lấy danh sách yêu cầu của user
+        [HttpGet("FindPT/MyRequests/Data")]
         public async Task<IActionResult> GetMyRequests()
         {
             try

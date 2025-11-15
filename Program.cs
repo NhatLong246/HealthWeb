@@ -67,6 +67,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IZaloPayService, ZaloPayService>();
+builder.Services.AddScoped<IMoMoService, MoMoService>();
 
 var app = builder.Build();
 
