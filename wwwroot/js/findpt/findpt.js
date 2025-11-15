@@ -5,30 +5,36 @@ let currentUserId = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load userId from server session
-    await loadUserId();
-    
-    // Setup day checkboxes
-    setupDayCheckboxes();
-    
-    loadPTs();
-    
-    // Search on Enter key
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchPTs();
+    try {
+        // Load userId from server session
+        await loadUserId();
+        
+        // Load PTs
+        loadPTs();
+        
+        // Search on Enter key
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchPTs();
+                }
+            });
         }
-    });
-    
-    // Auto search on filter change
-    const filters = ['locationFilter', 'specializationFilter', 'maxPriceFilter', 'minExperienceFilter'];
-    filters.forEach(filterId => {
-        const element = document.getElementById(filterId);
-        if (element) {
-            element.addEventListener('change', debounce(searchPTs, 500));
-            element.addEventListener('input', debounce(searchPTs, 500));
-        }
-    });
+        
+        // Auto search on filter change
+        const filters = ['locationFilter', 'specializationFilter'];
+        filters.forEach(filterId => {
+            const element = document.getElementById(filterId);
+            if (element) {
+                element.addEventListener('change', debounce(searchPTs, 500));
+                element.addEventListener('input', debounce(searchPTs, 500));
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing page:', error);
+        showError('Có lỗi xảy ra khi khởi tạo trang');
+    }
 });
 
 // Load userId from server session
@@ -65,29 +71,43 @@ function debounce(func, wait) {
 
 // Load PTs
 async function loadPTs() {
-    showLoading();
-    hideEmptyState();
-    
     try {
-        const search = document.getElementById('searchInput').value.trim();
-        const location = document.getElementById('locationFilter').value;
-        const specialization = document.getElementById('specializationFilter').value;
-        const maxPrice = document.getElementById('maxPriceFilter').value ? parseFloat(document.getElementById('maxPriceFilter').value) : null;
-        const minExperience = document.getElementById('minExperienceFilter').value ? parseInt(document.getElementById('minExperienceFilter').value) : null;
+        showLoading();
+        hideEmptyState();
         
-        const response = await fetch(`/FindPT/Search?search=${encodeURIComponent(search || '')}&location=${encodeURIComponent(location || '')}&specialization=${encodeURIComponent(specialization || '')}&maxPrice=${maxPrice || ''}&minExperience=${minExperience || ''}`);
+        const searchInput = document.getElementById('searchInput');
+        const locationFilter = document.getElementById('locationFilter');
+        const specializationFilter = document.getElementById('specializationFilter');
+        
+        const search = searchInput ? searchInput.value.trim() : '';
+        const location = locationFilter ? locationFilter.value : '';
+        const specialization = specializationFilter ? specializationFilter.value : '';
+        
+        const response = await fetch(`/FindPT/Search?search=${encodeURIComponent(search || '')}&location=${encodeURIComponent(location || '')}&specialization=${encodeURIComponent(specialization || '')}`, {
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
-            currentPTs = data.data;
+            currentPTs = data.data || [];
             renderPTs(currentPTs);
             updateResultsCount(currentPTs.length);
+            updateActiveFilters(search, location, specialization);
         } else {
             showError(data.message || 'Không thể tải danh sách huấn luyện viên');
+            currentPTs = [];
+            renderPTs([]);
         }
     } catch (error) {
         console.error('Error loading PTs:', error);
-        showError('Có lỗi xảy ra khi tải danh sách');
+        showError('Có lỗi xảy ra khi tải danh sách: ' + error.message);
+        currentPTs = [];
+        renderPTs([]);
     } finally {
         hideLoading();
     }
@@ -100,17 +120,57 @@ function searchPTs() {
 
 // Clear filters
 function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('locationFilter').value = '';
-    document.getElementById('specializationFilter').value = '';
-    document.getElementById('maxPriceFilter').value = '';
-    document.getElementById('minExperienceFilter').value = '';
+    const searchInput = document.getElementById('searchInput');
+    const locationFilter = document.getElementById('locationFilter');
+    const specializationFilter = document.getElementById('specializationFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (locationFilter) locationFilter.value = '';
+    if (specializationFilter) specializationFilter.value = '';
+    
+    // Clear active filters display
+    updateActiveFilters('', '', '');
+    
     loadPTs();
+}
+
+// Generate avatar placeholder with gradient
+function generateAvatarPlaceholder(name, className = 'pt-avatar') {
+    const initial = name ? name.charAt(0).toUpperCase() : '?';
+    return `<div class="${className} pt-avatar-placeholder" title="${escapeHtml(name)}">
+        <span class="pt-avatar-initial">${initial}</span>
+    </div>`;
+}
+
+// Generate avatar HTML (with gradient placeholder if no avatar)
+function generateAvatarHTML(avatar, name, className = 'pt-avatar') {
+    // Check if avatar is valid
+    if (avatar && avatar !== '/images/default-avatar.png' && avatar !== '' && avatar !== null && avatar !== undefined) {
+        // Return img tag - we'll handle error with event listener after render
+        return `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" class="${className}" data-pt-name="${escapeHtml(name)}" data-pt-class="${className}">`;
+    }
+    return generateAvatarPlaceholder(name, className);
+}
+
+// Setup avatar error handlers after rendering
+function setupAvatarErrorHandlers() {
+    document.querySelectorAll('.pt-avatar[data-pt-name], .pt-detail-avatar[data-pt-name]').forEach(img => {
+        img.addEventListener('error', function() {
+            const name = this.getAttribute('data-pt-name');
+            const className = this.getAttribute('data-pt-class') || 'pt-avatar';
+            this.outerHTML = generateAvatarPlaceholder(name, className);
+        });
+    });
 }
 
 // Render PTs
 function renderPTs(pts) {
     const grid = document.getElementById('ptCardsGrid');
+    
+    if (!grid) {
+        console.error('ptCardsGrid element not found');
+        return;
+    }
     
     if (!pts || pts.length === 0) {
         grid.innerHTML = '';
@@ -120,58 +180,84 @@ function renderPTs(pts) {
     
     hideEmptyState();
     
-    grid.innerHTML = pts.map(pt => `
-        <div class="pt-card">
-            <div class="pt-card-header">
-                <img src="${pt.avatar}" alt="${pt.name}" class="pt-avatar" onerror="this.src='/images/default-avatar.png'">
-                <div class="pt-info">
-                    <h3>${escapeHtml(pt.name)}</h3>
-                    <span class="pt-username">@${escapeHtml(pt.username)}</span>
-                </div>
-                ${pt.verified ? '<span class="pt-verified"><i class="fas fa-check-circle"></i> Đã xác minh</span>' : ''}
-            </div>
+    try {
+        grid.innerHTML = pts.map(pt => {
+            // Handle both camelCase and PascalCase
+            const name = escapeHtml(pt.name || pt.Name || 'Không có tên');
+            const username = escapeHtml(pt.username || pt.Username || '');
+            const avatar = pt.avatar || pt.Avatar || '';
+            const specialization = escapeHtml(pt.specialization || pt.Specialization || 'Chưa có');
+            const experience = pt.experience || pt.Experience || 0;
+            const reviewCount = pt.reviewCount || pt.ReviewCount || 0;
+            const currentClients = pt.currentClients || pt.CurrentClients || 0;
+            const rating = pt.rating || pt.Rating || 0;
+            const pricePerHour = pt.pricePerHour || pt.PricePerHour || 0;
+            const ptId = pt.ptId || pt.PtId || pt.id || pt.Id || '';
+            const verified = pt.verified || pt.Verified || false;
+            const available = pt.available !== false && pt.Available !== false;
             
-            <div class="pt-specialization">
-                <i class="fas fa-dumbbell"></i>
-                <span>${escapeHtml(pt.specialization)}</span>
-            </div>
-            
-            <div class="pt-stats">
-                <div class="pt-stat">
-                    <div class="pt-stat-value">${pt.experience}</div>
-                    <div class="pt-stat-label">Năm kinh nghiệm</div>
+            return `
+                <div class="pt-card">
+                    <div class="pt-card-header">
+                        ${generateAvatarHTML(avatar, name, 'pt-avatar')}
+                        <div class="pt-info">
+                            <h3>${name}</h3>
+                            <span class="pt-username">@${username}</span>
+                        </div>
+                        ${verified ? '<span class="pt-verified"><i class="fas fa-check-circle"></i> Đã xác minh</span>' : ''}
+                    </div>
+                    
+                    <div class="pt-specialization">
+                        <i class="fas fa-dumbbell"></i>
+                        <span>${specialization}</span>
+                    </div>
+                    
+                    <div class="pt-stats">
+                        <div class="pt-stat">
+                            <div class="pt-stat-value">${experience}</div>
+                            <div class="pt-stat-label">Năm kinh nghiệm</div>
+                        </div>
+                        <div class="pt-stat">
+                            <div class="pt-stat-value">${reviewCount}</div>
+                            <div class="pt-stat-label">Đánh giá</div>
+                        </div>
+                        <div class="pt-stat">
+                            <div class="pt-stat-value">${currentClients}</div>
+                            <div class="pt-stat-label">Khách hàng</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-rating">
+                        <div class="pt-rating-stars">
+                            ${generateStars(rating)}
+                        </div>
+                        <span class="pt-rating-text">${rating.toFixed(1)} (${reviewCount} đánh giá)</span>
+                    </div>
+                    
+                    <div class="pt-price">
+                        ${formatPrice(pricePerHour)}/giờ
+                    </div>
+                    
+                    <div class="pt-card-footer">
+                        <button class="btn-view-details" onclick="viewPTDetails('${escapeHtml(ptId)}')">
+                            <i class="fas fa-info-circle"></i> Chi tiết
+                        </button>
+                        <button class="btn-request" onclick="openRequestModal('${escapeHtml(ptId)}')" ${!available ? 'disabled' : ''}>
+                            <i class="fas fa-paper-plane"></i> Gửi yêu cầu
+                        </button>
+                    </div>
                 </div>
-                <div class="pt-stat">
-                    <div class="pt-stat-value">${pt.reviewCount || 0}</div>
-                    <div class="pt-stat-label">Đánh giá</div>
-                </div>
-                <div class="pt-stat">
-                    <div class="pt-stat-value">${pt.currentClients || 0}</div>
-                    <div class="pt-stat-label">Khách hàng</div>
-                </div>
-            </div>
-            
-            <div class="pt-rating">
-                <div class="pt-rating-stars">
-                    ${generateStars(pt.rating)}
-                </div>
-                <span class="pt-rating-text">${pt.rating.toFixed(1)} (${pt.reviewCount || 0} đánh giá)</span>
-            </div>
-            
-            <div class="pt-price">
-                ${formatPrice(pt.pricePerHour)}/giờ
-            </div>
-            
-            <div class="pt-card-footer">
-                <button class="btn-view-details" onclick="viewPTDetails('${pt.ptId}')">
-                    <i class="fas fa-info-circle"></i> Chi tiết
-                </button>
-                <button class="btn-request" onclick="openRequestModal('${pt.ptId}')" ${!pt.available ? 'disabled' : ''}>
-                    <i class="fas fa-paper-plane"></i> Gửi yêu cầu
-                </button>
-            </div>
-        </div>
-    `).join('');
+            `;
+        }).join('');
+        
+        // Setup error handlers for avatars after rendering
+        setupAvatarErrorHandlers();
+    } catch (error) {
+        console.error('Error rendering PTs:', error);
+        grid.innerHTML = '';
+        showError('Có lỗi xảy ra khi hiển thị danh sách');
+        showEmptyState();
+    }
 }
 
 // Generate stars
@@ -207,11 +293,11 @@ async function viewPTDetails(ptId) {
             renderPTDetail(currentPTDetail);
             document.getElementById('ptDetailModal').style.display = 'block';
         } else {
-            alert(data.message || 'Không thể tải thông tin huấn luyện viên');
+            await customAlert(data.message || 'Không thể tải thông tin huấn luyện viên', 'Lỗi', 'error');
         }
     } catch (error) {
         console.error('Error loading PT details:', error);
-        alert('Có lỗi xảy ra khi tải thông tin');
+        await customAlert('Có lỗi xảy ra khi tải thông tin', 'Lỗi', 'error');
     }
 }
 
@@ -222,7 +308,7 @@ function renderPTDetail(pt) {
     content.innerHTML = `
         <div class="pt-detail-header">
             <div class="pt-detail-avatar-wrapper">
-                <img src="${pt.avatar}" alt="${pt.name}" class="pt-detail-avatar" onerror="this.src='/images/default-avatar.png'">
+                ${generateAvatarHTML(pt.avatar, pt.name, 'pt-detail-avatar')}
             </div>
             <div class="pt-detail-info">
                 <div class="pt-detail-name-row">
@@ -325,6 +411,9 @@ function renderPTDetail(pt) {
             </button>
         </div>
     `;
+    
+    // Setup error handler for detail avatar
+    setupAvatarErrorHandlers();
 }
 
 // Open Request Modal
@@ -336,63 +425,99 @@ function openRequestModal(ptId) {
     document.getElementById('requestGoal').value = '';
     document.getElementById('requestNotes').value = '';
     
-    // Reset all day checkboxes and hide time slots
-    document.querySelectorAll('.day-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-        const day = checkbox.id.replace('day-', '');
-        const timeSlots = document.getElementById(`time-${day}`);
-        if (timeSlots) {
-            timeSlots.style.display = 'none';
-        }
-        const daySelector = checkbox.closest('.day-selector');
-        if (daySelector) {
-            daySelector.classList.remove('active');
-        }
-    });
-    
-    // Setup day checkbox event listeners
-    setupDayCheckboxes();
+    // Reset date schedule container
+    const dateContainer = document.getElementById('dateScheduleContainer');
+    if (dateContainer) {
+        dateContainer.innerHTML = '';
+    }
     
     document.getElementById('requestModal').style.display = 'block';
 }
 
-// Setup day checkbox event listeners
-function setupDayCheckboxes() {
-    document.querySelectorAll('.day-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const day = this.id.replace('day-', '');
-            const timeSlots = document.getElementById(`time-${day}`);
-            const daySelector = this.closest('.day-selector');
-            
-            if (this.checked) {
-                if (timeSlots) {
-                    timeSlots.style.display = 'flex';
-                }
-                if (daySelector) {
-                    daySelector.classList.add('active');
-                }
-            } else {
-                if (timeSlots) {
-                    timeSlots.style.display = 'none';
-                }
-                if (daySelector) {
-                    daySelector.classList.remove('active');
-                }
-                // Clear time inputs
-                const dayName = day.charAt(0).toUpperCase() + day.slice(1);
-                const startInput = timeSlots?.querySelector(`.time-start[data-day="${dayName}"]`);
-                const endInput = timeSlots?.querySelector(`.time-end[data-day="${dayName}"]`);
-                if (startInput) startInput.value = '';
-                if (endInput) endInput.value = '';
-            }
+// Add date schedule item
+let dateScheduleCounter = 0;
+function addDateSchedule() {
+    const container = document.getElementById('dateScheduleContainer');
+    if (!container) return;
+    
+    dateScheduleCounter++;
+    const scheduleId = `schedule-${dateScheduleCounter}`;
+    
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    
+    const scheduleItem = document.createElement('div');
+    scheduleItem.className = 'date-schedule-item';
+    scheduleItem.id = scheduleId;
+    scheduleItem.innerHTML = `
+        <div class="date-schedule-header">
+            <div class="date-schedule-date">
+                <label><i class="fas fa-calendar"></i> Chọn ngày</label>
+                <input type="date" class="schedule-date-input" min="${minDate}" required>
+            </div>
+            <button type="button" class="btn-remove-date" onclick="removeDateSchedule('${scheduleId}')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="date-schedule-times">
+            <div class="time-slot">
+                <label><i class="fas fa-clock"></i> Giờ bắt đầu</label>
+                <input type="time" class="schedule-time-start" required>
+            </div>
+            <div class="time-slot">
+                <label><i class="fas fa-clock"></i> Giờ kết thúc</label>
+                <input type="time" class="schedule-time-end" required>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(scheduleItem);
+    
+    // Add validation for time inputs
+    const startInput = scheduleItem.querySelector('.schedule-time-start');
+    const endInput = scheduleItem.querySelector('.schedule-time-end');
+    
+    if (startInput && endInput) {
+        startInput.addEventListener('change', function() {
+            validateTimeRange(this, endInput);
         });
-    });
+        endInput.addEventListener('change', function() {
+            validateTimeRange(startInput, this);
+        });
+    }
+}
+
+// Remove date schedule item
+function removeDateSchedule(scheduleId) {
+    const item = document.getElementById(scheduleId);
+    if (item) {
+        item.remove();
+    }
+}
+
+// Validate time range
+function validateTimeRange(startInput, endInput) {
+    if (startInput.value && endInput.value) {
+        if (startInput.value >= endInput.value) {
+            showWarning('Giờ kết thúc phải sau giờ bắt đầu');
+            endInput.value = '';
+        }
+    }
 }
 
 // Close Request Modal
 function closeRequestModal() {
     document.getElementById('requestModal').style.display = 'none';
     document.getElementById('requestForm').reset();
+    // Reset date schedule container and counter
+    const dateContainer = document.getElementById('dateScheduleContainer');
+    if (dateContainer) {
+        dateContainer.innerHTML = '';
+    }
+    dateScheduleCounter = 0;
 }
 
 // Close PT Detail Modal
@@ -410,54 +535,61 @@ async function submitRequest(event) {
     
     // Validate goal
     if (!goal) {
-        alert('Vui lòng chọn mục tiêu luyện tập');
+        showWarning('Vui lòng chọn mục tiêu luyện tập');
         return;
     }
     
-    // Collect selected days and times
+    // Collect selected dates and times
     const selectedSchedules = [];
-    const dayMap = {
-        'monday': 'Monday',
-        'tuesday': 'Tuesday',
-        'wednesday': 'Wednesday',
-        'thursday': 'Thursday',
-        'friday': 'Friday',
-        'saturday': 'Saturday',
-        'sunday': 'Sunday'
-    };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    document.querySelectorAll('.day-checkbox:checked').forEach(checkbox => {
-        const dayId = checkbox.id.replace('day-', '');
-        const dayName = dayMap[dayId];
-        const timeSlots = document.getElementById(`time-${dayId}`);
+    document.querySelectorAll('.date-schedule-item').forEach(item => {
+        const dateInput = item.querySelector('.schedule-date-input');
+        const startInput = item.querySelector('.schedule-time-start');
+        const endInput = item.querySelector('.schedule-time-end');
         
-        if (timeSlots) {
-            const startInput = timeSlots.querySelector(`.time-start[data-day="${dayName}"]`);
-            const endInput = timeSlots.querySelector(`.time-end[data-day="${dayName}"]`);
-            
-            const startTime = startInput?.value;
-            const endTime = endInput?.value;
-            
-            if (!startTime || !endTime) {
-                alert(`Vui lòng nhập đầy đủ thời gian cho ${dayName === 'Monday' ? 'Thứ 2' : dayName === 'Tuesday' ? 'Thứ 3' : dayName === 'Wednesday' ? 'Thứ 4' : dayName === 'Thursday' ? 'Thứ 5' : dayName === 'Friday' ? 'Thứ 6' : dayName === 'Saturday' ? 'Thứ 7' : 'Chủ nhật'}`);
-                return;
-            }
-            
-            if (startTime >= endTime) {
-                alert(`Giờ kết thúc phải sau giờ bắt đầu cho ${dayName === 'Monday' ? 'Thứ 2' : dayName === 'Tuesday' ? 'Thứ 3' : dayName === 'Wednesday' ? 'Thứ 4' : dayName === 'Thursday' ? 'Thứ 5' : dayName === 'Friday' ? 'Thứ 6' : dayName === 'Saturday' ? 'Thứ 7' : 'Chủ nhật'}`);
-                return;
-            }
-            
-            selectedSchedules.push({
-                day: dayName,
-                startTime: startTime,
-                endTime: endTime
-            });
+        const selectedDate = dateInput?.value;
+        const startTime = startInput?.value;
+        const endTime = endInput?.value;
+        
+        if (!selectedDate) {
+            showWarning('Vui lòng chọn ngày cho tất cả các mục đã thêm');
+            return;
         }
+        
+        // Validate date is after today
+        const dateObj = new Date(selectedDate);
+        dateObj.setHours(0, 0, 0, 0);
+        if (dateObj <= today) {
+            showWarning('Ngày được chọn phải sau ngày hiện tại');
+            return;
+        }
+        
+        if (!startTime || !endTime) {
+            showWarning('Vui lòng nhập đầy đủ giờ bắt đầu và giờ kết thúc');
+            return;
+        }
+        
+        if (startTime >= endTime) {
+            showWarning('Giờ kết thúc phải sau giờ bắt đầu');
+            return;
+        }
+        
+        // Get day of week from date
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayOfWeek = dayNames[dateObj.getDay()];
+        
+        selectedSchedules.push({
+            date: selectedDate,
+            day: dayOfWeek,
+            startTime: startTime,
+            endTime: endTime
+        });
     });
     
     if (selectedSchedules.length === 0) {
-        alert('Vui lòng chọn ít nhất một ngày và nhập thời gian rảnh');
+        showWarning('Vui lòng thêm ít nhất một ngày và nhập thời gian rảnh');
         return;
     }
     
@@ -482,7 +614,8 @@ async function submitRequest(event) {
     }
     
     if (!userId) {
-        alert('Vui lòng đăng nhập để gửi yêu cầu');
+        // Hiển thị dialog cho cảnh báo quan trọng
+        await customAlert('Vui lòng đăng nhập để gửi yêu cầu', 'Yêu cầu đăng nhập', 'warning');
         window.location.href = '/Account/Login';
         return;
     }
@@ -506,14 +639,16 @@ async function submitRequest(event) {
         const data = await response.json();
         
         if (data.success) {
-            alert(data.message || 'Đã gửi yêu cầu thành công!');
+            // Hiển thị dialog thay vì toast cho thông báo quan trọng
+            await customAlert(data.message || 'Đã gửi yêu cầu thành công!', 'Thành công', 'success');
             closeRequestModal();
         } else {
-            alert(data.message || 'Có lỗi xảy ra khi gửi yêu cầu');
+            // Hiển thị dialog cho lỗi quan trọng
+            await customAlert(data.message || 'Có lỗi xảy ra khi gửi yêu cầu', 'Lỗi', 'error');
         }
     } catch (error) {
         console.error('Error submitting request:', error);
-        alert('Có lỗi xảy ra khi gửi yêu cầu');
+        await customAlert('Có lỗi xảy ra khi gửi yêu cầu', 'Lỗi', 'error');
     }
 }
 
@@ -591,31 +726,97 @@ function formatAvailableHours(availableHours) {
 }
 
 function updateResultsCount(count) {
-    document.getElementById('resultsCount').textContent = `Tìm thấy ${count} huấn luyện viên`;
+    const resultsCount = document.getElementById('resultsCount');
+    if (resultsCount) {
+        resultsCount.textContent = `Tìm thấy ${count} huấn luyện viên`;
+    }
+}
+
+// Update active filters display
+function updateActiveFilters(search, location, specialization) {
+    const activeFiltersDisplay = document.getElementById('activeFiltersDisplay');
+    const activeFiltersList = document.getElementById('activeFiltersList');
+    
+    if (!activeFiltersDisplay || !activeFiltersList) return;
+    
+    const filters = [];
+    
+    if (search && search.trim()) {
+        filters.push({
+            type: 'search',
+            label: 'Tìm kiếm',
+            value: search.trim(),
+            icon: 'fa-search'
+        });
+    }
+    
+    if (location && location.trim()) {
+        filters.push({
+            type: 'location',
+            label: 'Thành phố',
+            value: location.trim(),
+            icon: 'fa-map-marker-alt'
+        });
+    }
+    
+    if (specialization && specialization.trim()) {
+        filters.push({
+            type: 'specialization',
+            label: 'Chuyên môn',
+            value: specialization.trim(),
+            icon: 'fa-dumbbell'
+        });
+    }
+    
+    if (filters.length > 0) {
+        activeFiltersList.innerHTML = filters.map(filter => `
+            <span class="active-filter-tag">
+                <i class="fas ${filter.icon}"></i>
+                <span class="filter-label">${escapeHtml(filter.label)}:</span>
+                <span class="filter-value">${escapeHtml(filter.value)}</span>
+            </span>
+        `).join('');
+        activeFiltersDisplay.style.display = 'flex';
+    } else {
+        activeFiltersDisplay.style.display = 'none';
+        activeFiltersList.innerHTML = '';
+    }
 }
 
 function showLoading() {
-    document.getElementById('loadingState').style.display = 'block';
-    document.getElementById('ptCardsGrid').style.display = 'none';
+    const loadingState = document.getElementById('loadingState');
+    const ptCardsGrid = document.getElementById('ptCardsGrid');
+    if (loadingState) loadingState.style.display = 'block';
+    if (ptCardsGrid) ptCardsGrid.style.display = 'none';
 }
 
 function hideLoading() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('ptCardsGrid').style.display = 'grid';
+    const loadingState = document.getElementById('loadingState');
+    const ptCardsGrid = document.getElementById('ptCardsGrid');
+    if (loadingState) loadingState.style.display = 'none';
+    if (ptCardsGrid) ptCardsGrid.style.display = 'grid';
 }
 
 function showEmptyState() {
-    document.getElementById('emptyState').style.display = 'block';
-    document.getElementById('ptCardsGrid').style.display = 'none';
+    const emptyState = document.getElementById('emptyState');
+    const ptCardsGrid = document.getElementById('ptCardsGrid');
+    if (emptyState) emptyState.style.display = 'block';
+    if (ptCardsGrid) ptCardsGrid.style.display = 'none';
 }
 
 function hideEmptyState() {
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('ptCardsGrid').style.display = 'grid';
+    const emptyState = document.getElementById('emptyState');
+    const ptCardsGrid = document.getElementById('ptCardsGrid');
+    if (emptyState) emptyState.style.display = 'none';
+    if (ptCardsGrid) ptCardsGrid.style.display = 'grid';
 }
 
 function showError(message) {
-    alert(message);
+    if (typeof showToast === 'function') {
+        showToast(message, 'error');
+    } else if (typeof window.showError === 'function') {
+        window.showError(message);
+    }
 }
 
 // Close modals when clicking outside

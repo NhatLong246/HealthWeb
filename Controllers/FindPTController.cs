@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using HealthWeb.Services;
+using HealthWeb.Models.EF;
 
 namespace HealthWeb.Controllers
 {
@@ -7,17 +9,28 @@ namespace HealthWeb.Controllers
     {
         private readonly IFindPTService _findPTService;
         private readonly ILogger<FindPTController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public FindPTController(IFindPTService findPTService, ILogger<FindPTController> logger)
+        public FindPTController(IFindPTService findPTService, ILogger<FindPTController> logger, ApplicationDbContext context)
         {
             _findPTService = findPTService;
             _logger = logger;
+            _context = context;
         }
 
         // GET: /FindPT - Giao diện tìm kiếm PT
         [HttpGet("FindPT")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            // Lấy danh sách mục tiêu DISTINCT từ bảng MauTapLuyen
+            var danhSachMucTieu = await _context.MauTapLuyens
+                .Where(m => !string.IsNullOrEmpty(m.MucTieu) && (m.CongKhai == true || m.DaXacThuc == true))
+                .Select(m => m.MucTieu!)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToListAsync();
+
+            ViewBag.DanhSachMucTieu = danhSachMucTieu;
             return View();
         }
 

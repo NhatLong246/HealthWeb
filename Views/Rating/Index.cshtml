@@ -1,0 +1,85 @@
+@model HealthWeb.Models.ViewModels.RatingViewModel
+@{
+    ViewData["Title"] = "Đánh giá sau buổi tập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="rating-page">
+    <div class="rating-header">
+        <h1><i class="fas fa-star"></i> Đánh giá sau buổi tập</h1>
+        <p class="subtitle">Hãy chia sẻ trải nghiệm của bạn sau mỗi buổi tập với huấn luyện viên</p>
+    </div>
+
+    <div class="rating-content">
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <i class="fas fa-history"></i>
+            <h3>Chưa có lịch sử buổi tập</h3>
+            <p>Lịch sử các buổi tập của bạn sẽ hiển thị ở đây.</p>
+        </div>
+
+        <!-- Sessions List -->
+        <div class="sessions-list" id="sessionsList">
+            <!-- Sessions will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Rating Modal -->
+<div class="modal" id="ratingModal">
+    <div class="modal-content rating-modal-content">
+        <span class="close" onclick="closeRatingModal()">&times;</span>
+        <div class="rating-modal-header">
+            <h2><i class="fas fa-star"></i> Đánh giá buổi tập</h2>
+        </div>
+        <div class="rating-modal-body">
+            <div class="pt-info" id="ratingPtInfo">
+                <!-- PT info will be loaded here -->
+            </div>
+            
+            <form id="ratingForm" onsubmit="submitRating(event)">
+                <input type="hidden" id="ratingPtId" name="ptId">
+                <input type="hidden" id="ratingBookingId" name="bookingId">
+                
+                <div class="form-group">
+                    <label><i class="fas fa-star"></i> Đánh giá (1-5 sao)</label>
+                    <div class="star-rating" id="starRating">
+                        <span class="star" data-rating="1"><i class="far fa-star"></i></span>
+                        <span class="star" data-rating="2"><i class="far fa-star"></i></span>
+                        <span class="star" data-rating="3"><i class="far fa-star"></i></span>
+                        <span class="star" data-rating="4"><i class="far fa-star"></i></span>
+                        <span class="star" data-rating="5"><i class="far fa-star"></i></span>
+                    </div>
+                    <input type="hidden" id="ratingValue" name="rating" required>
+                    <small class="form-hint">Chọn số sao từ 1 đến 5</small>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Bình luận (tùy chọn)</label>
+                    <textarea id="ratingComment" name="comment" rows="4" placeholder="Chia sẻ trải nghiệm của bạn về buổi tập..." maxlength="500"></textarea>
+                    <small class="form-hint"><span id="charCount">0</span>/500 ký tự</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeRatingModal()">Hủy</button>
+                    <button type="submit" class="btn-primary">Gửi đánh giá</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/rating/rating.js"></script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/rating/rating.css">
+}
+

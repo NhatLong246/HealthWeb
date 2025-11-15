@@ -21,7 +21,7 @@ builder.Services.AddHttpClient();
 
 // Kết nối DB
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HealthTracker"))
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
@@ -67,9 +67,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
+<<<<<<< HEAD
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IZaloPayService, ZaloPayService>();
 builder.Services.AddScoped<IMoMoService, MoMoService>();
+=======
+builder.Services.AddScoped<IRatingService, RatingService>();
+>>>>>>> bd3fffc063cb8899f9d49d4aa9b9831ecbf8179b
 
 var app = builder.Build();
 

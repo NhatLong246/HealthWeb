@@ -18,7 +18,8 @@ namespace HealthWeb.Services
 
     public class ScheduleItem
     {
-        public string Day { get; set; } = null!;
+        public string? Date { get; set; } // YYYY-MM-DD format
+        public string Day { get; set; } = null!; // Day of week (Monday, Tuesday, etc.)
         public string StartTime { get; set; } = null!;
         public string EndTime { get; set; } = null!;
     }
@@ -277,16 +278,34 @@ namespace HealthWeb.Services
 
                 // Tạo booking cho mỗi buổi trong tuần
                 var bookings = new List<DatLichPt>();
-                var lastBooking = await _context.DatLichPts
-                    .OrderByDescending(d => d.DatLichId)
-                    .FirstOrDefaultAsync();
+                
+                // Lấy số booking lớn nhất hiện có để tránh duplicate
+                var maxBookingNumber = await _context.DatLichPts
+                    .Where(d => d.DatLichId.StartsWith("bkg_"))
+                    .Select(d => d.DatLichId)
+                    .ToListAsync();
 
                 var bookingNumber = 1;
-                if (lastBooking != null)
+                if (maxBookingNumber.Any())
                 {
                     try
                     {
-                        bookingNumber = int.Parse(lastBooking.DatLichId.Split('_')[1]) + 1;
+                        var numbers = maxBookingNumber
+                            .Where(id => id.StartsWith("bkg_"))
+                            .Select(id =>
+                            {
+                                var parts = id.Split('_');
+                                if (parts.Length == 2 && int.TryParse(parts[1], out var num))
+                                    return num;
+                                return 0;
+                            })
+                            .Where(n => n > 0)
+                            .ToList();
+                        
+                        if (numbers.Any())
+                        {
+                            bookingNumber = numbers.Max() + 1;
+                        }
                     }
                     catch
                     {
@@ -300,26 +319,53 @@ namespace HealthWeb.Services
                 {
                     fullNotes += $"\nGhi chú: {notes}";
                 }
-                fullNotes += "\nThời gian rảnh trong tuần:";
+                fullNotes += "\nThời gian rảnh:";
                 foreach (var schedule in schedules)
                 {
-                    fullNotes += $"\n- {schedule.Day}: {schedule.StartTime} - {schedule.EndTime}";
+                    if (!string.IsNullOrWhiteSpace(schedule.Date))
+                    {
+                        var dateObj = DateTime.Parse(schedule.Date);
+                        fullNotes += $"\n- {dateObj:dd/MM/yyyy} ({schedule.Day}): {schedule.StartTime} - {schedule.EndTime}";
+                    }
+                    else
+                    {
+                        fullNotes += $"\n- {schedule.Day}: {schedule.StartTime} - {schedule.EndTime}";
+                    }
                 }
 
+
+
                 foreach (var schedule in schedules)
                 {
-                    if (!dayOfWeekMap.TryGetValue(schedule.Day, out var dayOfWeek))
-                    {
-                        continue;
-                    }
-
-                    // Tính ngày trong tuần hiện tại
-                    var targetDate = startOfWeek.AddDays((int)dayOfWeek - (int)DayOfWeek.Monday);
+                    DateTime targetDate;
                     
-                    // Nếu ngày đã qua, lấy tuần tiếp theo
-                    if (targetDate < today)
+                    // Nếu có Date cụ thể, sử dụng nó
+                    if (!string.IsNullOrWhiteSpace(schedule.Date) && DateTime.TryParse(schedule.Date, out var parsedDate))
                     {
-                        targetDate = targetDate.AddDays(7);
+                        targetDate = parsedDate.Date;
+                        
+                        // Kiểm tra ngày phải sau hôm nay
+                        if (targetDate <= today)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // Fallback: tính từ day (backward compatibility)
+                        if (!dayOfWeekMap.TryGetValue(schedule.Day, out var dayOfWeek))
+                        {
+                            continue;
+                        }
+
+                        // Tính ngày trong tuần hiện tại
+                        targetDate = startOfWeek.AddDays((int)dayOfWeek - (int)DayOfWeek.Monday);
+                        
+                        // Nếu ngày đã qua, lấy tuần tiếp theo
+                        if (targetDate < today)
+                        {
+                            targetDate = targetDate.AddDays(7);
+                        }
                     }
 
                     // Parse thời gian
@@ -353,8 +399,32 @@ namespace HealthWeb.Services
                         continue; // Bỏ qua ngày đã có booking
                     }
 
-                    var bookingId = $"bkg_{bookingNumber:D4}";
-                    bookingNumber++;
+                    // Generate unique booking ID - check if exists and increment if needed
+                    string bookingId;
+                    bool idExists;
+                    int maxAttempts = 100; // Prevent infinite loop
+                    int attempts = 0;
+                    
+                    do
+                    {
+                        bookingId = $"bkg_{bookingNumber:D4}";
+                        idExists = await _context.DatLichPts
+                            .AnyAsync(d => d.DatLichId == bookingId);
+                        
+                        if (idExists)
+                        {
+                            bookingNumber++;
+                            attempts++;
+                        }
+                    } while (idExists && attempts < maxAttempts);
+                    
+                    if (attempts >= maxAttempts)
+                    {
+                        _logger.LogError("Failed to generate unique booking ID after {Attempts} attempts", maxAttempts);
+                        return (false, "Không thể tạo ID booking duy nhất. Vui lòng thử lại.");
+                    }
+                    
+                    bookingNumber++; // Increment for next booking
 
                     var booking = new DatLichPt
                     {
@@ -366,6 +436,7 @@ namespace HealthWeb.Services
                         TrangThai = "Pending",
                         GhiChu = fullNotes,
                         NgayTao = DateTime.Now
+
                     };
 
                     bookings.Add(booking);

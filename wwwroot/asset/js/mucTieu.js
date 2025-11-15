@@ -12,10 +12,32 @@ const mucTieuMapping = {
     'co-co': 'Cơ Cổ'
 };
 
+// Lưu trữ thông tin mục tiêu và bài tập được chọn
+let selectedMucTieu = null;
+let selectedMauTapLuyenId = null;
+let selectedMauTapLuyenData = null;
+
+
+// Kiểm tra và load bài tập nếu đã chọn đủ thông tin
+function checkAndLoadExercises() {
+    const mucTieu = selectedMucTieu;
+    const trinhDo = getSelectedValue('level');
+    
+    // Chỉ load bài tập khi đã chọn đủ: mục tiêu và trình độ
+    if (mucTieu && trinhDo) {
+        loadMauTapLuyenByMucTieu(mucTieu);
+    }
+}
+
 // Load danh sách mẫu tập luyện theo mục tiêu
 async function loadMauTapLuyenByMucTieu(mucTieu) {
     const container = document.getElementById('suggestedExercisesList');
     if (!container) return;
+
+    // Lưu mục tiêu được chọn (nếu chưa có)
+    if (!selectedMucTieu) {
+        selectedMucTieu = mucTieu;
+    }
 
     // Hiển thị loading state
     container.innerHTML = `
@@ -171,7 +193,10 @@ function renderSuggestedExercises(exercises) {
     const firstCard = container.querySelector('.exercise-card');
     if (firstCard) {
         firstCard.classList.add('selected');
-        loadExerciseDetail(firstCard.getAttribute('data-mau-tap-luyen-id'));
+        const mauTapLuyenId = firstCard.getAttribute('data-mau-tap-luyen-id');
+        if (mauTapLuyenId) {
+            loadExerciseDetail(parseInt(mauTapLuyenId));
+        }
     }
 }
 
@@ -226,6 +251,10 @@ async function loadExerciseDetail(mauTapLuyenId) {
 function populateDetailFromData(data) {
     const panel = document.getElementById('exerciseDetail');
     if (!panel) return;
+
+    // Lưu dữ liệu bài tập được chọn
+    selectedMauTapLuyenId = data.MauTapLuyenId;
+    selectedMauTapLuyenData = data;
 
     const setText = (id, val) => {
         const el = document.getElementById(id);
@@ -355,6 +384,7 @@ function updateStatsSummary(data) {
     const totalSessionsEl = document.querySelector('.stat-card.yellow strong');
     const performanceEl = document.querySelector('.stat-card.green strong');
     const pointsEl = document.querySelector('.stat-card.blue strong');
+    const dateRangeEl = document.getElementById('dateRangeText');
 
     if (totalTimeEl) {
         totalTimeEl.textContent = data.TongThoiGian || data.CaloUocTinh || 0;
@@ -369,6 +399,16 @@ function updateStatsSummary(data) {
         // Tính điểm dựa trên số lần sử dụng và điểm trung bình
         const points = Math.round((data.DiemTrungBinh || 0) * (data.SoLanSuDung || 0) * 10);
         pointsEl.textContent = points || 0;
+    }
+    
+    // Cập nhật ngày dự kiến hoàn thành (ngày bắt đầu = ngày tạo, ngày kết thúc = ngày bắt đầu + số tuần)
+    if (dateRangeEl && data.SoTuan) {
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setDate(today.getDate() + (data.SoTuan * 7));
+        const startStr = today.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const endStr = endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        dateRangeEl.textContent = `${startStr} - ${endStr} • Dự kiến hoàn thành`;
     }
 }
 
@@ -385,21 +425,21 @@ function updateStatsSummary(data) {
         document.querySelectorAll('[data-group="'+group+'"]').forEach(el=>el.classList.remove('selected'));
         t.classList.add('selected');
 
-        // Khi click vào mục tiêu, load danh sách bài tập
+        // Khi click vào mục tiêu, chỉ lưu lại mục tiêu, không chuyển màn hình
         if(group === 'goal'){
             const value = t.getAttribute('data-value');
             const mucTieu = mucTieuMapping[value];
             if(mucTieu) {
                 console.log('Goal selected:', value, '-> MucTieu:', mucTieu);
-                loadMauTapLuyenByMucTieu(mucTieu);
+                selectedMucTieu = mucTieu;
+                // Kiểm tra nếu đã chọn đủ thông tin (mục tiêu, địa điểm, trình độ) thì load bài tập
+                checkAndLoadExercises();
             }
         }
 
-        if(group === 'place'){
-            const value = t.getAttribute('data-value');
-            document.querySelectorAll('.equip-section').forEach(s=>s.classList.add('hidden'));
-            const target = document.querySelector('.equip-section[data-place="'+value+'"]');
-            if(target) target.classList.remove('hidden');
+        // Khi chọn trình độ, kiểm tra và load bài tập
+        if(group === 'level'){
+            checkAndLoadExercises();
         }
     });
 })();
@@ -466,6 +506,10 @@ function updateStatsSummary(data) {
 // Schedule pickers
 (function(){
     let openMenu;
+    const weeks = [];
+    for(let i=1; i<=12; i++){
+        weeks.push('Tuần ' + i);
+    }
     const days = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
     const sessions = ['Sáng','Chiều','Tối'];
 
@@ -486,7 +530,7 @@ function updateStatsSummary(data) {
         closeMenu();
         const menu = document.createElement('div');
         menu.className = 'dropdown-menu';
-        const options = type==='day'?days: type==='session'?sessions: times;
+        const options = type==='week'?weeks: type==='day'?days: type==='session'?sessions: times;
         options.forEach(text=>{
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -497,7 +541,15 @@ function updateStatsSummary(data) {
             });
             menu.appendChild(btn);
         });
-        target.parentElement && target.parentElement.appendChild(menu);
+        
+        // Tính toán vị trí của button và đặt menu ở đó
+        const rect = target.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.width = rect.width + 'px';
+        
+        // Append menu vào body để tránh bị che bởi overflow hidden
+        document.body.appendChild(menu);
         openMenu = menu;
     }
 
@@ -505,6 +557,16 @@ function updateStatsSummary(data) {
         if(openMenu && openMenu.parentElement){ openMenu.parentElement.removeChild(openMenu); }
         openMenu = undefined;
     }
+
+    // Đóng menu khi scroll
+    document.addEventListener('scroll', function(e){
+        closeMenu();
+    }, true); // Use capture phase để bắt scroll từ mọi element
+
+    // Đóng menu khi window resize
+    window.addEventListener('resize', function(){
+        closeMenu();
+    });
 
     document.addEventListener('click', function(e){
         const rt = e.target;
@@ -526,6 +588,7 @@ function updateStatsSummary(data) {
         const row = document.createElement('div');
         row.className = 'grid-row';
         row.innerHTML = '\n\
+            <button class="pill schedule-picker" data-type="week">Tuần 1</button>\n\
             <button class="pill schedule-picker" data-type="day">Thứ 2</button>\n\
             <button class="pill schedule-picker" data-type="session">Sáng</button>\n\
             <button class="pill schedule-picker" data-type="time-start">07:00</button>\n\
@@ -544,32 +607,6 @@ function updateStatsSummary(data) {
     });
 })();
 
-// Off-days: add new day by user input
-(function(){
-    function createOffChip(label){
-        const btn = document.createElement('button');
-        btn.className = 'pill selectable';
-        btn.setAttribute('data-group', 'off');
-        btn.type = 'button';
-        btn.textContent = label;
-        return btn;
-    }
-
-    window.addEventListener('DOMContentLoaded', function(){
-        const addOffBtn = document.getElementById('addOffDay');
-        const list = document.getElementById('offDaysList');
-        if(!addOffBtn || !list) return;
-        addOffBtn.addEventListener('click', function(){
-            const input = window.prompt('Nhập ngày không tập (ví dụ: T3, 15/11, Nghỉ lễ)');
-            if(!input) return;
-            const label = input.trim();
-            if(label.length === 0) return;
-            // prevent overly long labels
-            const finalLabel = label.length > 20 ? label.slice(0,20) : label;
-            list.appendChild(createOffChip(finalLabel));
-        });
-    });
-})();
 
 // GYM Map functionality
 (function(){
@@ -810,54 +847,119 @@ window.loadYouTubeVideo = function(wrapper) {
     }
 })();
 
-// Xử lý nút "Bắt Đầu" - kiểm tra nếu đang ở chế độ thêm bài tập
-(function(){
-    document.addEventListener('DOMContentLoaded', function(){
-        const startBtn = document.querySelector('.btn.start-orange');
-        if(!startBtn) return;
+// Helper: Lấy giá trị được chọn từ các chip/button
+function getSelectedValue(groupName) {
+    const selected = document.querySelector(`[data-group="${groupName}"].selected`);
+    if (!selected) return null;
+    return selected.getAttribute('data-value') || null;
+}
+
+// Helper: Thu thập lịch tập từ schedule grid
+function collectScheduleData() {
+    const scheduleRows = document.querySelectorAll('.session-grid .grid-row');
+    const lichTap = [];
+    
+    scheduleRows.forEach(row => {
+        const weekBtn = row.querySelector('[data-type="week"]');
+        const dayBtn = row.querySelector('[data-type="day"]');
+        const sessionBtn = row.querySelector('[data-type="session"]');
+        const timeStartBtn = row.querySelector('[data-type="time-start"]');
+        const timeEndBtn = row.querySelector('[data-type="time-end"]');
         
-        startBtn.addEventListener('click', function(e){
-            e.preventDefault();
+        if (weekBtn && dayBtn && sessionBtn && timeStartBtn && timeEndBtn) {
+            // Chuyển đổi "Tuần 1" -> 1, "Tuần 2" -> 2, ...
+            const weekText = weekBtn.textContent.trim();
+            const weekMatch = weekText.match(/Tuần\s+(\d+)/);
+            const tuan = weekMatch ? parseInt(weekMatch[1]) : null;
             
-            // Kiểm tra xem có tham số returnUrl và action=addExercise không
-            const urlParams = new URLSearchParams(window.location.search);
-            const returnUrl = urlParams.get('returnUrl');
-            const action = urlParams.get('action');
+            // Chuyển đổi "Thứ 2" -> 1, "Thứ 3" -> 2, ...
+            const dayText = dayBtn.textContent.trim();
+            const dayMap = {
+                'Thứ 2': 1, 'Thứ 3': 2, 'Thứ 4': 3, 'Thứ 5': 4,
+                'Thứ 6': 5, 'Thứ 7': 6, 'Chủ nhật': 7
+            };
+            const ngayTrongTuan = dayMap[dayText];
             
-            if(returnUrl && action === 'addExercise'){
-                // Chế độ thêm bài tập vào kế hoạch hiện tại
-                const selectedCard = document.querySelector('.exercise-card.selected');
-                if(!selectedCard){
-                    alert('Vui lòng chọn một bài tập để thêm vào kế hoạch');
-                    return;
-                }
-                
-                const mauTapLuyenId = selectedCard.getAttribute('data-mau-tap-luyen-id');
-                if(!mauTapLuyenId){
-                    alert('Không tìm thấy thông tin bài tập');
-                    return;
-                }
-                
-                // Lấy danh sách bài tập được chọn (nếu có checkbox hoặc selection)
-                // Hiện tại sẽ thêm tất cả bài tập trong mẫu
-                const baiTapIds = null; // Có thể mở rộng để cho phép chọn từng bài tập
-                
-                // Chuyển về trang KeHoachTapLuyen với thông tin bài tập
-                const params = new URLSearchParams({
-                    action: 'addExercise',
-                    mauTapLuyenId: mauTapLuyenId
+            if (tuan && ngayTrongTuan) {
+                lichTap.push({
+                    Tuan: tuan,
+                    NgayTrongTuan: ngayTrongTuan,
+                    Buoi: sessionBtn.textContent.trim(), // 'Sáng', 'Chiều', 'Tối'
+                    GioBatDau: timeStartBtn.textContent.trim(), // '07:00'
+                    GioKetThuc: timeEndBtn.textContent.trim() // '11:00'
                 });
-                if(baiTapIds && baiTapIds.length > 0){
-                    params.set('baiTapIds', encodeURIComponent(JSON.stringify(baiTapIds)));
-                }
-                
-                window.location.href = decodeURIComponent(returnUrl) + '?' + params.toString();
-            } else {
-                // Logic tạo kế hoạch mới (giữ nguyên logic hiện tại)
-                // TODO: Implement logic tạo kế hoạch mới nếu cần
-                alert('Chức năng tạo kế hoạch mới đang được phát triển');
             }
-        });
+        }
     });
-})();
+    
+    return lichTap;
+}
+
+
+// Lưu mục tiêu và kế hoạch tập luyện vào database
+async function saveMucTieuAndKeHoach() {
+    if (!selectedMucTieu || !selectedMauTapLuyenId) {
+        alert('Vui lòng chọn mục tiêu và bài tập trước khi thêm');
+        return;
+    }
+
+    const btnAdd = document.getElementById('btnAddExercise');
+    if (!btnAdd) return;
+
+    // Disable button và hiển thị loading
+    const originalText = btnAdd.textContent;
+    btnAdd.disabled = true;
+    btnAdd.textContent = 'Đang lưu...';
+
+    try {
+        // Thu thập thông tin từ form
+        const mucDo = getSelectedValue('level'); // 'Beginner', 'Intermediate', hoặc 'Advanced'
+        const lichTap = collectScheduleData();
+        
+        // Giá trị đã là tiếng Anh từ data-value, không cần chuyển đổi
+        const doKho = mucDo; // 'Beginner', 'Intermediate', hoặc 'Advanced'
+
+        // Lưu kế hoạch tập luyện (sẽ tự động tạo mục tiêu nếu chưa có)
+        const response = await fetch('/MucTieu/SaveKeHoachTapLuyen', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                MauTapLuyenId: selectedMauTapLuyenId,
+                LoaiMucTieu: selectedMucTieu,
+                GiaTriMucTieu: selectedMauTapLuyenData?.TongCalo || 0,
+                DiaDiemTapLuyen: null, // Không còn section địa điểm
+                MucDo: doKho,
+                LichTap: lichTap.length > 0 ? lichTap : null,
+                NgayKhongTap: null // Đã xóa phần ngày không tập
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Đã thêm bài tập vào kế hoạch thành công!');
+            // Có thể redirect hoặc reload trang
+            window.location.href = '/KeHoachTapLuyen';
+        } else {
+            alert('Lỗi: ' + (result.message || 'Không thể lưu kế hoạch tập luyện'));
+        }
+    } catch (error) {
+        console.error('Error saving ke hoach tap luyen:', error);
+        alert('Đã xảy ra lỗi khi lưu kế hoạch tập luyện');
+    } finally {
+        // Restore button
+        btnAdd.disabled = false;
+        btnAdd.textContent = originalText;
+    }
+}
+
+// Event listener cho nút "Thêm bài tập"
+document.addEventListener('DOMContentLoaded', function() {
+    const btnAdd = document.getElementById('btnAddExercise');
+    if (btnAdd) {
+        btnAdd.addEventListener('click', saveMucTieuAndKeHoach);
+    }
+});
 

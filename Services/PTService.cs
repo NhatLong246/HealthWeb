@@ -18,8 +18,6 @@ namespace HealthWeb.Services
         Task<object?> GetClientsStatsAsync(string userId);
         Task<List<object>> GetClientsListAsync(string userId);
         Task<ManageClientsViewModel?> GetManageClientsViewModelAsync(string userId);
-        Task<List<object>> GetPotentialClientsAsync(string userId, string? search, string? goal, string? location, string? time, string? budget);
-        Task<SearchClientsViewModel> GetSearchClientsViewModelAsync(string userId, string? search, string? goal, string? location, string? time, string? budget);
         Task<List<object>> GetScheduleForWeekAsync(string userId, DateOnly? start);
         Task<ScheduleViewModel> GetScheduleViewModelAsync(string userId, DateOnly? start);
         Task<(bool success, string message)> UpdateProfileAsync(string userId, ProfileSettingsViewModel model);
@@ -34,6 +32,12 @@ namespace HealthWeb.Services
         Task<List<PendingRequestViewModel>> GetPendingRequestsAsync(string userId);
         Task<(bool success, string message)> AcceptRequestAsync(string userId, string requestId);
         Task<(bool success, string message)> RejectRequestAsync(string userId, string requestId, string reason);
+        Task<List<WorkoutTemplateViewModel>> GetWorkoutTemplatesByGoalAsync(string goal);
+        Task<List<WorkoutTemplateViewModel>> GetAllWorkoutTemplatesAsync();
+        Task<WorkoutTemplateDetailViewModel?> GetWorkoutTemplateDetailAsync(int templateId);
+        Task<List<ClientBookingViewModel>> GetClientBookingsForWorkoutAsync(string ptUserId, string clientId);
+        Task<(bool success, string message)> CreateWorkoutPlanAsync(string ptUserId, string clientId, CreateWorkoutPlanViewModel model);
+        Task<WorkoutPlanViewModel?> GetClientWorkoutPlanAsync(string ptUserId, string clientId);
     }
 
     public class PTService : IPTService
@@ -191,15 +195,18 @@ namespace HealthWeb.Services
                         g.NgayGiaoDich.Value < endOfMonth)
                     .SumAsync(g => g.SoTienPtnhan ?? 0);
 
+                // Lấy tất cả đánh giá của PT này
                 var ratings = await _context.DanhGiaPts
                     .Include(r => r.KhachHang)
                     .Include(r => r.Pt)
                     .Where(r => r.Ptid == ptId && r.Diem.HasValue)
-                    .Select(r => r.Diem!.Value)
                     .ToListAsync();
 
+                // Tính tổng số đánh giá từ JSON (mỗi record có thể chứa nhiều đánh giá theo booking)
+                int totalReviews = CountTotalRatingsFromJson(ratings);
+
                 var averageRating = ratings.Count > 0
-                    ? Math.Round(ratings.Average(), 1)
+                    ? Math.Round(ratings.Average(r => r.Diem!.Value), 1)
                     : 0;
 
                 return new
@@ -208,7 +215,7 @@ namespace HealthWeb.Services
                     todayBookings,
                     monthlyRevenue,
                     rating = averageRating,
-                    reviews = ratings.Count
+                    reviews = totalReviews
                 };
             }
             catch (Exception ex)
@@ -260,15 +267,18 @@ namespace HealthWeb.Services
                         g.NgayGiaoDich.Value < endOfMonth)
                     .SumAsync(g => g.SoTienPtnhan ?? 0);
 
+                // Lấy tất cả đánh giá của PT này
                 var ratings = await _context.DanhGiaPts
                     .Include(r => r.KhachHang)
                     .Include(r => r.Pt)
                     .Where(r => r.Ptid == ptId && r.Diem.HasValue)
-                    .Select(r => r.Diem!.Value)
                     .ToListAsync();
 
+                // Tính tổng số đánh giá từ JSON (mỗi record có thể chứa nhiều đánh giá theo booking)
+                int totalReviews = CountTotalRatingsFromJson(ratings);
+
                 var averageRating = ratings.Count > 0
-                    ? Math.Round(ratings.Average(), 1)
+                    ? Math.Round(ratings.Average(r => r.Diem!.Value), 1)
                     : 0;
 
                 var recentBookings = await GetRecentBookingsViewModelAsync(userId);
@@ -279,7 +289,7 @@ namespace HealthWeb.Services
                     TodayBookings = todayBookings,
                     MonthlyRevenue = monthlyRevenue,
                     Rating = averageRating,
-                    Reviews = ratings.Count,
+                    Reviews = totalReviews,
                     RecentBookings = recentBookings
                 };
             }
@@ -522,19 +532,61 @@ namespace HealthWeb.Services
                     })
                     .ToListAsync();
 
-                // Lấy mục tiêu
+                // Lấy mục tiêu từ DatLichPt.GhiChu (ưu tiên) - yêu cầu gần nhất với PT này
+                var bookingGoals = await _context.DatLichPts
+                    .Where(d => d.Ptid == ptId && allClientIds.Contains(d.KhacHangId) && !string.IsNullOrEmpty(d.GhiChu))
+                    .OrderByDescending(d => d.NgayTao ?? d.NgayGioDat)
+                    .Select(d => new { d.KhacHangId, d.GhiChu, d.NgayTao, d.NgayGioDat })
+                    .ToListAsync();
+
+                var goalFromBookingDict = new Dictionary<string, string>();
+                foreach (var booking in bookingGoals)
+                {
+                    if (string.IsNullOrEmpty(booking.GhiChu)) continue;
+                    
+                    // Parse goal từ GhiChu: "Mục tiêu: {goal}"
+                    var lines = booking.GhiChu.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("Mục tiêu:"))
+                        {
+                            var goal = line.Replace("Mục tiêu:", "").Trim();
+                            if (!string.IsNullOrEmpty(goal) && !goalFromBookingDict.ContainsKey(booking.KhacHangId))
+                            {
+                                goalFromBookingDict[booking.KhacHangId] = goal;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Lấy mục tiêu từ bảng MucTieu (fallback)
                 var goalEntries = await _context.MucTieus
                     .Where(m => allClientIds.Contains(m.UserId))
                     .OrderByDescending(m => m.NgayBatDau)
                     .Select(m => new { m.UserId, m.LoaiMucTieu, m.NgayBatDau })
                     .ToListAsync();
 
-                var goalDict = goalEntries
+                var goalFromMucTieuDict = goalEntries
                     .GroupBy(m => m.UserId)
                     .ToDictionary(
                         g => g.Key,
                         g => g.OrderByDescending(x => x.NgayBatDau).First().LoaiMucTieu
                     );
+
+                // Kết hợp: ưu tiên goal từ booking, nếu không có thì lấy từ MucTieu
+                var goalDict = new Dictionary<string, string>();
+                foreach (var clientId in allClientIds)
+                {
+                    if (goalFromBookingDict.TryGetValue(clientId, out var bookingGoal))
+                    {
+                        goalDict[clientId] = bookingGoal;
+                    }
+                    else if (goalFromMucTieuDict.TryGetValue(clientId, out var mucTieuGoal))
+                    {
+                        goalDict[clientId] = mucTieuGoal;
+                    }
+                }
 
                 var bookingDict = bookingStats.ToDictionary(b => b.ClientId, b => b);
                 var ratingDict = ratingStats.ToDictionary(r => r.ClientId, r => Math.Round(r.Rating, 1));
@@ -615,207 +667,6 @@ namespace HealthWeb.Services
             }
         }
 
-        public async Task<List<object>> GetPotentialClientsAsync(string userId, string? search, string? goal, string? location, string? time, string? budget)
-        {
-            try
-            {
-                var trainer = await GetCurrentTrainerAsync(userId);
-                if (trainer == null)
-                {
-                    return new List<object>();
-                }
-
-                var ptId = trainer.Ptid;
-
-                var assignedClientIds = await _context.QuyenPtKhachHangs
-                    .Where(q => q.Ptid == ptId)
-                    .Select(q => q.KhachHangId)
-                    .ToListAsync();
-
-                var clientsQuery = _context.Users
-                    .Where(u => (u.Role == null || u.Role == "Client") && !assignedClientIds.Contains(u.UserId));
-
-                if (!string.IsNullOrWhiteSpace(search))
-                {
-                    var keyword = search.Trim().ToLower();
-                    clientsQuery = clientsQuery.Where(u =>
-                        (u.HoTen ?? string.Empty).ToLower().Contains(keyword) ||
-                        u.Username.ToLower().Contains(keyword) ||
-                        (u.Email ?? string.Empty).ToLower().Contains(keyword));
-                }
-
-                var potentialClients = await clientsQuery
-                    .OrderByDescending(u => u.CreatedDate)
-                    .Take(200)
-                    .ToListAsync();
-
-                if (!potentialClients.Any())
-                {
-                    return new List<object>();
-                }
-
-                var potentialIds = potentialClients.Select(u => u.UserId).ToList();
-
-                var goals = await _context.MucTieus
-                    .Where(m => potentialIds.Contains(m.UserId))
-                    .OrderByDescending(m => m.NgayBatDau)
-                    .Select(m => new { m.UserId, m.LoaiMucTieu, m.NgayBatDau })
-                    .ToListAsync();
-
-                var goalDict = goals
-                    .GroupBy(m => m.UserId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.OrderByDescending(x => x.NgayBatDau).First().LoaiMucTieu
-                    );
-
-                var bookingStats = await _context.DatLichPts
-                    .Where(d => potentialIds.Contains(d.KhacHangId))
-                    .GroupBy(d => d.KhacHangId)
-                    .Select(g => new
-                    {
-                        ClientId = g.Key,
-                        Sessions = g.Count(d => d.TrangThai == null || d.TrangThai != "Cancelled"),
-                        LastActivity = g.Max(d => (DateTime?)d.NgayGioDat)
-                    })
-                    .ToListAsync();
-
-                var workoutMinutes = await _context.NhatKyHoanThanhBaiTaps
-                    .Where(n => potentialIds.Contains(n.UserId) && n.ThoiLuongThucTePhut.HasValue)
-                    .GroupBy(n => n.UserId)
-                    .Select(g => new
-                    {
-                        ClientId = g.Key,
-                        TotalMinutes = g.Sum(x => x.ThoiLuongThucTePhut!.Value)
-                    })
-                    .ToListAsync();
-
-                var bookingDict = bookingStats.ToDictionary(b => b.ClientId, b => b);
-                var minutesDict = workoutMinutes.ToDictionary(m => m.ClientId, m => m.TotalMinutes);
-
-                var results = potentialClients.Select(user =>
-                {
-                    goalDict.TryGetValue(user.UserId, out var goalValue);
-                    bookingDict.TryGetValue(user.UserId, out var sessionInfo);
-                    minutesDict.TryGetValue(user.UserId, out var totalMinutes);
-
-                    var normalizedGoal = goalValue ?? "Chưa cập nhật";
-                    var normalizedLocation = "Chưa cập nhật";
-
-                    var tags = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(goalValue))
-                    {
-                        tags.Add(goalValue);
-                    }
-                    if (sessionInfo?.Sessions > 0)
-                    {
-                        tags.Add($"{sessionInfo.Sessions} buổi tập");
-                    }
-                    if (totalMinutes > 0)
-                    {
-                        tags.Add($"{Math.Round(totalMinutes / 60.0, 1)} giờ luyện tập");
-                    }
-
-                    return new
-                    {
-                        id = user.UserId,
-                        name = string.IsNullOrWhiteSpace(user.HoTen) ? user.Username : user.HoTen,
-                        username = user.Username,
-                        goal = normalizedGoal,
-                        location = normalizedLocation,
-                        activity = sessionInfo?.LastActivity,
-                        stats = new
-                        {
-                            sessions = sessionInfo?.Sessions ?? 0,
-                            hours = Math.Round(totalMinutes / 60.0, 1),
-                            rating = 0
-                        },
-                        tags,
-                        createdDate = user.CreatedDate
-                    };
-                })
-                .ToList();
-
-                if (!string.IsNullOrWhiteSpace(goal))
-                {
-                    var normalized = goal.Trim().ToLower();
-                    results = results
-                        .Where(r => (r.goal ?? string.Empty).ToLower().Contains(normalized) || r.tags.Any(t => t.ToLower().Contains(normalized)))
-                        .ToList();
-                }
-
-                return results.Cast<object>().ToList();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching potential clients");
-                return new List<object>();
-            }
-        }
-
-        public async Task<SearchClientsViewModel> GetSearchClientsViewModelAsync(string userId, string? search, string? goal, string? location, string? time, string? budget)
-        {
-            try
-            {
-                var clients = await GetPotentialClientsAsync(userId, search, goal, location, time, budget);
-                
-                var viewModel = new SearchClientsViewModel
-                {
-                    Search = search,
-                    Goal = goal,
-                    Location = location,
-                    Time = time,
-                    Budget = budget,
-                    Clients = clients.Select(c =>
-                    {
-                        // Use reflection to access anonymous object properties
-                        var type = c.GetType();
-                        var idProp = type.GetProperty("id");
-                        var nameProp = type.GetProperty("name");
-                        var usernameProp = type.GetProperty("username");
-                        var goalProp = type.GetProperty("goal");
-                        var locationProp = type.GetProperty("location");
-                        var activityProp = type.GetProperty("activity");
-                        var statsProp = type.GetProperty("stats");
-                        var tagsProp = type.GetProperty("tags");
-                        var createdDateProp = type.GetProperty("createdDate");
-
-                        var statsObj = statsProp?.GetValue(c);
-                        var statsType = statsObj?.GetType();
-                        var sessionsProp = statsType?.GetProperty("sessions");
-                        var hoursProp = statsType?.GetProperty("hours");
-                        var ratingProp = statsType?.GetProperty("rating");
-
-                        var tagsList = tagsProp?.GetValue(c) as List<string> ?? new List<string>();
-
-                        return new PotentialClientViewModel
-                        {
-                            Id = idProp?.GetValue(c)?.ToString() ?? "",
-                            Name = nameProp?.GetValue(c)?.ToString() ?? "",
-                            Username = usernameProp?.GetValue(c)?.ToString() ?? "",
-                            Goal = goalProp?.GetValue(c)?.ToString(),
-                            Location = locationProp?.GetValue(c)?.ToString(),
-                            Tags = tagsList,
-                            Activity = activityProp?.GetValue(c) as DateTime?,
-                            CreatedDate = createdDateProp?.GetValue(c) as DateTime?,
-                            Stats = new ClientStatsViewModel
-                            {
-                                Sessions = sessionsProp?.GetValue(statsObj) as int? ?? 0,
-                                Hours = (int)(hoursProp?.GetValue(statsObj) as double? ?? 0),
-                                Rating = ratingProp?.GetValue(statsObj) as double? ?? 0
-                            }
-                        };
-                    }).ToList()
-                };
-
-                return viewModel;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting search clients view model");
-                return new SearchClientsViewModel();
-            }
-        }
 
         public async Task<List<object>> GetScheduleForWeekAsync(string userId, DateOnly? start)
         {
@@ -1153,20 +1004,46 @@ namespace HealthWeb.Services
                 var pendingRequestId = pendingBookings.FirstOrDefault()?.DatLichId;
                 var hasPendingRequest = pendingRequestId != null;
 
-                // Lấy đánh giá
+                // Lấy đánh giá của client này cho PT
                 var ratings = await _context.DanhGiaPts
                     .Where(r => r.Ptid == ptId && r.KhachHangId == clientId && r.Diem.HasValue)
-                    .Select(r => r.Diem!.Value)
                     .ToListAsync();
 
-                var avgRating = ratings.Any() ? Math.Round(ratings.Average(), 1) : 0;
+                // Tính tổng số đánh giá từ JSON (mỗi record có thể chứa nhiều đánh giá theo booking)
+                int totalRatings = CountTotalRatingsFromJson(ratings);
+                var avgRating = ratings.Any() ? Math.Round(ratings.Average(r => r.Diem!.Value), 1) : 0;
 
-                // Lấy mục tiêu
-                var goal = await _context.MucTieus
-                    .Where(m => m.UserId == clientId)
-                    .OrderByDescending(m => m.NgayBatDau)
-                    .Select(m => m.LoaiMucTieu)
-                    .FirstOrDefaultAsync();
+                // Lấy mục tiêu - ưu tiên từ DatLichPt.GhiChu (yêu cầu gần nhất với PT này)
+                string? goal = null;
+                
+                // Tìm mục tiêu từ booking gần nhất
+                var recentBooking = bookings
+                    .Where(d => !string.IsNullOrEmpty(d.GhiChu))
+                    .OrderByDescending(d => d.NgayTao ?? d.NgayGioDat)
+                    .FirstOrDefault();
+                
+                if (recentBooking != null && !string.IsNullOrEmpty(recentBooking.GhiChu))
+                {
+                    var lines = recentBooking.GhiChu.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("Mục tiêu:"))
+                        {
+                            goal = line.Replace("Mục tiêu:", "").Trim();
+                            break;
+                        }
+                    }
+                }
+                
+                // Nếu không có từ booking, lấy từ bảng MucTieu
+                if (string.IsNullOrEmpty(goal))
+                {
+                    goal = await _context.MucTieus
+                        .Where(m => m.UserId == clientId)
+                        .OrderByDescending(m => m.NgayBatDau)
+                        .Select(m => m.LoaiMucTieu)
+                        .FirstOrDefaultAsync();
+                }
 
                 // Lấy thông tin sức khỏe gần nhất
                 var latestHealth = await _context.LuuTruSucKhoes
@@ -1187,7 +1064,7 @@ namespace HealthWeb.Services
                         : "Pending",
                     totalSessions = totalSessions,
                     avgRating = avgRating,
-                    totalRatings = ratings.Count,
+                    totalRatings = totalRatings,
                     goal = goal ?? "Chưa cập nhật",
                     lastActivity = lastActivity,
                     joinedDate = permission?.NgayCapQuyen ?? bookings.FirstOrDefault()?.NgayGioDat,
@@ -1277,20 +1154,46 @@ namespace HealthWeb.Services
                 var pendingRequestId = pendingBookings.FirstOrDefault()?.DatLichId;
                 var hasPendingRequest = pendingRequestId != null;
 
-                // Lấy đánh giá
+                // Lấy đánh giá của client này cho PT
                 var ratings = await _context.DanhGiaPts
                     .Where(r => r.Ptid == ptId && r.KhachHangId == clientId && r.Diem.HasValue)
-                    .Select(r => r.Diem!.Value)
                     .ToListAsync();
 
-                var avgRating = ratings.Any() ? Math.Round(ratings.Average(), 1) : 0;
+                // Tính tổng số đánh giá từ JSON (mỗi record có thể chứa nhiều đánh giá theo booking)
+                int totalRatings = CountTotalRatingsFromJson(ratings);
+                var avgRating = ratings.Any() ? Math.Round(ratings.Average(r => r.Diem!.Value), 1) : 0;
 
-                // Lấy mục tiêu
-                var goal = await _context.MucTieus
-                    .Where(m => m.UserId == clientId)
-                    .OrderByDescending(m => m.NgayBatDau)
-                    .Select(m => m.LoaiMucTieu)
-                    .FirstOrDefaultAsync();
+                // Lấy mục tiêu - ưu tiên từ DatLichPt.GhiChu (yêu cầu gần nhất với PT này)
+                string? goal = null;
+                
+                // Tìm mục tiêu từ booking gần nhất
+                var recentBooking = bookings
+                    .Where(d => !string.IsNullOrEmpty(d.GhiChu))
+                    .OrderByDescending(d => d.NgayTao ?? d.NgayGioDat)
+                    .FirstOrDefault();
+                
+                if (recentBooking != null && !string.IsNullOrEmpty(recentBooking.GhiChu))
+                {
+                    var lines = recentBooking.GhiChu.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("Mục tiêu:"))
+                        {
+                            goal = line.Replace("Mục tiêu:", "").Trim();
+                            break;
+                        }
+                    }
+                }
+                
+                // Nếu không có từ booking, lấy từ bảng MucTieu
+                if (string.IsNullOrEmpty(goal))
+                {
+                    goal = await _context.MucTieus
+                        .Where(m => m.UserId == clientId)
+                        .OrderByDescending(m => m.NgayBatDau)
+                        .Select(m => m.LoaiMucTieu)
+                        .FirstOrDefaultAsync();
+                }
 
                 // Lấy thông tin sức khỏe gần nhất
                 var latestHealth = await _context.LuuTruSucKhoes
@@ -1313,7 +1216,7 @@ namespace HealthWeb.Services
                     Status = status,
                     TotalSessions = totalSessions,
                     AvgRating = avgRating,
-                    TotalRatings = ratings.Count,
+                    TotalRatings = totalRatings,
                     Goal = goal ?? "Chưa cập nhật",
                     LastActivity = lastActivity,
                     JoinedDate = permission?.NgayCapQuyen ?? bookings.FirstOrDefault()?.NgayGioDat,
@@ -1386,11 +1289,14 @@ namespace HealthWeb.Services
                     .Where(d => d.Ptid == ptId && (d.TrangThai == null || d.TrangThai != "Cancelled"))
                     .CountAsync();
 
+                // Lấy đánh giá của PT này (tổng)
                 var ratings = await _context.DanhGiaPts
                     .Where(r => r.Ptid == ptId && r.Diem.HasValue)
-                    .Select(r => r.Diem!.Value)
                     .ToListAsync();
-                var avgRating = ratings.Count > 0 ? Math.Round(ratings.Average(), 1) : 0;
+                
+                // Tính tổng số đánh giá từ JSON
+                int totalReviews = CountTotalRatingsFromJson(ratings);
+                var avgRating = ratings.Count > 0 ? Math.Round(ratings.Average(r => r.Diem!.Value), 1) : 0;
 
                 if (!allClientIds.Any())
                 {
@@ -1440,15 +1346,57 @@ namespace HealthWeb.Services
                     .ToListAsync();
                 var ratingDict = ratingStats.ToDictionary(r => r.ClientId, r => Math.Round(r.Rating, 1));
 
-                // Load goals
+                // Load goals - ưu tiên từ DatLichPt.GhiChu (yêu cầu gần nhất với PT này)
+                var bookingGoals = await _context.DatLichPts
+                    .Where(d => d.Ptid == ptId && allClientIds.Contains(d.KhacHangId) && !string.IsNullOrEmpty(d.GhiChu))
+                    .OrderByDescending(d => d.NgayTao ?? d.NgayGioDat)
+                    .Select(d => new { d.KhacHangId, d.GhiChu, d.NgayTao, d.NgayGioDat })
+                    .ToListAsync();
+
+                var goalFromBookingDict = new Dictionary<string, string>();
+                foreach (var booking in bookingGoals)
+                {
+                    if (string.IsNullOrEmpty(booking.GhiChu)) continue;
+                    
+                    // Parse goal từ GhiChu: "Mục tiêu: {goal}"
+                    var lines = booking.GhiChu.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("Mục tiêu:"))
+                        {
+                            var goal = line.Replace("Mục tiêu:", "").Trim();
+                            if (!string.IsNullOrEmpty(goal) && !goalFromBookingDict.ContainsKey(booking.KhacHangId))
+                            {
+                                goalFromBookingDict[booking.KhacHangId] = goal;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Load goals từ bảng MucTieu (fallback)
                 var goals = await _context.MucTieus
                     .Where(m => allClientIds.Contains(m.UserId))
                     .OrderByDescending(m => m.NgayBatDau)
                     .Select(m => new { m.UserId, m.LoaiMucTieu, m.NgayBatDau })
                     .ToListAsync();
-                var goalDict = goals
+                var goalFromMucTieuDict = goals
                     .GroupBy(m => m.UserId)
                     .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.NgayBatDau).First().LoaiMucTieu);
+
+                // Kết hợp: ưu tiên goal từ booking, nếu không có thì lấy từ MucTieu
+                var goalDict = new Dictionary<string, string>();
+                foreach (var clientId in allClientIds)
+                {
+                    if (goalFromBookingDict.TryGetValue(clientId, out var bookingGoal))
+                    {
+                        goalDict[clientId] = bookingGoal;
+                    }
+                    else if (goalFromMucTieuDict.TryGetValue(clientId, out var mucTieuGoal))
+                    {
+                        goalDict[clientId] = mucTieuGoal;
+                    }
+                }
 
                 // Build client list
                 var clientsList = clients.Select(user =>
@@ -1498,6 +1446,45 @@ namespace HealthWeb.Services
                 _logger.LogError(ex, "Error retrieving manage clients view model for userId: {UserId}", userId);
                 return null;
             }
+        }
+
+        // Helper method để tính tổng số đánh giá từ JSON trong BinhLuan
+        private int CountTotalRatingsFromJson(List<DanhGiaPt> ratings)
+        {
+            int totalReviews = 0;
+            foreach (var rating in ratings)
+            {
+                if (!string.IsNullOrWhiteSpace(rating.BinhLuan))
+                {
+                    try
+                    {
+                        var ratingData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(
+                            rating.BinhLuan);
+                        
+                        if (ratingData != null && ratingData.ContainsKey("bookings"))
+                        {
+                            var bookings = ratingData["bookings"];
+                            totalReviews += bookings.Count;
+                        }
+                        else
+                        {
+                            // Nếu không có JSON hoặc format cũ, đếm là 1 đánh giá
+                            totalReviews += 1;
+                        }
+                    }
+                    catch
+                    {
+                        // Nếu không parse được JSON, đếm là 1 đánh giá
+                        totalReviews += 1;
+                    }
+                }
+                else
+                {
+                    // Nếu không có BinhLuan, đếm là 1 đánh giá
+                    totalReviews += 1;
+                }
+            }
+            return totalReviews;
         }
 
         // Helper methods
@@ -1861,6 +1848,447 @@ namespace HealthWeb.Services
                 return (false, "Có lỗi xảy ra khi từ chối yêu cầu");
             }
         }
+
+        public async Task<List<WorkoutTemplateViewModel>> GetWorkoutTemplatesByGoalAsync(string goal)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(goal))
+                {
+                    return new List<WorkoutTemplateViewModel>();
+                }
+
+                var templates = await _context.MauTapLuyens
+                    .Where(m => m.MucTieu == goal && (m.CongKhai == true || m.DaXacThuc == true))
+                    .OrderByDescending(m => m.DiemTrungBinh ?? 0)
+                    .ThenByDescending(m => m.SoLanSuDung ?? 0)
+                    .Select(m => new WorkoutTemplateViewModel
+                    {
+                        TemplateId = m.MauTapLuyenId,
+                        Name = m.TenMauTapLuyen,
+                        Description = m.MoTa,
+                        Difficulty = m.DoKho ?? "Beginner",
+                        Weeks = m.SoTuan ?? 4,
+                        EstimatedCalories = m.CaloUocTinh ?? 0,
+                        Equipment = m.ThietBiCan,
+                        ExerciseCount = m.ChiTietMauTapLuyens.Count,
+                        Rating = m.DiemTrungBinh ?? 0,
+                        UsageCount = m.SoLanSuDung ?? 0
+                    })
+                    .ToListAsync();
+
+                return templates;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting workout templates for goal: {Goal}", goal);
+                return new List<WorkoutTemplateViewModel>();
+            }
+        }
+
+        public async Task<List<WorkoutTemplateViewModel>> GetAllWorkoutTemplatesAsync()
+        {
+            try
+            {
+                var templates = await _context.MauTapLuyens
+                    .Where(m => m.CongKhai == true || m.DaXacThuc == true)
+                    .OrderByDescending(m => m.DiemTrungBinh ?? 0)
+                    .ThenByDescending(m => m.SoLanSuDung ?? 0)
+                    .Select(m => new WorkoutTemplateViewModel
+                    {
+                        TemplateId = m.MauTapLuyenId,
+                        Name = m.TenMauTapLuyen,
+                        Description = m.MoTa,
+                        Difficulty = m.DoKho ?? "Beginner",
+                        Weeks = m.SoTuan ?? 4,
+                        EstimatedCalories = m.CaloUocTinh ?? 0,
+                        Equipment = m.ThietBiCan,
+                        ExerciseCount = m.ChiTietMauTapLuyens.Count,
+                        Rating = m.DiemTrungBinh ?? 0,
+                        UsageCount = m.SoLanSuDung ?? 0,
+                        Goal = m.MucTieu
+                    })
+                    .ToListAsync();
+
+                return templates;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all workout templates");
+                return new List<WorkoutTemplateViewModel>();
+            }
+        }
+
+        public async Task<List<ClientBookingViewModel>> GetClientBookingsForWorkoutAsync(string ptUserId, string clientId)
+        {
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(ptUserId);
+                if (trainer == null)
+                {
+                    return new List<ClientBookingViewModel>();
+                }
+
+                // Lấy các booking từ bảng DatLichPt
+                // Chỉ lấy booking đã confirmed hoặc pending (chưa completed, chưa cancelled)
+                // Chỉ lấy booking trong tương lai hoặc hôm nay
+                var now = DateTime.Now;
+                var bookings = await _context.DatLichPts
+                    .Where(d => d.Ptid == trainer.Ptid 
+                        && d.KhacHangId == clientId
+                        && (d.TrangThai == "Confirmed" || d.TrangThai == "Pending")
+                        && d.NgayGioDat >= now.Date) // Lấy từ đầu ngày hôm nay trở đi
+                    .OrderBy(d => d.NgayGioDat)
+                    .Select(d => new ClientBookingViewModel
+                    {
+                        Id = d.DatLichId, // DatLichId từ bảng DatLichPt
+                        Date = d.NgayGioDat, // NgayGioDat từ bảng DatLichPt
+                        Status = d.TrangThai ?? "Pending", // TrangThai từ bảng DatLichPt
+                        Type = d.LoaiBuoiTap ?? "In-person", // LoaiBuoiTap từ bảng DatLichPt
+                        Note = d.GhiChu // GhiChu từ bảng DatLichPt
+                    })
+                    .ToListAsync();
+                
+                _logger.LogInformation("Found {Count} bookings for client {ClientId} and PT {PtId}", 
+                    bookings.Count, clientId, trainer.Ptid);
+
+                return bookings;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting client bookings for workout");
+                return new List<ClientBookingViewModel>();
+            }
+        }
+
+        public async Task<WorkoutTemplateDetailViewModel?> GetWorkoutTemplateDetailAsync(int templateId)
+        {
+            try
+            {
+                var template = await _context.MauTapLuyens
+                    .Include(m => m.ChiTietMauTapLuyens)
+                    .FirstOrDefaultAsync(m => m.MauTapLuyenId == templateId);
+
+                if (template == null)
+                {
+                    return null;
+                }
+
+                return new WorkoutTemplateDetailViewModel
+                {
+                    TemplateId = template.MauTapLuyenId,
+                    Name = template.TenMauTapLuyen,
+                    Description = template.MoTa,
+                    Difficulty = template.DoKho ?? "Beginner",
+                    Weeks = template.SoTuan ?? 4,
+                    EstimatedCalories = template.CaloUocTinh ?? 0,
+                    Equipment = template.ThietBiCan,
+                    Exercises = template.ChiTietMauTapLuyens.Select(e => new ExerciseViewModel
+                    {
+                        ExerciseId = e.BaiTapId,
+                        Name = e.TenbaiTap,
+                        Sets = e.SoSets,
+                        Reps = e.SoReps,
+                        DurationMinutes = e.ThoiLuongPhut,
+                        RestSeconds = e.ThoiGianNghiGiay,
+                        Week = e.Tuan ?? 1,
+                        DayOfWeek = e.NgayTrongTuan ?? 1,
+                        Order = e.ThuTuHienThi ?? 0,
+                        VideoUrl = e.VideoUrl,
+                        Notes = e.GhiChu
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting workout template detail for templateId: {TemplateId}", templateId);
+                return null;
+            }
+        }
+
+        public async Task<(bool success, string message)> CreateWorkoutPlanAsync(string ptUserId, string clientId, CreateWorkoutPlanViewModel model)
+        {
+            try
+            {
+                // Validate PT
+                var trainer = await GetCurrentTrainerAsync(ptUserId);
+                if (trainer == null)
+                {
+                    return (false, "Không tìm thấy thông tin PT");
+                }
+
+                // Validate client belongs to PT
+                var hasPermission = await _context.QuyenPtKhachHangs
+                    .AnyAsync(q => q.Ptid == trainer.Ptid && q.KhachHangId == clientId);
+                
+                var hasBooking = await _context.DatLichPts
+                    .AnyAsync(d => d.Ptid == trainer.Ptid && d.KhacHangId == clientId);
+
+                if (!hasPermission && !hasBooking)
+                {
+                    return (false, "Khách hàng không thuộc quyền quản lý của bạn");
+                }
+
+                // Validate model
+                if (string.IsNullOrWhiteSpace(model.PlanName))
+                {
+                    return (false, "Vui lòng nhập tên kế hoạch");
+                }
+
+                if (model.Weeks <= 0 || model.Weeks > 52)
+                {
+                    return (false, "Số tuần phải từ 1 đến 52");
+                }
+
+                if (model.SessionsPerWeek <= 0 || model.SessionsPerWeek > 7)
+                {
+                    return (false, "Số buổi/tuần phải từ 1 đến 7");
+                }
+
+                if (model.Exercises == null || model.Exercises.Count == 0)
+                {
+                    return (false, "Vui lòng thêm ít nhất một bài tập");
+                }
+
+                // Get client's goal (MucTieu) - try to find from DatLichPt first, then from MucTieu table
+                string? mucTieuId = null;
+                var recentBooking = await _context.DatLichPts
+                    .Where(d => d.Ptid == trainer.Ptid && d.KhacHangId == clientId && !string.IsNullOrEmpty(d.GhiChu))
+                    .OrderByDescending(d => d.NgayTao ?? d.NgayGioDat)
+                    .FirstOrDefaultAsync();
+
+                string? goal = null;
+                if (recentBooking != null && !string.IsNullOrEmpty(recentBooking.GhiChu))
+                {
+                    var lines = recentBooking.GhiChu.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("Mục tiêu:"))
+                        {
+                            goal = line.Replace("Mục tiêu:", "").Trim();
+                            
+                            // Try to find MucTieuId by matching goal text in MucTieu table
+                            var matchingMucTieu = await _context.MucTieus
+                                .Where(m => m.UserId == clientId && m.LoaiMucTieu.Contains(goal))
+                                .OrderByDescending(m => m.NgayBatDau)
+                                .FirstOrDefaultAsync();
+                            
+                            if (matchingMucTieu != null)
+                            {
+                                mucTieuId = matchingMucTieu.MucTieuId;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // If no goal from booking or no MucTieuId found, get from MucTieu table
+                if (string.IsNullOrEmpty(goal) || string.IsNullOrEmpty(mucTieuId))
+                {
+                    var mucTieu = await _context.MucTieus
+                        .Where(m => m.UserId == clientId)
+                        .OrderByDescending(m => m.NgayBatDau)
+                        .FirstOrDefaultAsync();
+                    
+                    if (mucTieu != null)
+                    {
+                        mucTieuId = mucTieu.MucTieuId;
+                        if (string.IsNullOrEmpty(goal))
+                        {
+                            goal = mucTieu.LoaiMucTieu;
+                        }
+                    }
+                }
+
+                // Generate KeHoachId
+                var lastPlan = await _context.KeHoachTapLuyens
+                    .OrderByDescending(k => k.KeHoachId)
+                    .FirstOrDefaultAsync();
+
+                var planNumber = 1;
+                if (lastPlan != null)
+                {
+                    try
+                    {
+                        planNumber = int.Parse(lastPlan.KeHoachId.Split('_')[1]) + 1;
+                    }
+                    catch
+                    {
+                        planNumber = 1;
+                    }
+                }
+
+                // Step 1: Create MauTapLuyen (Template) with PT as creator
+                var mauTapLuyen = new MauTapLuyen
+                {
+                    NguoiTao = trainer.Ptid, // PT ID
+                    TenMauTapLuyen = model.PlanName,
+                    MoTa = $"Kế hoạch tập luyện cho khách hàng - {model.PlanName}",
+                    DoKho = model.Difficulty ?? "Beginner",
+                    MucTieu = goal,
+                    SoTuan = model.Weeks,
+                    CaloUocTinh = model.EstimatedCaloriesPerSession.HasValue 
+                        ? (int?)(model.EstimatedCaloriesPerSession.Value * model.SessionsPerWeek * model.Weeks)
+                        : null,
+                    ThietBiCan = null, // Có thể mở rộng để lấy từ exercises nếu cần
+                    CongKhai = false, // Không công khai mặc định
+                    DaXacThuc = true, // Đã xác thực vì do PT tạo
+                    SoLanSuDung = 0,
+                    DiemTrungBinh = null,
+                    NgayTao = DateTime.Now,
+                    NgayChinhSua = DateTime.Now
+                };
+
+                _context.MauTapLuyens.Add(mauTapLuyen);
+                await _context.SaveChangesAsync(); // Save to get MauTapLuyenId
+
+                // Step 2: Create ChiTietMauTapLuyen for each exercise
+                var thuTuHienThi = 1;
+                foreach (var exercise in model.Exercises)
+                {
+                    var chiTietMau = new ChiTietMauTapLuyen
+                    {
+                        MauTapLuyenId = mauTapLuyen.MauTapLuyenId,
+                        TenbaiTap = exercise.Name,
+                        SoSets = exercise.Sets,
+                        SoReps = exercise.Reps,
+                        ThoiLuongPhut = exercise.DurationMinutes,
+                        ThoiGianNghiGiay = exercise.RestSeconds,
+                        Tuan = exercise.Week,
+                        NgayTrongTuan = exercise.DayOfWeek,
+                        ThuTuHienThi = thuTuHienThi,
+                        VideoUrl = exercise.VideoUrl,
+                        GhiChu = exercise.Notes
+                    };
+
+                    _context.ChiTietMauTapLuyens.Add(chiTietMau);
+                    thuTuHienThi++;
+                }
+
+                await _context.SaveChangesAsync(); // Save ChiTietMauTapLuyen
+
+                // Step 3: Generate KeHoachId (auto-increment style)
+                var keHoachId = $"plan_{planNumber:D4}";
+
+                // Step 4: Create KeHoachTapLuyen
+                var workoutPlan = new KeHoachTapLuyen
+                {
+                    KeHoachId = keHoachId,
+                    UserId = clientId,
+                    MucTieuId = mucTieuId,
+                    TenKeHoach = model.PlanName,
+                    LoaiKeHoach = goal, // Use goal as LoaiKeHoach
+                    MucDo = model.Difficulty ?? "Beginner",
+                    SoTuan = model.Weeks,
+                    SoBuoi = model.SessionsPerWeek,
+                    ThoiLuongPhut = model.DurationPerSession ?? 60,
+                    CaloTieuHaoMoiBuoi = model.EstimatedCaloriesPerSession,
+                    Nguon = "PT", // Source: PT created
+                    DangSuDung = true,
+                    NgayTao = DateTime.Now
+                };
+
+                _context.KeHoachTapLuyens.Add(workoutPlan);
+
+                // Step 5: Create ChiTietKeHoachTapLuyen for each exercise
+                var chiTietId = 1;
+                foreach (var exercise in model.Exercises)
+                {
+                    var chiTiet = new ChiTietKeHoachTapLuyen
+                    {
+                        KeHoachId = keHoachId,
+                        TenBaiTap = exercise.Name,
+                        SoHiep = exercise.Sets,
+                        SoLan = exercise.Reps,
+                        ThoiGianPhut = exercise.DurationMinutes,
+                        NgayTrongTuan = exercise.DayOfWeek,
+                        Tuan = exercise.Week,
+                        ThuTuHienThi = exercise.Order,
+                        VideoUrl = exercise.VideoUrl,
+                        CanhBao = exercise.Notes,
+                        CaloTieuHaoDuKien = exercise.EstimatedCalories
+                    };
+
+                    _context.ChiTietKeHoachTapLuyens.Add(chiTiet);
+                    chiTietId++;
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Workout plan created: {PlanId} for client {ClientId} by PT {PtId}", keHoachId, clientId, trainer.Ptid);
+
+                return (true, "Đã tạo kế hoạch tập luyện thành công");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating workout plan for client {ClientId}", clientId);
+                return (false, "Có lỗi xảy ra khi tạo kế hoạch tập luyện");
+            }
+        }
+
+        public async Task<WorkoutPlanViewModel?> GetClientWorkoutPlanAsync(string ptUserId, string clientId)
+        {
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(ptUserId);
+                if (trainer == null)
+                {
+                    return null;
+                }
+
+                // Validate client belongs to PT
+                var hasPermission = await _context.QuyenPtKhachHangs
+                    .AnyAsync(q => q.Ptid == trainer.Ptid && q.KhachHangId == clientId);
+                
+                var hasBooking = await _context.DatLichPts
+                    .AnyAsync(d => d.Ptid == trainer.Ptid && d.KhacHangId == clientId);
+
+                if (!hasPermission && !hasBooking)
+                {
+                    return null;
+                }
+
+                // Get active workout plan
+                var plan = await _context.KeHoachTapLuyens
+                    .Include(k => k.ChiTietKeHoachTapLuyens)
+                    .Where(k => k.UserId == clientId && k.DangSuDung == true && k.Nguon == "PT")
+                    .OrderByDescending(k => k.NgayTao)
+                    .FirstOrDefaultAsync();
+
+                if (plan == null)
+                {
+                    return null;
+                }
+
+                return new WorkoutPlanViewModel
+                {
+                    PlanId = plan.KeHoachId,
+                    PlanName = plan.TenKeHoach,
+                    Weeks = plan.SoTuan ?? 0,
+                    SessionsPerWeek = plan.SoBuoi ?? 0,
+                    DurationPerSession = plan.ThoiLuongPhut ?? 60,
+                    CreatedDate = plan.NgayTao ?? DateTime.Now,
+                    Exercises = plan.ChiTietKeHoachTapLuyens.Select(e => new ExerciseViewModel
+                    {
+                        ExerciseId = e.ChiTietId,
+                        Name = e.TenBaiTap,
+                        Sets = e.SoHiep,
+                        Reps = e.SoLan,
+                        DurationMinutes = e.ThoiGianPhut,
+                        Week = e.Tuan ?? 1,
+                        DayOfWeek = e.NgayTrongTuan ?? 1,
+                        Order = e.ThuTuHienThi ?? 0,
+                        VideoUrl = e.VideoUrl,
+                        Notes = e.CanhBao
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting workout plan for client {ClientId}", clientId);
+                return null;
+            }
+        }
     }
 
     // View Models (moved from controller)
@@ -1957,36 +2385,6 @@ namespace HealthWeb.Services
         public DateTime? LastActivity { get; set; }
     }
 
-    public class SearchClientsViewModel
-    {
-        public List<PotentialClientViewModel> Clients { get; set; } = new();
-        public string? Search { get; set; }
-        public string? Goal { get; set; }
-        public string? Location { get; set; }
-        public string? Time { get; set; }
-        public string? Budget { get; set; }
-    }
-
-    public class PotentialClientViewModel
-    {
-        public string Id { get; set; } = null!;
-        public string Name { get; set; } = null!;
-        public string Username { get; set; } = null!;
-        public string? Email { get; set; }
-        public string? Location { get; set; }
-        public string? Goal { get; set; }
-        public List<string> Tags { get; set; } = new();
-        public ClientStatsViewModel Stats { get; set; } = new();
-        public DateTime? Activity { get; set; }
-        public DateTime? CreatedDate { get; set; }
-    }
-
-    public class ClientStatsViewModel
-    {
-        public int Sessions { get; set; }
-        public int Hours { get; set; }
-        public double Rating { get; set; }
-    }
 
     public class ScheduleViewModel
     {
@@ -2064,6 +2462,72 @@ namespace HealthWeb.Services
         public string Status { get; set; } = null!;
         public string Type { get; set; } = null!;
         public string? Note { get; set; }
+    }
+
+    // Workout Plan View Models
+    public class WorkoutTemplateViewModel
+    {
+        public int TemplateId { get; set; }
+        public string Name { get; set; } = null!;
+        public string? Description { get; set; }
+        public string Difficulty { get; set; } = null!;
+        public int Weeks { get; set; }
+        public int EstimatedCalories { get; set; }
+        public string? Equipment { get; set; }
+        public int ExerciseCount { get; set; }
+        public double Rating { get; set; }
+        public int UsageCount { get; set; }
+        public string? Goal { get; set; }
+    }
+
+    public class WorkoutTemplateDetailViewModel
+    {
+        public int TemplateId { get; set; }
+        public string Name { get; set; } = null!;
+        public string? Description { get; set; }
+        public string Difficulty { get; set; } = null!;
+        public int Weeks { get; set; }
+        public int EstimatedCalories { get; set; }
+        public string? Equipment { get; set; }
+        public List<ExerciseViewModel> Exercises { get; set; } = new();
+    }
+
+    public class ExerciseViewModel
+    {
+        public int ExerciseId { get; set; }
+        public string Name { get; set; } = null!;
+        public int? Sets { get; set; }
+        public int? Reps { get; set; }
+        public int? DurationMinutes { get; set; }
+        public int? RestSeconds { get; set; }
+        public int Week { get; set; } = 1;
+        public int DayOfWeek { get; set; } = 1; // 1=Monday, 7=Sunday
+        public int Order { get; set; } = 0;
+        public string? VideoUrl { get; set; }
+        public string? Notes { get; set; }
+        public double? EstimatedCalories { get; set; }
+    }
+
+    public class CreateWorkoutPlanViewModel
+    {
+        public string PlanName { get; set; } = null!;
+        public int Weeks { get; set; }
+        public int SessionsPerWeek { get; set; }
+        public int? DurationPerSession { get; set; }
+        public string? Difficulty { get; set; }
+        public double? EstimatedCaloriesPerSession { get; set; }
+        public List<ExerciseViewModel> Exercises { get; set; } = new();
+    }
+
+    public class WorkoutPlanViewModel
+    {
+        public string PlanId { get; set; } = null!;
+        public string PlanName { get; set; } = null!;
+        public int Weeks { get; set; }
+        public int SessionsPerWeek { get; set; }
+        public int DurationPerSession { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public List<ExerciseViewModel> Exercises { get; set; } = new();
     }
 }
 

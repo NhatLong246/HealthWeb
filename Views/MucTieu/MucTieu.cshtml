@@ -33,7 +33,7 @@
 			<div id="gymMap"></div>
 		</section>
 
-		<main class="screen" id="screenSetup">
+		<main class="screen" id="screenSetup" style="display: block;">
 			<section class="card-group">
 				<div class="group-header">
 					<span class="group-icon"><i class="fas fa-list-check"></i></span>
@@ -83,86 +83,28 @@
 				</div>
 			</section>
 
-			<div class="two-col">
-				<section class="card-group">
-					<div class="group-header">
-						<span class="group-icon"><i class="fas fa-map-marker-alt"></i></span>
-						<h2>Địa Điểm Tập Luyện</h2>
-					</div>
-					<div class="row-list">
-						<div class="chip selectable" role="button" tabindex="0" data-group="place" data-value="gym">
-							<div class="chip-content">
-								<i class="fas fa-dumbbell"></i>
-								<span>Phòng GYM</span>
-							</div>
-						</div>
-						<div class="chip selectable" role="button" tabindex="0" data-group="place" data-value="home">
-							<div class="chip-content">
-								<i class="fas fa-home"></i>
-								<span>Tại Nhà</span>
-							</div>
-						</div>
-					</div>
-				</section>
-				<section class="card-group">
-					<div class="group-header">
-						<span class="group-icon"><i class="fas fa-chart-line"></i></span>
-						<h2>Trình Độ Hiện Tại Với Bài Tập</h2>
-					</div>
-					<div class="row-list">
-						<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="beginner">
-							<div class="chip-content">
-								<i class="fas fa-seedling"></i>
-								<span>Người Mới</span>
-							</div>
-						</div>
-						<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="experienced">
-							<div class="chip-content">
-								<i class="fas fa-trophy"></i>
-								<span>Người Có Kinh Nghiệm</span>
-							</div>
-						</div>
-					</div>
-				</section>
-			</div>
-
-			<section class="card-group equip-section hidden" data-place="gym">
+			<section class="card-group">
 				<div class="group-header">
-					<span class="group-icon"><i class="fas fa-dumbbell"></i></span>
-					<h2>Phòng GYM - Trang Thiết Bị</h2>
+					<span class="group-icon"><i class="fas fa-chart-line"></i></span>
+					<h2>Trình Độ Hiện Tại Với Bài Tập</h2>
 				</div>
 				<div class="row-list">
-					<div class="chip selectable" role="button" tabindex="0" data-group="equip-gym">
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Beginner">
 						<div class="chip-content">
-							<i class="fas fa-dumbbell"></i>
-							<span>Thiết Bị Cơ Bản</span>
+							<i class="fas fa-seedling"></i>
+							<span>Người Mới</span>
 						</div>
 					</div>
-					<div class="chip selectable" role="button" tabindex="0" data-group="equip-gym">
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Intermediate">
 						<div class="chip-content">
-							<i class="fas fa-dumbbell"></i>
-							<span>Đầy Đủ Thiết Bị</span>
+							<i class="fas fa-chart-line"></i>
+							<span>Trung Bình</span>
 						</div>
 					</div>
-				</div>
-			</section>
-
-			<section class="card-group equip-section hidden" data-place="home">
-				<div class="group-header">
-					<span class="group-icon"><i class="fas fa-home"></i></span>
-					<h2>Tại Nhà - Trang Thiết Bị</h2>
-				</div>
-				<div class="row-list">
-					<div class="chip selectable" role="button" tabindex="0" data-group="equip-home">
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Advanced">
 						<div class="chip-content">
-							<i class="fas fa-dumbbell"></i>
-							<span>Thiết Bị Cơ Bản</span>
-						</div>
-					</div>
-					<div class="chip selectable" role="button" tabindex="0" data-group="equip-home">
-						<div class="chip-content">
-							<i class="fas fa-ban"></i>
-							<span>Không Có Thiết Bị</span>
+							<i class="fas fa-trophy"></i>
+							<span>Nâng Cao</span>
 						</div>
 					</div>
 				</div>
@@ -178,12 +120,14 @@
 					<div class="schedule-col">
 						<h3>Buổi Tập</h3>
 						<div class="session-grid">
+							<div class="grid-head">Tuần</div>
 							<div class="grid-head">Thứ</div>
 							<div class="grid-head">Buổi</div>
 							<div class="grid-head">Bắt đầu</div>
 							<div class="grid-head">Kết thúc</div>
 
 							<div class="grid-row">
+								<button class="pill schedule-picker" data-type="week">Tuần 1</button>
 								<button class="pill schedule-picker" data-type="day">Thứ 2</button>
 								<button class="pill schedule-picker" data-type="session">Sáng</button>
 								<button class="pill schedule-picker" data-type="time-start">07:00</button>
@@ -192,16 +136,9 @@
 						</div>
 						<div class="session-actions"><button class="btn add-row" id="addSession">Thêm</button></div>
 					</div>
-					<div class="schedule-col off-days">
-						<h3>Ngày Không Tập</h3>
-						<div class="row-list" id="offDaysList"></div>
-						<div class="session-actions"><button class="btn add-row" id="addOffDay">Thêm</button></div>
-					</div>
 				</div>
 			</section>
-		</main>
 
-		<main class="screen" id="screenSummary">
 			<div class="summary-layout">
 				<div class="col-left">
 					<section class="card-group">
@@ -212,7 +149,7 @@
 						<div class="row-list" id="suggestedExercisesList">
 							<div class="no-data-message" style="width: 100%; text-align: center; padding: 2rem; color: #cbd5e1;">
 								<i class="fas fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-								<p>Vui lòng chọn một mục tiêu để xem các bài tập được đề xuất</p>
+								<p>Vui lòng chọn một mục tiêu và trình độ để xem các bài tập được đề xuất</p>
 							</div>
 						</div>
 					</section>
@@ -228,9 +165,9 @@
 						<div class="stat-card green"><i class="fas fa-trophy"></i><strong>Tốt</strong><span>Hiệu suất</span></div>
 						<div class="stat-card blue"><i class="fas fa-star"></i><strong>3000</strong><span>Điểm cá nhân</span></div>
 					</div>
-						<p class="date-range">10 9 2025 - 12 12 2025 • Dự kiến hoàn thành</p>
+						<p class="date-range" id="dateRangeText">10 9 2025 - 12 12 2025 • Dự kiến hoàn thành</p>
 						<div class="cta-row">
-							<button class="btn start-orange">Bắt Đầu</button>
+							<button class="btn start-orange" id="btnAddExercise">Thêm bài tập</button>
 						</div>
 					</section>
 				</div>

@@ -103,6 +103,12 @@ body.light-mode .stat-card {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
+    align-items: start; /* Các section không kéo dài theo nhau */
+}
+
+/* Đảm bảo section bên phải không bị kéo dài */
+.dashboard-content > .dashboard-section:last-child {
+    align-self: start;
 }
 
 .dashboard-section {
@@ -111,6 +117,28 @@ body.light-mode .stat-card {
     padding: 2rem;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Cố định chiều cao cho phần Quick Actions - vừa đủ với nội dung, không có khoảng trống thừa */
+.dashboard-content > .dashboard-section:last-child {
+    height: auto !important;
+    max-height: none !important;
+    padding: 1.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-self: start !important;
+}
+
+/* Giảm margin và padding cho phần Quick Actions để gọn hơn */
+.dashboard-content > .dashboard-section:last-child .section-header {
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.dashboard-content > .dashboard-section:last-child .quick-actions {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
 }
 
 body.light-mode .dashboard-section {
@@ -164,6 +192,40 @@ body.light-mode .section-action:hover {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* Scrollbar styling */
+.bookings-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.bookings-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.bookings-list::-webkit-scrollbar-thumb {
+    background: rgba(78, 222, 128, 0.3);
+    border-radius: 10px;
+}
+
+.bookings-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(78, 222, 128, 0.5);
+}
+
+body.light-mode .bookings-list::-webkit-scrollbar-track {
+    background: rgba(251, 146, 60, 0.1);
+}
+
+body.light-mode .bookings-list::-webkit-scrollbar-thumb {
+    background: rgba(251, 146, 60, 0.3);
+}
+
+body.light-mode .bookings-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 146, 60, 0.5);
 }
 
 .booking-item {
@@ -264,26 +326,27 @@ body.light-mode .booking-item:hover {
     gap: 0.3rem;
 }
 
-/* Quick Actions */
+/* Quick Actions - 3 nút, hiển thị 1 cột để gọn hơn */
 .quick-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
+    height: fit-content;
 }
 
 .action-btn {
-    padding: 1.2rem;
+    padding: 1rem 1.5rem;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    text-align: center;
     text-decoration: none;
     color: inherit;
     transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
+    width: 100%;
 }
 
 body.light-mode .action-btn {
@@ -303,8 +366,9 @@ body.light-mode .action-btn:hover {
 }
 
 .action-btn i {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: #4ade80;
+    min-width: 24px;
 }
 
 body.light-mode .action-btn i {
@@ -313,7 +377,9 @@ body.light-mode .action-btn i {
 
 .action-btn span {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
+    flex: 1;
+    text-align: left;
 }
 
 /* Empty State */

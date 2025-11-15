@@ -224,33 +224,6 @@ namespace HealthWeb.Controllers
             }
         }
 
-        // Tìm kiếm khách hàng tiềm năng chưa thuộc quyền quản lý của PT
-        [HttpGet("PT/SearchClients/List")]
-        public async Task<IActionResult> GetPotentialClients(
-            [FromQuery] string? search,
-            [FromQuery] string? goal,
-            [FromQuery] string? location,
-            [FromQuery] string? time,
-            [FromQuery] string? budget)
-        {
-            try
-            {
-                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
-                }
-
-                var results = await _ptService.GetPotentialClientsAsync(userId, search, goal, location, time, budget);
-                return Json(new { success = true, data = results });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching potential clients");
-                return Json(new { success = false, message = "Không thể tải danh sách khách hàng tiềm năng" });
-            }
-        }
-
         // Lấy danh sách lịch hẹn của PT trong tuần (phục vụ view lịch biểu)
         [HttpGet("PT/Schedule/Week")]
         public async Task<IActionResult> GetScheduleForWeek([FromQuery] DateOnly? start)
@@ -292,33 +265,6 @@ namespace HealthWeb.Controllers
             {
                 _logger.LogError(ex, "Error loading schedule");
                 return View(new HealthWeb.Services.ScheduleViewModel());
-            }
-        }
-
-        // GET: /PT/SearchClients - hiển thị giao diện tìm khách hàng tiềm năng
-        [HttpGet("PT/SearchClients")]
-        public async Task<IActionResult> SearchClients(
-            [FromQuery] string? search,
-            [FromQuery] string? goal,
-            [FromQuery] string? location,
-            [FromQuery] string? time,
-            [FromQuery] string? budget)
-        {
-            try
-            {
-                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return RedirectToAction("Login", "Account");
-                }
-
-                var viewModel = await _ptService.GetSearchClientsViewModelAsync(userId, search, goal, location, time, budget);
-                return View(viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading search clients");
-                return View(new HealthWeb.Services.SearchClientsViewModel());
             }
         }
 
@@ -619,6 +565,136 @@ namespace HealthWeb.Controllers
                 return Json(new { success = false, message = "Có lỗi xảy ra khi từ chối yêu cầu" });
             }
         }
+
+        // GET: /PT/WorkoutTemplates - Lấy danh sách template (có thể filter theo goal)
+        [HttpGet("PT/WorkoutTemplates")]
+        public async Task<IActionResult> GetWorkoutTemplates([FromQuery] string? goal = null)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                List<WorkoutTemplateViewModel> templates;
+                if (!string.IsNullOrWhiteSpace(goal))
+                {
+                    templates = await _ptService.GetWorkoutTemplatesByGoalAsync(goal);
+                }
+                else
+                {
+                    templates = await _ptService.GetAllWorkoutTemplatesAsync();
+                }
+                
+                return Json(new { success = true, data = templates });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting workout templates");
+                return Json(new { success = false, message = "Không thể tải danh sách template" });
+            }
+        }
+
+        // GET: /PT/WorkoutTemplate/{templateId} - Lấy chi tiết template
+        [HttpGet("PT/WorkoutTemplate/{templateId}")]
+        public async Task<IActionResult> GetWorkoutTemplateDetail(int templateId)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                var template = await _ptService.GetWorkoutTemplateDetailAsync(templateId);
+                if (template == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy template" });
+                }
+
+                return Json(new { success = true, data = template });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting workout template detail");
+                return Json(new { success = false, message = "Không thể tải chi tiết template" });
+            }
+        }
+
+        // GET: /PT/ClientBookings/{clientId} - Lấy danh sách lịch hẹn của client
+        [HttpGet("PT/ClientBookings/{clientId}")]
+        public async Task<IActionResult> GetClientBookings(string clientId)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                var bookings = await _ptService.GetClientBookingsForWorkoutAsync(userId, clientId);
+                return Json(new { success = true, data = bookings });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting client bookings");
+                return Json(new { success = false, message = "Không thể tải danh sách lịch hẹn" });
+            }
+        }
+
+        // POST: /PT/WorkoutPlan/Create - Tạo kế hoạch tập luyện
+        [HttpPost("PT/WorkoutPlan/Create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateWorkoutPlan([FromBody] CreateWorkoutPlanRequestModel model)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.ClientId))
+                {
+                    return Json(new { success = false, message = "Vui lòng chọn khách hàng" });
+                }
+
+                var (success, message) = await _ptService.CreateWorkoutPlanAsync(userId, model.ClientId, model.Plan);
+                return Json(new { success, message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating workout plan");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi tạo kế hoạch" });
+            }
+        }
+
+        // GET: /PT/WorkoutPlan/{clientId} - Lấy kế hoạch tập luyện của client
+        [HttpGet("PT/WorkoutPlan/{clientId}")]
+        public async Task<IActionResult> GetClientWorkoutPlan(string clientId)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                var plan = await _ptService.GetClientWorkoutPlanAsync(userId, clientId);
+                return Json(new { success = true, data = plan });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting client workout plan");
+                return Json(new { success = false, message = "Không thể tải kế hoạch tập luyện" });
+            }
+        }
     }
 
     public class AcceptRequestModel
@@ -630,6 +706,12 @@ namespace HealthWeb.Controllers
     {
         public string RequestId { get; set; } = null!;
         public string Reason { get; set; } = null!;
+    }
+
+    public class CreateWorkoutPlanRequestModel
+    {
+        public string ClientId { get; set; } = null!;
+        public HealthWeb.Services.CreateWorkoutPlanViewModel Plan { get; set; } = null!;
     }
 }
 
