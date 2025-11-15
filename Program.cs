@@ -89,6 +89,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
+// ✅ Middleware restore session từ cookie (sau khi có session và auth)
+app.UseMiddleware<HealthWeb.Middleware.RestoreSessionMiddleware>();
+
 // ✅ Middleware kiểm tra thông tin cơ bản (sau khi đã có session và auth)
 app.UseMiddleware<HealthWeb.Middleware.RequireBasicInfoMiddleware>();
 
