@@ -63,6 +63,202 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Health info dialogs
+    const healthDialog = document.getElementById('healthDialog');
+    console.log('Health dialog element:', healthDialog);
+    
+    if (!healthDialog) {
+        console.error('Health dialog element not found in DOM!');
+    }
+    
+    const healthDialogOverlay = healthDialog?.querySelector('.health-dialog-overlay');
+    const healthDialogClose = healthDialog?.querySelector('.health-dialog-close');
+    const healthDialogIcon = healthDialog?.querySelector('.health-dialog-icon');
+    const healthDialogTitle = healthDialog?.querySelector('.health-dialog-title');
+    const healthDialogBody = healthDialog?.querySelector('.health-dialog-body');
+    
+    // Nội dung cho mỗi dialog
+    const healthDialogContent = {
+        exercise: {
+            icon: '<i class="fas fa-person-running"></i>',
+            title: '150 phút/tuần',
+            body: `
+                <p><strong>Tập thể dục vừa phải 150 phút mỗi tuần</strong> là khuyến nghị của Tổ chức Y tế Thế giới (WHO) để duy trì sức khỏe tim mạch.</p>
+                <p><strong>Lợi ích:</strong></p>
+                <ul>
+                    <li>Giảm 30% nguy cơ mắc bệnh tim mạch</li>
+                    <li>Cải thiện tuần hoàn máu và huyết áp</li>
+                    <li>Tăng cường sức bền và năng lượng</li>
+                    <li>Giảm stress và cải thiện tâm trạng</li>
+                    <li>Hỗ trợ kiểm soát cân nặng</li>
+                </ul>
+                <p><strong>Gợi ý:</strong> Chia thành 5 buổi/tuần, mỗi buổi 30 phút với các hoạt động như đi bộ nhanh, đạp xe, bơi lội, hoặc khiêu vũ.</p>
+            `
+        },
+        nutrition: {
+            icon: '<i class="fas fa-apple-whole"></i>',
+            title: '400g rau quả/ngày',
+            body: `
+                <p><strong>Ăn ít nhất 400g rau quả mỗi ngày</strong> (tương đương 5 phần) giúp cung cấp đầy đủ chất dinh dưỡng cần thiết cho cơ thể.</p>
+                <p><strong>Lợi ích:</strong></p>
+                <ul>
+                    <li>Bổ sung chất xơ hỗ trợ tiêu hóa</li>
+                    <li>Cung cấp vitamin và khoáng chất thiết yếu</li>
+                    <li>Giảm nguy cơ bệnh tim, đột quỵ và ung thư</li>
+                    <li>Hỗ trợ kiểm soát đường huyết</li>
+                    <li>Tăng cường hệ miễn dịch</li>
+                </ul>
+                <p><strong>Gợi ý:</strong> Kết hợp nhiều màu sắc (xanh lá, đỏ, vàng, tím) để đa dạng dinh dưỡng. Một phần tương đương: 1 quả táo, 1 bát rau sống, hoặc 1/2 bát rau nấu chín.</p>
+            `
+        },
+        sleep: {
+            icon: '<i class="fas fa-moon"></i>',
+            title: '7–8 giờ/ngày',
+            body: `
+                <p><strong>Ngủ đủ 7-8 giờ mỗi đêm</strong> là thời lượng tối ưu để cơ thể phục hồi và tái tạo năng lượng.</p>
+                <p><strong>Lợi ích:</strong></p>
+                <ul>
+                    <li>Phục hồi thể chất và tinh thần</li>
+                    <li>Cải thiện trí nhớ và khả năng tập trung</li>
+                    <li>Tăng cường hệ miễn dịch</li>
+                    <li>Điều hòa hormone và trao đổi chất</li>
+                    <li>Giảm nguy cơ bệnh tim, tiểu đường và béo phì</li>
+                </ul>
+                <p><strong>Mẹo ngủ ngon:</strong> Tạo thói quen đi ngủ đúng giờ, tránh ánh sáng xanh trước khi ngủ, giữ phòng ngủ mát mẻ và tối, tránh caffeine sau 2 giờ chiều.</p>
+            `
+        },
+        water: {
+            icon: '<i class="fas fa-droplet"></i>',
+            title: '1.5–2 lít nước',
+            body: `
+                <p><strong>Uống 1.5-2 lít nước mỗi ngày</strong> (tương đương 6-8 cốc) giúp duy trì các chức năng cơ thể hoạt động tốt.</p>
+                <p><strong>Lợi ích:</strong></p>
+                <ul>
+                    <li>Hỗ trợ trao đổi chất và tiêu hóa</li>
+                    <li>Giữ cho da khỏe mạnh và đàn hồi</li>
+                    <li>Điều hòa thân nhiệt</li>
+                    <li>Giúp não hoạt động tốt hơn, tăng tỉnh táo</li>
+                    <li>Hỗ trợ vận chuyển chất dinh dưỡng</li>
+                </ul>
+                <p><strong>Dấu hiệu thiếu nước:</strong> Khát nước, nước tiểu sẫm màu, mệt mỏi, đau đầu. Hãy uống nước đều đặn trong ngày, không đợi đến khi khát.</p>
+            `
+        },
+        steps: {
+            icon: '<i class="fas fa-heart-pulse"></i>',
+            title: '10.000 bước',
+            body: `
+                <p><strong>Đi bộ 10.000 bước mỗi ngày</strong> là mục tiêu được khuyến nghị để duy trì sức khỏe tim mạch và thể chất.</p>
+                <p><strong>Lợi ích:</strong></p>
+                <ul>
+                    <li>Cải thiện sức khỏe tim mạch</li>
+                    <li>Tăng cường sức bền và sức mạnh cơ bắp</li>
+                    <li>Hỗ trợ giảm cân và duy trì cân nặng</li>
+                    <li>Cải thiện tâm trạng và giảm stress</li>
+                    <li>Tăng mật độ xương, giảm nguy cơ loãng xương</li>
+                </ul>
+                <p><strong>Mẹo đạt mục tiêu:</strong> Đi cầu thang bộ thay vì thang máy, đỗ xe xa hơn, đi bộ trong giờ nghỉ trưa, hoặc sử dụng máy đếm bước để theo dõi.</p>
+            `
+        },
+        balance: {
+            icon: '<i class="fas fa-scale-balanced"></i>',
+            title: 'Cân bằng năng lượng',
+            body: `
+                <p><strong>Cân bằng năng lượng</strong> là nguyên tắc cơ bản để duy trì cân nặng ổn định: năng lượng nạp vào = năng lượng tiêu hao.</p>
+                <p><strong>Nguyên tắc:</strong></p>
+                <ul>
+                    <li>Ăn vừa đủ calo theo nhu cầu cơ thể</li>
+                    <li>Kết hợp dinh dưỡng hợp lý và vận động thường xuyên</li>
+                    <li>Chọn thực phẩm giàu dinh dưỡng, ít calo rỗng</li>
+                    <li>Lắng nghe tín hiệu đói và no của cơ thể</li>
+                    <li>Duy trì thói quen ăn uống đều đặn</li>
+                </ul>
+                <p><strong>Lưu ý:</strong> Để giảm cân, tạo thâm hụt calo nhẹ (500-750 kcal/ngày). Để tăng cân, tăng calo từ thực phẩm lành mạnh. Luôn kết hợp với tập thể dục.</p>
+            `
+        }
+    };
+    
+    // Mở dialog khi click vào book-card
+    // Đợi một chút để đảm bảo DOM đã sẵn sàng
+    setTimeout(() => {
+        const bookCards = document.querySelectorAll('.book-card[data-dialog]');
+        console.log('Found book cards with dialog:', bookCards.length);
+        
+        if (bookCards.length === 0) {
+            console.warn('No book cards with data-dialog attribute found!');
+        }
+        
+        bookCards.forEach((card, index) => {
+            console.log(`Setting up click handler for card ${index + 1}:`, card);
+            
+            // Xóa event listener cũ nếu có
+            const newCard = card.cloneNode(true);
+            card.parentNode.replaceChild(newCard, card);
+            
+            newCard.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                const dialogType = this.getAttribute('data-dialog');
+                console.log('Card clicked, dialog type:', dialogType);
+                
+                if (!dialogType) {
+                    console.error('No data-dialog attribute found!');
+                    return;
+                }
+                
+                const content = healthDialogContent[dialogType];
+                
+                if (!healthDialog) {
+                    console.error('Health dialog element not found!');
+                    return;
+                }
+                
+                if (!content) {
+                    console.error('Dialog content not found for type:', dialogType);
+                    return;
+                }
+                
+                // Lấy icon từ card
+                const cardIcon = this.querySelector('.book-cover i');
+                if (cardIcon && healthDialogIcon) {
+                    healthDialogIcon.innerHTML = cardIcon.outerHTML;
+                }
+                
+                if (healthDialogTitle) healthDialogTitle.textContent = content.title;
+                if (healthDialogBody) healthDialogBody.innerHTML = content.body;
+                
+                healthDialog.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Ngăn scroll khi dialog mở
+                
+                console.log('Dialog opened successfully');
+            }, true); // Sử dụng capture phase để chặn sớm nhất
+        });
+    }, 100);
+    
+    // Đóng dialog
+    function closeHealthDialog() {
+        if (healthDialog) {
+            healthDialog.classList.remove('active');
+            document.body.style.overflow = ''; // Khôi phục scroll
+        }
+    }
+    
+    if (healthDialogClose) {
+        healthDialogClose.addEventListener('click', closeHealthDialog);
+    }
+    
+    if (healthDialogOverlay) {
+        healthDialogOverlay.addEventListener('click', closeHealthDialog);
+    }
+    
+    // Đóng bằng phím ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && healthDialog?.classList.contains('active')) {
+            closeHealthDialog();
+        }
+    });
+    
     // Read buttons
     const readBtns = document.querySelectorAll('.btn-read');
     readBtns.forEach(btn => {
@@ -83,13 +279,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Category cards
+    // Category cards - Đã chuyển thành thẻ thông tin, không còn clickable
+    // Vô hiệu hóa hoàn toàn khả năng click
     const categoryCards = document.querySelectorAll('.category-card');
     categoryCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const categoryName = this.querySelector('h3').textContent;
-            window.location.href = `/Books/Category?name=${encodeURIComponent(categoryName)}`;
-        });
+        // Ngăn chặn mọi sự kiện click
+        card.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }, true); // Sử dụng capture phase để chặn sớm nhất
+        
+        // Ngăn chặn các sự kiện khác
+        card.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, true);
+        
+        card.addEventListener('mouseup', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, true);
     });
     
     // Newsletter form

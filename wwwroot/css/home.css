@@ -843,10 +843,12 @@ body.light-mode .filter-option input[type="radio"]:checked + .radio-custom::afte
    ========================================== */
 .featured-section {
     padding: 4rem 2rem;
-    backdrop-filter: blur(10px);
     position: relative;
-    z-index: 2;
+    z-index: auto; /* Bỏ z-index để không tạo stacking context */
     transition: all 0.3s ease;
+    display: block !important; /* Đảm bảo section luôn hiển thị */
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .featured-section::before {
@@ -858,7 +860,9 @@ body.light-mode .filter-option input[type="radio"]:checked + .radio-custom::afte
     bottom: 0;
     background: radial-gradient(circle at 20% 50%, rgba(78, 222, 128, 0.05) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.03) 0%, transparent 50%);
+    backdrop-filter: blur(10px); /* Di chuyển backdrop-filter vào đây */
     z-index: -1;
+    pointer-events: none; /* Không chặn click events */
 }
 
 body.light-mode .featured-section::before {
@@ -872,7 +876,7 @@ body.light-mode .featured-section::before {
     font-weight: 700;
     margin-bottom: 3rem;
     position: relative;
-    z-index: 3;
+    z-index: 12 !important; /* Đảm bảo title hiển thị trên cùng */
     transition: all 0.3s ease;
 }
 
@@ -883,7 +887,8 @@ body.light-mode .featured-section::before {
     max-width: 1200px;
     margin: 0 auto;
     position: relative;
-    z-index: 3;
+    z-index: 100 !important; /* Tăng z-index cao để hiển thị trên featured-section */
+    isolation: isolate; /* Tạo stacking context riêng cho grid */
 }
 
 .book-card {
@@ -893,6 +898,8 @@ body.light-mode .featured-section::before {
     border: 1px solid;
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
+    z-index: 101 !important; /* Z-index cao hơn grid để đảm bảo hiển thị */
 }
 
 .book-card:hover {
@@ -1053,17 +1060,24 @@ body.light-mode .categories-section::before {
     text-align: center;
     border: 1px solid;
     transition: all 0.3s ease;
-    cursor: pointer;
+    cursor: default;
+    user-select: none; /* Không cho phép select text */
+    /* Không dùng pointer-events: none để giữ hover effect */
+}
+
+.category-card * {
+    user-select: none;
+    pointer-events: none; /* Chỉ vô hiệu hóa phần tử con, không ảnh hưởng hover của card */
 }
 
 .category-card:hover {
-    transform: translateY(-4px);
-    border-color: #4ade80;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    /* Giữ hover effect nhẹ nhàng, không còn transform như button */
+    border-color: rgba(78, 222, 128, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
 body.light-mode .category-card:hover {
-    border-color: #ea580c;
+    border-color: rgba(251, 146, 60, 0.4);
 }
 
 .category-card i {
@@ -1086,6 +1100,182 @@ body.light-mode .category-card i {
 .category-card p {
     font-size: 0.9rem;
     transition: all 0.3s ease;
+}
+
+/* ==========================================
+   HEALTH INFO DIALOG
+   ========================================== */
+.health-dialog {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000 !important; /* Z-index cao nhưng không quá cao để tránh che phủ section */
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+    pointer-events: none; /* Cho phép click qua khi không active */
+}
+
+.health-dialog.active {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto; /* Cho phép click khi active */
+}
+
+.health-dialog-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.health-dialog-content {
+    position: relative;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid rgba(78, 222, 128, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+    z-index: 10001 !important; /* Đảm bảo content hiển thị trên overlay */
+    pointer-events: auto; /* Cho phép tương tác với content */
+}
+
+body.light-mode .health-dialog-content {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(251, 146, 60, 0.3);
+}
+
+.health-dialog-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.health-dialog-close:hover {
+    background: rgba(78, 222, 128, 0.1);
+    color: #4ade80;
+    transform: rotate(90deg);
+}
+
+body.light-mode .health-dialog-close {
+    color: #9a3412;
+}
+
+body.light-mode .health-dialog-close:hover {
+    background: rgba(251, 146, 60, 0.1);
+    color: #ea580c;
+}
+
+.health-dialog-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2.5rem;
+    color: white;
+}
+
+body.light-mode .health-dialog-icon {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+}
+
+.health-dialog-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #ffffff;
+}
+
+body.light-mode .health-dialog-title {
+    color: #7c2d12;
+}
+
+.health-dialog-body {
+    color: #94a3b8;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+body.light-mode .health-dialog-body {
+    color: #9a3412;
+}
+
+.health-dialog-body p {
+    margin-bottom: 1rem;
+}
+
+.health-dialog-body ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.health-dialog-body ul li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.health-dialog-body ul li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #4ade80;
+    font-weight: bold;
+}
+
+body.light-mode .health-dialog-body ul li:before {
+    color: #ea580c;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* ==========================================
