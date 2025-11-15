@@ -50,8 +50,24 @@ namespace HealthWeb.Controllers
 
         // GET: /PT/RegisterPT - render form đăng ký PT (frontend xử lý hiển thị)
         [HttpGet("PT/RegisterPT")]
-        public IActionResult RegisterPT()
+        public async Task<IActionResult> RegisterPT()
         {
+            // Load dữ liệu user hiện tại nếu đã đăng nhập
+            var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _ptService.GetCurrentUserAsync(userId);
+                if (user != null)
+                {
+                    ViewBag.UserData = new
+                    {
+                        UserHoTen = user.HoTen ?? "",
+                        UserEmail = user.Email ?? "",
+                        Username = user.Username ?? "",
+                        UserNgaySinh = user.NgaySinh?.ToString("yyyy-MM-dd") ?? ""
+                    };
+                }
+            }
             return View();
         }
 
@@ -59,15 +75,28 @@ namespace HealthWeb.Controllers
         [HttpPost("PT/RegisterPT")]
         public async Task<IActionResult> RegisterPT(RegisterPTViewModel model)
         {
+            _logger.LogInformation("RegisterPT POST: Received registration request");
+            
+            // Log ModelState errors if any
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("RegisterPT POST: ModelState is invalid");
+                foreach (var error in ModelState)
+                {
+                    foreach (var modelError in error.Value.Errors)
+                    {
+                        _logger.LogWarning("RegisterPT POST: ModelState error - {Key}: {Message}", error.Key, modelError.ErrorMessage);
+                    }
+                }
                 return View(model);
             }
 
-            var (success, errorMessage) = await _ptService.RegisterPTAsync(model);
+            _logger.LogInformation("RegisterPT POST: Calling RegisterPTAsync service");
+            var (success, errorMessage) = await _ptService.RegisterPTAsync(model, HttpContext);
             
             if (!success)
             {
+                _logger.LogWarning("RegisterPT POST: Registration failed - {ErrorMessage}", errorMessage);
                 if (errorMessage != null)
                 {
                     if (errorMessage.Contains("Tên đăng nhập"))
@@ -76,14 +105,42 @@ namespace HealthWeb.Controllers
                         ModelState.AddModelError("UserEmail", errorMessage);
                     else if (errorMessage.Contains("Mật khẩu"))
                         ModelState.AddModelError("UserConfirmPassword", errorMessage);
+                    else if (errorMessage.Contains("Chuyên môn"))
+                        ModelState.AddModelError("ChuyenMon", errorMessage);
+                    else if (errorMessage.Contains("Tỉnh/Thành phố") || errorMessage.Contains("Thành phố"))
+                        ModelState.AddModelError("ThanhPho", errorMessage);
+                    else if (errorMessage.Contains("Tiểu sử"))
+                        ModelState.AddModelError("TieuSu", errorMessage);
+                    else if (errorMessage.Contains("Giờ rảnh"))
+                        ModelState.AddModelError("GioRanh", errorMessage);
                     else
                         ModelState.AddModelError("", errorMessage);
                 }
                 return View(model);
             }
 
-            TempData["SuccessMessage"] = "Đăng ký thành công! Tài khoản của bạn đang chờ xác minh.";
-            return RedirectToAction("Login", "Account");
+            _logger.LogInformation("RegisterPT POST: Registration successful");
+            TempData["SuccessMessage"] = "Đăng ký thành công! Tài khoản của bạn đang chờ xác minh. Vui lòng đăng nhập sau khi được admin phê duyệt.";
+            
+            // Load lại user data nếu cần
+            var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _ptService.GetCurrentUserAsync(userId);
+                if (user != null)
+                {
+                    ViewBag.UserData = new
+                    {
+                        UserHoTen = user.HoTen ?? "",
+                        UserEmail = user.Email ?? "",
+                        Username = user.Username ?? "",
+                        UserNgaySinh = user.NgaySinh?.ToString("yyyy-MM-dd") ?? ""
+                    };
+                }
+            }
+            
+            // Hiển thị lại form với thông báo thành công
+            return View(model);
         }
 
         // GET: /PT/Dashboard - trả view dashboard với dữ liệu từ server

@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using HealthWeb.Models.ViewModels.Admin;
 using HealthWeb.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthWeb.Controllers
@@ -137,34 +139,22 @@ namespace HealthWeb.Controllers
         {
             try
             {
-                // Get all PTs (including unverified)
-                var data = await _ptAdminService.GetPTManagementDataAsync(
+                // Get pending PTs directly from service (unverified only)
+                var data = await _ptAdminService.GetPendingPTDataAsync(
                     search,
                     specialty,
-                    null,
-                    null,
-                    null,
-                    false, // verifiedOnly = false to get all PTs
                     cancellationToken);
                 
-                // Filter to only unverified PTs
-                var pendingPTs = data.Trainers.Where(pt => !pt.Verified).ToList();
-                
-                return Ok(new PTManagementDataDto
+                // Log results
+                var pendingCount = data.Trainers?.Count() ?? 0;
+                Console.WriteLine($"[GetPendingPTData] Pending PTs count: {pendingCount}");
+                if (data.Trainers != null && data.Trainers.Any())
                 {
-                    Trainers = pendingPTs,
-                    GeneratedAt = data.GeneratedAt,
-                    Summary = new PTManagementSummaryDto
-                    {
-                        TotalTrainers = pendingPTs.Count,
-                        AverageRevenuePerPT = 0,
-                        AverageActiveClients = 0,
-                        CancelRate = 0,
-                        AverageRating = 0,
-                        PTHiringRate = 0,
-                        AverageBookingsPerWeek = 0
-                    }
-                });
+                    var firstPT = data.Trainers.First();
+                    Console.WriteLine($"[GetPendingPTData] First pending PT: UserId={firstPT.UserId}, PTId={firstPT.PTId}, Verified={firstPT.Verified}");
+                }
+                
+                return Ok(data);
             }
             catch (Exception ex)
             {
@@ -710,6 +700,25 @@ namespace HealthWeb.Controllers
         public IActionResult HeThongBaoMat()
         {
             return View();
+        }
+
+        // POST: /Admin/Logout - Đăng xuất admin và quay về giao diện user
+        [HttpPost("Logout")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            HttpContext.Session.Clear();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Index", "Home");
+        }
+
+        // GET: /Admin/Logout - Đăng xuất admin (hỗ trợ GET để dùng từ button)
+        [HttpGet("Logout")]
+        public async Task<IActionResult> LogoutGet()
+        {
+            HttpContext.Session.Clear();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Index", "Home");
         }
 
         // Routes cụ thể hơn phải đứng trước routes chung hơn

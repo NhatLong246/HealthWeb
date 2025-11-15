@@ -2,7 +2,6 @@ using System;
 using HealthWeb.Models.EF;
 using HealthWeb.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using HealthWeb.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +66,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<IPTService, PTService>();
 builder.Services.AddScoped<IFindPTService, FindPTService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IZaloPayService, ZaloPayService>();
+builder.Services.AddScoped<IMoMoService, MoMoService>();
+
 builder.Services.AddScoped<IRatingService, RatingService>();
 
 var app = builder.Build();

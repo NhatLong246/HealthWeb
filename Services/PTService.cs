@@ -5,12 +5,13 @@ using HealthWeb.Models.EF;
 using System.Security.Cryptography;
 using System.Text;
 using System.Reflection;
+using System;
 
 namespace HealthWeb.Services
 {
     public interface IPTService
     {
-        Task<(bool success, string? errorMessage)> RegisterPTAsync(RegisterPTViewModel model);
+        Task<(bool success, string? errorMessage)> RegisterPTAsync(RegisterPTViewModel model, HttpContext? httpContext = null);
         Task<object?> GetDashboardStatsAsync(string userId);
         Task<DashboardViewModel?> GetDashboardViewModelAsync(string userId);
         Task<List<object>> GetRecentBookingsAsync(string userId);
@@ -26,6 +27,7 @@ namespace HealthWeb.Services
         Task<(bool success, string message)> ChangePasswordAsync(string userId, ChangePasswordViewModel model);
         Task<SettingsViewModel?> GetSettingsViewModelAsync(string userId);
         Task<string?> GetCurrentUserIdAsync(HttpContext httpContext);
+        Task<User?> GetCurrentUserAsync(string userId);
         Task<HuanLuyenVien?> GetCurrentTrainerAsync(string userId);
         Task<object?> GetClientDetailAsync(string ptUserId, string clientId);
         Task<ClientDetailViewModel?> GetClientDetailViewModelAsync(string ptUserId, string clientId);
@@ -53,47 +55,108 @@ namespace HealthWeb.Services
             _logger = logger;
         }
 
-        public async Task<(bool success, string? errorMessage)> RegisterPTAsync(RegisterPTViewModel model)
+        public async Task<(bool success, string? errorMessage)> RegisterPTAsync(RegisterPTViewModel model, HttpContext? httpContext = null)
         {
             try
             {
-                // Validate password match
-                if (model.UserPassword != model.UserConfirmPassword)
+                string userId = string.Empty;
+                User? user = null;
+                bool isExistingUser = false;
+
+                // Kiểm tra xem user đã đăng nhập chưa
+                if (httpContext != null)
                 {
-                    return (false, "Mật khẩu xác nhận không khớp");
+                    var currentUserId = await GetCurrentUserIdAsync(httpContext);
+                    if (!string.IsNullOrEmpty(currentUserId))
+                    {
+                        user = await GetCurrentUserAsync(currentUserId);
+                        if (user != null)
+                        {
+                            userId = currentUserId;
+                            isExistingUser = true;
+                            
+                            // Kiểm tra xem user đã đăng ký PT chưa
+                            var existingPT = await _context.HuanLuyenViens.FirstOrDefaultAsync(p => p.UserId == userId);
+                            if (existingPT != null)
+                            {
+                                return (false, "Bạn đã đăng ký làm PT rồi. Vui lòng chờ xác minh hoặc liên hệ admin.");
+                            }
+                        }
+                    }
                 }
 
-                // Check if username already exists
-                if (await _context.Users.AnyAsync(u => u.Username == model.Username))
+                // Nếu chưa đăng nhập, tạo user mới
+                if (!isExistingUser)
                 {
-                    return (false, "Tên đăng nhập đã tồn tại");
+                    // Validate required fields for new user
+                    if (string.IsNullOrEmpty(model.Username))
+                    {
+                        return (false, "Tên đăng nhập là bắt buộc");
+                    }
+
+                    if (string.IsNullOrEmpty(model.UserPassword))
+                    {
+                        return (false, "Mật khẩu là bắt buộc");
+                    }
+
+                    // Validate password match
+                    if (model.UserPassword != model.UserConfirmPassword)
+                    {
+                        return (false, "Mật khẩu xác nhận không khớp");
+                    }
+
+                    // Check if username already exists
+                    if (await _context.Users.AnyAsync(u => u.Username == model.Username))
+                    {
+                        return (false, "Tên đăng nhập đã tồn tại");
+                    }
+
+                    // Check if email already exists
+                    if (!string.IsNullOrEmpty(model.UserEmail) && await _context.Users.AnyAsync(u => u.Email == model.UserEmail))
+                    {
+                        return (false, "Email đã được sử dụng");
+                    }
+
+                    // Generate UserId and PTId
+                    userId = await GenerateUserIdAsync();
+                    var passwordHash = HashPassword(model.UserPassword);
+
+                    // Create User (KHÔNG đổi role thành PT ngay, giữ nguyên role hiện tại hoặc "Client")
+                    user = new User
+                    {
+                        UserId = userId,
+                        Username = model.Username,
+                        PasswordHash = passwordHash,
+                        Email = model.UserEmail,
+                        HoTen = model.UserHoTen,
+                        NgaySinh = model.UserNgaySinh.HasValue ? DateOnly.FromDateTime(model.UserNgaySinh.Value) : null,
+                        Role = "Client", // Giữ role là Client, chỉ đổi khi admin xác nhận
+                        CreatedDate = DateTime.Now
+                    };
+                    _context.Users.Add(user);
+                    
+                    // Lưu User vào database TRƯỚC khi tạo HuanLuyenVien (để tránh lỗi foreign key)
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("RegisterPTAsync: Created and saved new User with UserId={UserId}", userId);
+                }
+                else
+                {
+                    // Cập nhật thông tin user nếu cần
+                    if (!string.IsNullOrEmpty(model.UserHoTen))
+                        user.HoTen = model.UserHoTen;
+                    if (!string.IsNullOrEmpty(model.UserEmail))
+                        user.Email = model.UserEmail;
+                    if (model.UserNgaySinh.HasValue)
+                        user.NgaySinh = DateOnly.FromDateTime(model.UserNgaySinh.Value);
+                    
+                    // Lưu thay đổi của User trước khi tạo HuanLuyenVien
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("RegisterPTAsync: Updated existing User with UserId={UserId}", userId);
                 }
 
-                // Check if email already exists
-                if (!string.IsNullOrEmpty(model.UserEmail) && await _context.Users.AnyAsync(u => u.Email == model.UserEmail))
-                {
-                    return (false, "Email đã được sử dụng");
-                }
-
-                // Generate UserId and PTId
-                var userId = await GenerateUserIdAsync();
+                // Generate PTId
                 var ptId = await GeneratePTIdAsync();
-
-                // Hash password
-                var passwordHash = HashPassword(model.UserPassword);
-
-                // Create User
-                var user = new User
-                {
-                    UserId = userId,
-                    Username = model.Username,
-                    PasswordHash = passwordHash,
-                    Email = model.UserEmail,
-                    HoTen = model.UserHoTen,
-                    NgaySinh = model.UserNgaySinh.HasValue ? DateOnly.FromDateTime(model.UserNgaySinh.Value) : null,
-                    Role = "PT",
-                    CreatedDate = DateTime.Now
-                };
+                _logger.LogInformation("RegisterPTAsync: Generated PTId={PTId} for UserId={UserId}", ptId, userId);
 
                 // Handle file uploads
                 string? avatarPath = null;
@@ -103,26 +166,58 @@ namespace HealthWeb.Services
                 if (model.AvatarFile != null && model.AvatarFile.Length > 0)
                 {
                     avatarPath = await SaveFileAsync(model.AvatarFile, "avatars", userId);
-                    user.AnhDaiDien = avatarPath;
+                    if (user != null)
+                        user.AnhDaiDien = avatarPath;
+                    _logger.LogInformation("RegisterPTAsync: Saved avatar file: {AvatarPath}", avatarPath);
                 }
 
                 if (model.CccdFile != null && model.CccdFile.Length > 0)
                 {
                     cccdPath = await SaveFileAsync(model.CccdFile, "cccd", userId);
+                    _logger.LogInformation("RegisterPTAsync: Saved CCCD file: {CccdPath}", cccdPath);
                 }
 
                 if (model.CertFile != null && model.CertFile.Length > 0)
                 {
                     certPath = await SaveFileAsync(model.CertFile, "certificates", userId);
+                    _logger.LogInformation("RegisterPTAsync: Saved certificate file: {CertPath}", certPath);
                 }
 
-                // Create HuanLuyenVien
+                // Convert SoNamKinhNghiem từ string sang int (nếu form gửi string)
+                int? soNamKinhNghiem = model.SoNamKinhNghiem;
+                if (soNamKinhNghiem == null)
+                {
+                    // Nếu null, thử parse từ string (nếu có)
+                    // Form có thể gửi string như "1-3", "3-5", etc.
+                    // Lấy giá trị trung bình hoặc giá trị đầu tiên
+                    soNamKinhNghiem = null; // Giữ null nếu không có giá trị
+                }
+
+                // Validate required fields
+                if (string.IsNullOrWhiteSpace(model.ChuyenMon))
+                {
+                    return (false, "Chuyên môn là bắt buộc");
+                }
+                if (string.IsNullOrWhiteSpace(model.ThanhPho))
+                {
+                    return (false, "Tỉnh/Thành phố là bắt buộc");
+                }
+                if (string.IsNullOrWhiteSpace(model.TieuSu))
+                {
+                    return (false, "Tiểu sử là bắt buộc");
+                }
+                if (string.IsNullOrWhiteSpace(model.GioRanh))
+                {
+                    return (false, "Giờ rảnh là bắt buộc");
+                }
+
+                // Create HuanLuyenVien với DaXacMinh = false (0) - chờ admin xác nhận
                 var huanLuyenVien = new HuanLuyenVien
                 {
                     Ptid = ptId,
                     UserId = userId,
                     ChuyenMon = model.ChuyenMon,
-                    SoNamKinhNghiem = model.SoNamKinhNghiem,
+                    SoNamKinhNghiem = soNamKinhNghiem,
                     ThanhPho = model.ThanhPho,
                     GiaTheoGio = model.GiaTheoGio,
                     ChungChi = model.ChungChi,
@@ -132,7 +227,7 @@ namespace HealthWeb.Services
                     AnhCccd = cccdPath,
                     AnhChanDung = avatarPath,
                     FileTaiLieu = certPath,
-                    DaXacMinh = false,
+                    DaXacMinh = false, // = 0 trong database - chờ admin phê duyệt
                     NhanKhach = true,
                     SoKhachHienTai = 0,
                     TongDanhGia = 0,
@@ -141,9 +236,24 @@ namespace HealthWeb.Services
                 };
 
                 // Save to database
-                _context.Users.Add(user);
                 _context.HuanLuyenViens.Add(huanLuyenVien);
+                
+                // Lưu thay đổi của User (nếu có cập nhật avatar) và HuanLuyenVien
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("RegisterPTAsync: Saved HuanLuyenVien to database - PTId={PTId}", ptId);
+                
+                // Verify data was saved correctly
+                var savedPT = await _context.HuanLuyenViens
+                    .FirstOrDefaultAsync(p => p.Ptid == ptId);
+                
+                if (savedPT == null)
+                {
+                    _logger.LogError("RegisterPTAsync: Failed to save HuanLuyenVien to database");
+                    return (false, "Có lỗi xảy ra khi lưu thông tin PT vào database.");
+                }
+                
+                _logger.LogInformation("RegisterPTAsync: Successfully saved HuanLuyenVien - PTId={PTId}, UserId={UserId}, DaXacMinh={DaXacMinh} (saved value: {SavedValue})", 
+                    ptId, userId, huanLuyenVien.DaXacMinh, savedPT.DaXacMinh);
 
                 return (true, null);
             }
@@ -923,6 +1033,15 @@ namespace HealthWeb.Services
             return userId;
         }
 
+        public async Task<User?> GetCurrentUserAsync(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return null;
+            }
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        }
+
         public async Task<HuanLuyenVien?> GetCurrentTrainerAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -1675,6 +1794,7 @@ namespace HealthWeb.Services
 
                 // Tìm booking đầu tiên với requestId này
                 var firstBooking = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
                     .FirstOrDefaultAsync(d => d.DatLichId == requestId && d.Ptid == ptId);
 
                 if (firstBooking == null)
@@ -1684,6 +1804,7 @@ namespace HealthWeb.Services
 
                 // Lấy tất cả bookings cùng client và cùng ngày tạo (cùng request group)
                 var requestGroup = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
                     .Where(d => d.Ptid == ptId &&
                                d.KhacHangId == firstBooking.KhacHangId &&
                                d.NgayTao == firstBooking.NgayTao &&
@@ -1697,10 +1818,62 @@ namespace HealthWeb.Services
 
                 var clientId = firstBooking.KhacHangId;
 
-                // Cập nhật tất cả bookings trong group thành Confirmed
+                // Lấy thông tin PT để tính giá
+                var ptInfo = await _context.HuanLuyenViens
+                    .Include(h => h.User)
+                    .FirstOrDefaultAsync(h => h.Ptid == ptId);
+                var ptName = ptInfo?.User?.HoTen ?? ptInfo?.User?.Username ?? "PT";
+                var ptPrice = ptInfo?.GiaTheoGio ?? 0;
+                const double COMMISSION_RATE = 0.15; // 15% hoa hồng app
+
+                // Cập nhật tất cả bookings trong group thành Confirmed và tạo transaction cho mỗi booking
                 foreach (var booking in requestGroup)
                 {
                     booking.TrangThai = "Confirmed";
+                    
+                    // Tạo transaction cho mỗi booking (nếu chưa có)
+                    if (booking.GiaoDich == null && ptPrice > 0)
+                    {
+                        var amount = ptPrice;
+                        var commission = amount * COMMISSION_RATE;
+                        var ptRevenue = amount - commission;
+                        
+                        // Tạo transaction ID (tối đa 20 ký tự: txn_ + 8 ký tự date + _ + 6 ký tự GUID = 19 ký tự)
+                        var dateStr = DateTime.Now.ToString("yyMMdd"); // 6 ký tự thay vì 8
+                        var guidPart = Guid.NewGuid().ToString("N").Substring(0, 6); // 6 ký tự thay vì 8
+                        var transactionId = $"txn_{dateStr}_{guidPart}"; // Tổng: 4 + 1 + 6 + 1 + 6 = 18 ký tự
+                        
+                        // Đảm bảo transaction ID là duy nhất
+                        int attempts = 0;
+                        while (await _context.GiaoDiches.AnyAsync(g => g.GiaoDichId == transactionId) && attempts < 10)
+                        {
+                            guidPart = Guid.NewGuid().ToString("N").Substring(0, 6);
+                            transactionId = $"txn_{dateStr}_{guidPart}";
+                            attempts++;
+                        }
+                        
+                        if (attempts >= 10)
+                        {
+                            _logger.LogError("Failed to generate unique transaction ID after 10 attempts");
+                            return (false, "Không thể tạo mã giao dịch duy nhất. Vui lòng thử lại.");
+                        }
+                        
+                        var transaction = new GiaoDich
+                        {
+                            GiaoDichId = transactionId,
+                            DatLichId = booking.DatLichId,
+                            KhachHangId = booking.KhacHangId,
+                            Ptid = ptId,
+                            SoTien = amount,
+                            HoaHongApp = commission,
+                            SoTienPtnhan = ptRevenue,
+                            TrangThaiThanhToan = "Pending",
+                            PhuongThucThanhToan = null, // Sẽ được set khi thanh toán
+                            NgayGiaoDich = DateTime.Now
+                        };
+                        
+                        _context.GiaoDiches.Add(transaction);
+                    }
                 }
 
                 // Tạo hoặc cập nhật QuyenPtKhachHang để client xuất hiện trong danh sách với trạng thái Active
@@ -1729,17 +1902,11 @@ namespace HealthWeb.Services
                     }
                 }
 
-                // Lấy thông tin PT để hiển thị trong thông báo
-                var ptInfo = await _context.HuanLuyenViens
-                    .Include(h => h.User)
-                    .FirstOrDefaultAsync(h => h.Ptid == ptId);
-                var ptName = ptInfo?.User?.HoTen ?? ptInfo?.User?.Username ?? "PT";
-
                 // Tạo thông báo cho client
                 var notification = new ThongBao
                 {
                     UserId = clientId,
-                    NoiDung = $"PT {ptName} đã chấp nhận yêu cầu tập luyện của bạn. Bạn đã được thêm vào danh sách khách hàng với {requestGroup.Count} buổi tập đã được xác nhận.",
+                    NoiDung = $"PT {ptName} đã chấp nhận yêu cầu tập luyện của bạn. Bạn đã được thêm vào danh sách khách hàng với {requestGroup.Count} buổi tập đã được xác nhận. Vui lòng thanh toán để hoàn tất đặt lịch.",
                     Loai = "PT",
                     MaLienQuan = null, // Có thể set booking ID nếu cần
                     DaDoc = false,
@@ -2298,9 +2465,9 @@ namespace HealthWeb.Services
         public string UserEmail { get; set; } = null!;
         public string? UserPhone { get; set; }
         public DateTime? UserNgaySinh { get; set; }
-        public string Username { get; set; } = null!;
-        public string UserPassword { get; set; } = null!;
-        public string UserConfirmPassword { get; set; } = null!;
+        public string? Username { get; set; } // Optional nếu user đã đăng nhập
+        public string? UserPassword { get; set; } // Optional nếu user đã đăng nhập
+        public string? UserConfirmPassword { get; set; } // Optional nếu user đã đăng nhập
         public string ChuyenMon { get; set; } = null!;
         public int? SoNamKinhNghiem { get; set; }
         public string ThanhPho { get; set; } = null!;

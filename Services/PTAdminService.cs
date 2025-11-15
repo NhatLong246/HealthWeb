@@ -12,10 +12,12 @@ namespace HealthWeb.Services;
 public class PTAdminService : IPTAdminService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<PTAdminService> _logger;
 
-    public PTAdminService(ApplicationDbContext context)
+    public PTAdminService(ApplicationDbContext context, ILogger<PTAdminService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<PTManagementDataDto> GetPTManagementDataAsync(
@@ -42,6 +44,8 @@ public class PTAdminService : IPTAdminService
         {
             query = query.Where(pt => pt.DaXacMinh == true);
         }
+        // If verifiedOnly is false, we want ALL PTs (both verified and unverified)
+        // This is used for the pending PTs endpoint
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(search))
@@ -74,11 +78,20 @@ public class PTAdminService : IPTAdminService
         }
 
         var ptEntities = await query.ToListAsync(cancellationToken);
+        
+        _logger.LogInformation("GetPTManagementDataAsync: Found {Count} PTs (verifiedOnly={VerifiedOnly})", 
+            ptEntities.Count, verifiedOnly);
 
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
         var ptDtos = ptEntities.Select(pt => MapToPTCardDto(pt, startOfMonth)).ToList();
+        
+        // Log verification status
+        var verifiedCount = ptDtos.Count(pt => pt.Verified);
+        var unverifiedCount = ptDtos.Count(pt => !pt.Verified);
+        _logger.LogInformation("GetPTManagementDataAsync: Verified={Verified}, Unverified={Unverified}", 
+            verifiedCount, unverifiedCount);
 
         // Calculate summary statistics - only for verified PTs
         var verifiedPTs = verifiedOnly == true ? ptEntities : ptEntities.Where(pt => pt.DaXacMinh == true).ToList();
@@ -296,8 +309,12 @@ public class PTAdminService : IPTAdminService
 
         if (pt == null)
         {
+            _logger.LogWarning("ApprovePTAsync: PT not found for userId {UserId}", userId);
             return null;
         }
+
+        _logger.LogInformation("ApprovePTAsync: Found PT {PTId} for userId {UserId}, current DaXacMinh={DaXacMinh}", 
+            pt.Ptid, userId, pt.DaXacMinh);
 
         // Generate PT ID if not exists
         if (string.IsNullOrWhiteSpace(pt.Ptid))
@@ -317,28 +334,113 @@ public class PTAdminService : IPTAdminService
             }
 
             pt.Ptid = $"ptr_{String.Format("{0:D4}", maxNum + 1)}";
+            _logger.LogInformation("ApprovePTAsync: Generated new PTId {PTId}", pt.Ptid);
         }
 
+        // Set DaXacMinh = true khi admin xác nhận
         pt.DaXacMinh = true;
+        
+        // Đổi role của user thành PT khi admin xác nhận
+        if (pt.User != null && pt.User.Role != "PT")
+        {
+            _logger.LogInformation("ApprovePTAsync: Changing user role from {OldRole} to PT", pt.User.Role);
+            pt.User.Role = "PT";
+        }
+        
         await _context.SaveChangesAsync(cancellationToken);
+        
+        _logger.LogInformation("ApprovePTAsync: Successfully approved PT {PTId}, DaXacMinh={DaXacMinh}, User.Role={Role}", 
+            pt.Ptid, pt.DaXacMinh, pt.User?.Role);
 
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1);
         return MapToPTCardDto(pt, startOfMonth);
     }
 
+    public async Task<PTManagementDataDto> GetPendingPTDataAsync(
+        string? search = null,
+        string? specialty = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Query only unverified PTs (DaXacMinh = false or null)
+        var query = _context.HuanLuyenViens
+            .AsNoTracking()
+            .Include(pt => pt.User)
+            .Include(pt => pt.DatLichPts)
+            .Include(pt => pt.DanhGiaPts)
+            .Include(pt => pt.QuyenPtKhachHangs)
+            .Include(pt => pt.GiaoDiches)
+            .Where(pt => pt.DaXacMinh == false || pt.DaXacMinh == null) // Only unverified PTs
+            .AsQueryable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(pt =>
+                (pt.User != null && pt.User.HoTen != null && pt.User.HoTen.ToLower().Contains(searchLower)) ||
+                (pt.User != null && pt.User.Email != null && pt.User.Email.ToLower().Contains(searchLower)) ||
+                pt.Ptid.ToLower().Contains(searchLower));
+        }
+
+        // Apply specialty filter
+        if (!string.IsNullOrWhiteSpace(specialty))
+        {
+            query = query.Where(pt => pt.ChuyenMon != null && pt.ChuyenMon.Contains(specialty));
+        }
+
+        var ptEntities = await query.ToListAsync(cancellationToken);
+        
+        _logger.LogInformation("GetPendingPTDataAsync: Found {Count} unverified PTs", ptEntities.Count);
+
+        var now = DateTime.UtcNow;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+
+        var ptDtos = ptEntities.Select(pt => MapToPTCardDto(pt, startOfMonth)).ToList();
+
+        return new PTManagementDataDto
+        {
+            Trainers = ptDtos,
+            GeneratedAt = DateTime.UtcNow,
+            Summary = new PTManagementSummaryDto
+            {
+                TotalTrainers = ptDtos.Count,
+                AverageRevenuePerPT = 0,
+                AverageActiveClients = 0,
+                CancelRate = 0,
+                AverageRating = 0,
+                PTHiringRate = 0,
+                AverageBookingsPerWeek = 0
+            }
+        };
+    }
+
     public async Task<bool> RejectPTAsync(string userId, CancellationToken cancellationToken = default)
     {
         var pt = await _context.HuanLuyenViens
+            .Include(pt => pt.User)
             .FirstOrDefaultAsync(pt => pt.UserId == userId, cancellationToken);
 
         if (pt == null)
         {
+            _logger.LogWarning("RejectPTAsync: PT not found for userId {UserId}", userId);
             return false;
         }
 
-        _context.HuanLuyenViens.Remove(pt);
+        _logger.LogInformation("RejectPTAsync: Found PT {PTId} for userId {UserId}, current DaXacMinh={DaXacMinh}", 
+            pt.Ptid, userId, pt.DaXacMinh);
+
+        // Set DaXacMinh = false khi admin từ chối (thay vì xóa record)
+        pt.DaXacMinh = false;
+        
+        // Giữ nguyên role của user (không đổi về Client vì có thể user đã là PT từ trước)
+        // Nếu muốn đổi role về Client, có thể thêm logic ở đây
+        
         await _context.SaveChangesAsync(cancellationToken);
+        
+        _logger.LogInformation("RejectPTAsync: Successfully rejected PT {PTId}, DaXacMinh={DaXacMinh}", 
+            pt.Ptid, pt.DaXacMinh);
+        
         return true;
     }
 

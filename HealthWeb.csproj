@@ -9,6 +9,7 @@
   <ItemGroup>
     <Folder Include="Healpers\" />
     <Folder Include="Models\Entities\" />
+    <Folder Include="Database\" />
     <Folder Include="Services\" />
   </ItemGroup>
 

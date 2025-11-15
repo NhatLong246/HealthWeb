@@ -16,6 +16,14 @@
             <p>Chào mừng bạn trở lại! Đăng nhập để tiếp tục hành trình chăm sóc sức khỏe.</p>
         </div>
 
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="success-message" style="background: #4ade80; color: white; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);">
+                <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+        }
+
         <form class="auth-form" method="post" asp-action="Login" asp-controller="Account" id="loginForm">
             @Html.AntiForgeryToken()
             @if (!ViewData.ModelState.IsValid)

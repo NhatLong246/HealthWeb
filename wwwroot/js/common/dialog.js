@@ -32,14 +32,13 @@ function createDialogHTML(title, message, type = 'info', showCancel = false) {
                         <button class="dialog-btn dialog-btn-secondary" id="dialogCancelBtn">
                             <i class="fas fa-times"></i> Hủy
                         </button>
-                    </div>
-                    <button class="dialog-btn dialog-btn-primary" id="dialogConfirmBtn">
-                        <i class="fas fa-check"></i> Xác nhận
-                    </button>
+                        <button class="dialog-btn dialog-btn-primary" id="dialogConfirmBtn">
+                            <i class="fas fa-check"></i> Xác nhận
+                        </button>
                     ` : `
-                    <button class="dialog-btn dialog-btn-primary" id="dialogOkBtn">
-                        <i class="fas fa-check"></i> OK
-                    </button>
+                        <button class="dialog-btn dialog-btn-primary" id="dialogOkBtn">
+                            <i class="fas fa-check"></i> OK
+                        </button>
                     `}
                 </div>
             </div>

@@ -1,0 +1,344 @@
+@{
+    ViewData["Title"] = "Test Thanh toán - HealthWeb";
+    Layout = "_Layout";
+}
+@Html.AntiForgeryToken()
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .test-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .test-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        margin-bottom: 2rem;
+    }
+
+    body.light-mode .test-card {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .test-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid rgba(78, 222, 128, 0.3);
+    }
+
+    .test-header h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .test-form {
+        margin-top: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.5);
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    body.light-mode .form-group input,
+    body.light-mode .form-group select {
+        background: #fff;
+        color: #7c2d12;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #4ade80;
+        box-shadow: 0 0 0 3px rgba(78, 222, 128, 0.1);
+    }
+
+    .btn-test {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .btn-test:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(78, 222, 128, 0.4);
+    }
+
+    .btn-test:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .result-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 12px;
+        display: none;
+    }
+
+    body.light-mode .result-section {
+        background: rgba(251, 146, 60, 0.1);
+    }
+
+    .result-section.show {
+        display: block;
+    }
+
+    .result-success {
+        border-left: 4px solid #22c55e;
+    }
+
+    .result-error {
+        border-left: 4px solid #ef4444;
+    }
+
+    .result-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .result-content {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .info-box {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-content {
+        background: rgba(30, 41, 59, 0.95);
+        padding: 2rem;
+        border-radius: 20px;
+        text-align: center;
+    }
+
+    .loading-spinner {
+        font-size: 3rem;
+        color: #4ade80;
+        margin-bottom: 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="test-container">
+    <div class="test-card">
+        <div class="test-header">
+            <h1><i class="fas fa-vial"></i> Test Thanh toán</h1>
+            <p>Trang test tích hợp ZaloPay và MoMo</p>
+        </div>
+
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Lưu ý:</strong> Trang này dùng để test thanh toán. Nhập thông tin và click "Test Thanh toán" để kiểm tra kết nối với ZaloPay/MoMo.
+        </div>
+
+        <form class="test-form" id="testPaymentForm">
+            <div class="form-group">
+                <label for="paymentMethod">Phương thức thanh toán</label>
+                <select id="paymentMethod" name="paymentMethod" required>
+                    <option value="">-- Chọn phương thức --</option>
+                    <option value="ZaloPay">ZaloPay</option>
+                    <option value="MoMo">MoMo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Số tiền (VND)</label>
+                <input type="number" id="amount" name="amount" min="1000" step="1000" value="10000" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Mô tả</label>
+                <input type="text" id="description" name="description" value="Test thanh toán PT" required>
+            </div>
+
+            <div class="form-group">
+                <label for="transactionId">Transaction ID (để trống sẽ tự tạo)</label>
+                <input type="text" id="transactionId" name="transactionId" placeholder="txn_20250115_0001">
+            </div>
+
+            <button type="submit" class="btn-test" id="btnTest">
+                <i class="fas fa-play"></i> Test Thanh toán
+            </button>
+        </form>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner"></i>
+        </div>
+        <h3>Đang xử lý...</h3>
+        <p>Vui lòng đợi trong giây lát</p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('testPaymentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const description = document.getElementById('description').value;
+        const transactionId = document.getElementById('transactionId').value || null;
+
+        if (!paymentMethod) {
+            alert('Vui lòng chọn phương thức thanh toán');
+            return;
+        }
+
+        if (amount < 1000) {
+            alert('Số tiền tối thiểu là 1,000 VND');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('loadingOverlay').classList.add('show');
+        document.getElementById('resultSection').classList.remove('show');
+
+        try {
+            // Tạo transaction ID nếu chưa có
+            let finalTransactionId = transactionId;
+            if (!finalTransactionId) {
+                const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                finalTransactionId = `test_${dateStr}_${Date.now().toString().slice(-6)}`;
+            }
+
+            // Gọi API test
+            const response = await fetch('/Test/PaymentTest/CreatePayment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify({
+                    paymentMethod: paymentMethod,
+                    amount: amount,
+                    description: description,
+                    transactionId: finalTransactionId
+                })
+            });
+
+            const result = await response.json();
+            
+            // Hide loading
+            document.getElementById('loadingOverlay').classList.remove('show');
+
+            // Show result
+            const resultSection = document.getElementById('resultSection');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+
+            resultSection.classList.add('show');
+
+            if (result.success) {
+                resultSection.className = 'result-section show result-success';
+                resultTitle.innerHTML = '<i class="fas fa-check-circle"></i> Thành công!';
+                resultContent.textContent = JSON.stringify(result, null, 2);
+                
+                // Nếu có payment URL, hiển thị nút redirect
+                if (result.paymentUrl) {
+                    setTimeout(() => {
+                        if (confirm('Bạn có muốn chuyển đến trang thanh toán không?')) {
+                            window.open(result.paymentUrl, '_blank');
+                        }
+                    }, 500);
+                }
+            } else {
+                resultSection.className = 'result-section show result-error';
+                resultTitle.innerHTML = '<i class="fas fa-exclamation-circle"></i> Lỗi!';
+                resultContent.textContent = result.message || JSON.stringify(result, null, 2);
+            }
+        } catch (error) {
+            document.getElementById('loadingOverlay').classList.remove('show');
+            
+            const resultSection = document.getElementById('resultSection');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultSection.classList.add('show');
+            resultSection.className = 'result-section show result-error';
+            resultTitle.innerHTML = '<i class="fas fa-exclamation-circle"></i> Lỗi!';
+            resultContent.textContent = 'Lỗi: ' + error.message;
+        }
+    });
+
+    function getAntiForgeryToken() {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        return token ? token.value : '';
+    }
+</script>
+

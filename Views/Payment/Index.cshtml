@@ -1,0 +1,435 @@
+@model HealthWeb.Services.PaymentInfoDto
+
+@{
+    ViewData["Title"] = "Thanh toán PT - HealthWeb";
+    Layout = "_Layout";
+}
+
+<style>
+    .payment-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .payment-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        margin-bottom: 2rem;
+    }
+
+    body.light-mode .payment-card {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .payment-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid rgba(78, 222, 128, 0.3);
+    }
+
+    .payment-header h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .payment-header .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .status-pending {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    .status-completed {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+
+    .booking-info {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    body.light-mode .booking-info {
+        background: rgba(251, 146, 60, 0.1);
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .info-value {
+        font-weight: 500;
+    }
+
+    .amount-section {
+        background: linear-gradient(135deg, rgba(78, 222, 128, 0.2), rgba(34, 197, 94, 0.2));
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .amount-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 0.5rem;
+    }
+
+    .amount-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #4ade80;
+    }
+
+    .payment-methods {
+        margin-top: 2rem;
+    }
+
+    .payment-methods h3 {
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+    }
+
+    .payment-method-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .payment-method-card {
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    body.light-mode .payment-method-card {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .payment-method-card:hover {
+        transform: translateY(-5px);
+        border-color: #4ade80;
+        box-shadow: 0 5px 20px rgba(78, 222, 128, 0.3);
+    }
+
+    .payment-method-card.selected {
+        border-color: #4ade80;
+        background: rgba(78, 222, 128, 0.1);
+    }
+
+    .payment-method-icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .payment-method-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .payment-method-desc {
+        font-size: 0.85rem;
+        opacity: 0.7;
+    }
+
+    .btn-pay {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(78, 222, 128, 0.4);
+    }
+
+    .btn-pay:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .commission-info {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-content {
+        background: rgba(30, 41, 59, 0.95);
+        padding: 2rem;
+        border-radius: 20px;
+        text-align: center;
+    }
+
+    .loading-spinner {
+        font-size: 3rem;
+        color: #4ade80;
+        margin-bottom: 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+</style>
+
+<div class="payment-container">
+    <div class="payment-card">
+        <div class="payment-header">
+            <h1>Thanh toán PT</h1>
+            <div class="status-badge @(Model.PaymentStatus == "Completed" ? "status-completed" : "status-pending")">
+                @if (Model.PaymentStatus == "Completed")
+                {
+                    <text><i class="fas fa-check-circle"></i> Đã thanh toán</text>
+                }
+                else
+                {
+                    <text><i class="fas fa-clock"></i> Chờ thanh toán</text>
+                }
+            </div>
+        </div>
+
+        <div class="booking-info">
+            <div class="info-row">
+                <span class="info-label">PT:</span>
+                <span class="info-value">@Model.PTName</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Ngày giờ tập:</span>
+                <span class="info-value">@Model.BookingDateTime.ToString("dd/MM/yyyy HH:mm")</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Loại buổi tập:</span>
+                <span class="info-value">@Model.BookingType</span>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.TransactionId))
+            {
+                <div class="info-row">
+                    <span class="info-label">Mã giao dịch:</span>
+                    <span class="info-value">@Model.TransactionId</span>
+                </div>
+            }
+        </div>
+
+        <div class="amount-section">
+            <div class="amount-label">Tổng tiền cần thanh toán</div>
+            <div class="amount-value">@Model.Amount.ToString("N0") đ</div>
+        </div>
+
+        @if (Model.PaymentStatus != "Completed")
+        {
+            <div class="payment-methods">
+                <h3>Chọn phương thức thanh toán</h3>
+                <div class="payment-method-grid">
+                    <div class="payment-method-card" data-method="ZaloPay" onclick="selectPaymentMethod('ZaloPay')">
+                        <div class="payment-method-icon" style="color: #0068FF;">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="payment-method-name">ZaloPay</div>
+                        <div class="payment-method-desc">Ví điện tử ZaloPay</div>
+                    </div>
+                    <div class="payment-method-card" data-method="MoMo" onclick="selectPaymentMethod('MoMo')">
+                        <div class="payment-method-icon" style="color: #A50064;">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="payment-method-name">MoMo</div>
+                        <div class="payment-method-desc">Ví điện tử MoMo</div>
+                    </div>
+                </div>
+
+                <button id="btnPay" class="btn-pay" onclick="processPayment()" disabled>
+                    <i class="fas fa-credit-card"></i> Thanh toán ngay
+                </button>
+
+                <div class="commission-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Lưu ý:</strong> Hệ thống sẽ thu hoa hồng @((Model.Commission / Model.Amount * 100).ToString("F0"))% 
+                    (@Model.Commission.ToString("N0") đ). PT sẽ nhận @Model.PTRevenue.ToString("N0") đ.
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-check-circle" style="font-size: 4rem; color: #22c55e; margin-bottom: 1rem;"></i>
+                <h2 style="margin-bottom: 0.5rem;">Thanh toán thành công!</h2>
+                <p style="opacity: 0.8; margin-bottom: 2rem;">Giao dịch của bạn đã được xử lý thành công.</p>
+                <a href="/FindPT/MyRequests" class="btn-pay" style="text-decoration: none; display: inline-block; width: auto; padding: 0.75rem 2rem;">
+                    <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner"></i>
+        </div>
+        <h3>Đang xử lý thanh toán...</h3>
+        <p>Vui lòng đợi trong giây lát</p>
+    </div>
+</div>
+
+<script>
+    let selectedPaymentMethod = null;
+    const bookingId = '@Model.BookingId';
+    const transactionId = '@Model.TransactionId';
+
+    function selectPaymentMethod(method) {
+        selectedPaymentMethod = method;
+        
+        // Update UI
+        document.querySelectorAll('.payment-method-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        document.querySelector(`[data-method="${method}"]`).classList.add('selected');
+        
+        // Enable pay button
+        document.getElementById('btnPay').disabled = false;
+    }
+
+    async function processPayment() {
+        if (!selectedPaymentMethod) {
+            alert('Vui lòng chọn phương thức thanh toán');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('loadingOverlay').classList.add('show');
+
+        try {
+            let currentTransactionId = transactionId;
+
+            // Nếu chưa có transaction, tạo mới
+            if (!currentTransactionId || currentTransactionId === '') {
+                const createResponse = await fetch('/Payment/CreateTransaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        bookingId: bookingId,
+                        paymentMethod: selectedPaymentMethod
+                    })
+                });
+
+                const createResult = await createResponse.json();
+                if (!createResult.success) {
+                    throw new Error(createResult.message || 'Không thể tạo giao dịch');
+                }
+
+                currentTransactionId = createResult.transactionId;
+            }
+
+            // Xử lý thanh toán
+            const payResponse = await fetch('/Payment/ProcessPayment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({
+                    transactionId: currentTransactionId,
+                    paymentMethod: selectedPaymentMethod
+                })
+            });
+
+            const payResult = await payResponse.json();
+            
+            if (!payResult.success) {
+                throw new Error(payResult.message || 'Thanh toán thất bại');
+            }
+
+            // Redirect đến payment gateway (ZaloPay/MoMo)
+            if (payResult.paymentUrl) {
+                window.location.href = payResult.paymentUrl;
+            } else {
+                // Fallback: reload page
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+
+        } catch (error) {
+            alert('Lỗi: ' + error.message);
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+    }
+
+    // Add anti-forgery token
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.createElement('form');
+        form.style.display = 'none';
+        form.innerHTML = '@Html.AntiForgeryToken()';
+        document.body.appendChild(form);
+        
+        // Không tự động chọn phương thức thanh toán, để user tự chọn
+    });
+</script>
+
