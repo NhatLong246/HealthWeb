@@ -88,6 +88,50 @@ function loadSidebar() {
             }
         }
     }
+    
+    // Attach logout button event listener
+    attachLogoutHandler();
+}
+
+// Attach logout button event handler
+function attachLogoutHandler() {
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) {
+        // Remove existing event listeners to avoid duplicates
+        const newLogoutBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+        
+        newLogoutBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            // Wait for dialog.js to load if not already loaded
+            if (typeof customConfirm === 'undefined') {
+                // Wait a bit for dialog.js to load
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Show confirmation dialog using custom dialog system
+            if (typeof customConfirm === 'function') {
+                try {
+                    const confirmed = await customConfirm('Bạn có chắc chắn muốn đăng xuất?', 'Xác nhận đăng xuất', 'question');
+                    if (confirmed) {
+                        window.location.href = '/Admin/Logout';
+                    }
+                } catch (error) {
+                    console.error('Error showing logout confirmation:', error);
+                    // Fallback to browser confirm
+                    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+                        window.location.href = '/Admin/Logout';
+                    }
+                }
+            } else {
+                // Fallback: use browser confirm if custom dialog not available
+                if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+                    window.location.href = '/Admin/Logout';
+                }
+            }
+        });
+    }
 }
 
 function getCurrentPage() {
