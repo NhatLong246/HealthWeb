@@ -62,7 +62,7 @@ public class MoMoService : IMoMoService
             var redirectUrl = _configuration["Payment:MoMo:RedirectUrl"];
             if (string.IsNullOrEmpty(redirectUrl))
             {
-                redirectUrl = $"{baseUrl}/Payment/Success";
+                redirectUrl = $"{baseUrl}/Payment/MoMoRedirect";
             }
 
             if (string.IsNullOrEmpty(partnerCode) || string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
@@ -159,7 +159,19 @@ public class MoMoService : IMoMoService
 
             // Cập nhật transaction trong database
             var orderId = callbackData["orderId"];
-            var transactionId = orderId.Contains("_") ? orderId.Split('_')[1] : orderId;
+            // Format: YYYYMMDDHHmmss_<transaction_id>
+            // Transaction ID có thể chứa nhiều dấu gạch dưới (ví dụ: txn_251115_152cc7)
+            // Cần lấy tất cả phần sau dấu _ đầu tiên
+            string transactionId;
+            if (orderId.Contains("_"))
+            {
+                var firstUnderscoreIndex = orderId.IndexOf('_');
+                transactionId = orderId.Substring(firstUnderscoreIndex + 1);
+            }
+            else
+            {
+                transactionId = orderId;
+            }
 
             var transaction = await _context.GiaoDiches
                 .FirstOrDefaultAsync(t => t.GiaoDichId == transactionId);

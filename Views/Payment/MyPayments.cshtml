@@ -266,6 +266,28 @@
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
     }
+    
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @@keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
 </style>
 
 <div class="payments-container">
@@ -320,8 +342,62 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
+        // Kiểm tra nếu có query parameter paymentSuccess
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentSuccess = urlParams.get('paymentSuccess');
+        
+        if (paymentSuccess === 'true') {
+            // Hiển thị thông báo thành công
+            showNotification('Thanh toán thành công!', 'success');
+            
+            // Xóa query parameter để tránh hiển thị lại khi refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
         await loadPayments();
+        
+        // Nếu vừa thanh toán thành công, refresh lại sau 2 giây để đảm bảo data được cập nhật
+        if (paymentSuccess === 'true') {
+            setTimeout(async () => {
+                await loadPayments();
+            }, 2000);
+        }
     });
+    
+    function showNotification(message, type) {
+        // Tạo notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        `;
+        
+        if (type === 'success') {
+            notification.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+            notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+        } else {
+            notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            notification.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+        }
+        
+        document.body.appendChild(notification);
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 5000);
+    }
 
     async function loadPayments() {
         const container = document.getElementById('paymentsList');

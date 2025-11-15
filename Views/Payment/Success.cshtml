@@ -99,10 +99,10 @@
         </div>
         <h1 class="success-title">Thanh toán thành công!</h1>
         <p class="success-message">
-            Giao dịch của bạn đã được xử lý thành công. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.
+            Giao dịch của bạn đã được xử lý thành công. Đang chuyển hướng...
         </p>
         <div class="success-actions">
-            <a href="/Payment/MyPayments" class="btn-action btn-primary">
+            <a href="/Payment/MyPayments" class="btn-action btn-primary" id="redirectLink">
                 <i class="fas fa-list"></i> Xem danh sách thanh toán
             </a>
             <a href="/" class="btn-action btn-secondary">
@@ -111,4 +111,11 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Tự động redirect về trang danh sách thanh toán sau 2 giây
+    setTimeout(function() {
+        window.location.href = '/Payment/MyPayments';
+    }, 2000);
+</script>
 
