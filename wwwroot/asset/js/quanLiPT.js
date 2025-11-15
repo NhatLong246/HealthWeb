@@ -1339,28 +1339,49 @@ function filterPendingPT() {
 
 async function openVerifyPendingModal() {
     try {
+        console.log('Loading pending PTs...');
         const response = await fetch('/Admin/QuanLiPT/Pending');
-        if (!response.ok) throw new Error('Failed to load pending PTs');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to load pending PTs:', response.status, errorText);
+            throw new Error(`Failed to load pending PTs: ${response.status}`);
+        }
         
         const data = await response.json();
+        console.log('Pending PTs data:', data);
+        
         pendingPTData = data.Trainers ?? data.trainers ?? [];
-    filteredPendingPTData = [...pendingPTData];
+        console.log('Pending PTs count:', pendingPTData.length);
+        console.log('Pending PTs:', pendingPTData);
+        
+        filteredPendingPTData = [...pendingPTData];
     
-    const badge = document.getElementById('pending-pt-count');
-    if (badge) {
-        badge.textContent = pendingPTData.length;
-        badge.style.display = pendingPTData.length > 0 ? 'inline-block' : 'none';
-    }
+        const badge = document.getElementById('pending-pt-count');
+        if (badge) {
+            badge.textContent = pendingPTData.length;
+            badge.style.display = pendingPTData.length > 0 ? 'inline-block' : 'none';
+        }
     
-    renderPendingPTCards();
+        renderPendingPTCards();
     
-    document.getElementById('pending-search')?.addEventListener('input', filterPendingPT);
-    document.getElementById('pending-filter-specialty')?.addEventListener('change', filterPendingPT);
+        // Remove existing event listeners to avoid duplicates
+        const searchInput = document.getElementById('pending-search');
+        const specialtyFilter = document.getElementById('pending-filter-specialty');
+        
+        if (searchInput) {
+            searchInput.removeEventListener('input', filterPendingPT);
+            searchInput.addEventListener('input', filterPendingPT);
+        }
+        
+        if (specialtyFilter) {
+            specialtyFilter.removeEventListener('change', filterPendingPT);
+            specialtyFilter.addEventListener('change', filterPendingPT);
+        }
     
-    openModal('modal-pending-verification');
+        openModal('modal-pending-verification');
     } catch (error) {
         console.error('Error loading pending PTs:', error);
-        showNotification('Lỗi khi tải danh sách PT chờ xác minh', 'error');
+        showNotification('Lỗi khi tải danh sách PT chờ xác minh: ' + error.message, 'error');
     }
 }
 

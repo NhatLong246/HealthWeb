@@ -14,6 +14,11 @@ public interface IPTAdminService
         double? minRating = null,
         bool? verifiedOnly = true,
         CancellationToken cancellationToken = default);
+    
+    Task<PTManagementDataDto> GetPendingPTDataAsync(
+        string? search = null,
+        string? specialty = null,
+        CancellationToken cancellationToken = default);
 
     Task<PTProfile360Dto?> GetPTProfile360Async(string ptId, CancellationToken cancellationToken = default);
 
