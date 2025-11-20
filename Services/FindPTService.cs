@@ -313,12 +313,31 @@ namespace HealthWeb.Services
                     }
                 }
 
+                // Tính tổng số giờ từ tất cả schedules
+                double totalHours = 0;
+                foreach (var schedule in schedules)
+                {
+                    if (!string.IsNullOrWhiteSpace(schedule.StartTime) && 
+                        !string.IsNullOrWhiteSpace(schedule.EndTime) &&
+                        TimeSpan.TryParse(schedule.StartTime, out var startTime) &&
+                        TimeSpan.TryParse(schedule.EndTime, out var endTime))
+                    {
+                        var startMinutes = startTime.TotalMinutes;
+                        var endMinutes = endTime.TotalMinutes;
+                        if (endMinutes > startMinutes)
+                        {
+                            totalHours += (endMinutes - startMinutes) / 60.0;
+                        }
+                    }
+                }
+
                 // Tạo GhiChu với thông tin mục tiêu và lịch trình
                 var fullNotes = $"Mục tiêu: {goal}";
                 if (!string.IsNullOrWhiteSpace(notes))
                 {
                     fullNotes += $"\nGhi chú: {notes}";
                 }
+                fullNotes += $"\nTổng số giờ: {totalHours:F1} giờ";
                 fullNotes += "\nThời gian rảnh:";
                 foreach (var schedule in schedules)
                 {
@@ -374,6 +393,20 @@ namespace HealthWeb.Services
                         continue;
                     }
 
+                    // Parse giờ kết thúc để tính số giờ
+                    double bookingHours = 1; // Mặc định 1 giờ nếu không có endTime
+                    TimeSpan? endTime = null;
+                    if (!string.IsNullOrWhiteSpace(schedule.EndTime) && TimeSpan.TryParse(schedule.EndTime, out var parsedEndTime))
+                    {
+                        endTime = parsedEndTime;
+                        var startMinutes = startTime.TotalMinutes;
+                        var endMinutes = parsedEndTime.TotalMinutes;
+                        if (endMinutes > startMinutes)
+                        {
+                            bookingHours = (endMinutes - startMinutes) / 60.0;
+                        }
+                    }
+
                     // Tạo DateTime cho buổi tập (sử dụng giờ bắt đầu)
                     var dateTime = targetDate.Add(startTime);
 
@@ -426,6 +459,13 @@ namespace HealthWeb.Services
                     
                     bookingNumber++; // Increment for next booking
 
+                    // Thêm thông tin số giờ vào GhiChu cho từng booking
+                    var bookingNotes = fullNotes;
+                    if (!string.IsNullOrWhiteSpace(schedule.EndTime))
+                    {
+                        bookingNotes += $"\nSố giờ buổi này: {bookingHours:F1} giờ";
+                    }
+
                     var booking = new DatLichPt
                     {
                         DatLichId = bookingId,
@@ -434,7 +474,7 @@ namespace HealthWeb.Services
                         NgayGioDat = dateTime,
                         LoaiBuoiTap = "In-person", // Chỉ cho phép trực tiếp
                         TrangThai = "Pending",
-                        GhiChu = fullNotes,
+                        GhiChu = bookingNotes,
                         NgayTao = DateTime.Now
 
                     };

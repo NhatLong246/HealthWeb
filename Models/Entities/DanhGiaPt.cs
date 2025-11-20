@@ -11,6 +11,8 @@ public partial class DanhGiaPt
 
     public string Ptid { get; set; } = null!;
 
+    public string? DatLichId { get; set; } // Liên kết với buổi tập cụ thể
+
     public int? Diem { get; set; }
 
     public string? BinhLuan { get; set; }
@@ -20,4 +22,6 @@ public partial class DanhGiaPt
     public virtual User KhachHang { get; set; } = null!;
 
     public virtual HuanLuyenVien Pt { get; set; } = null!;
+
+    public virtual DatLichPt? DatLich { get; set; } // Navigation property
 }

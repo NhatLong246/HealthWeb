@@ -82,6 +82,11 @@ body.light-mode .dialog-header {
     color: #ef4444;
 }
 
+.dialog-icon.question {
+    background: rgba(78, 222, 128, 0.2);
+    color: #4ade80;
+}
+
 body.light-mode .dialog-icon.info {
     background: rgba(59, 130, 246, 0.15);
     color: #2563eb;
@@ -100,6 +105,11 @@ body.light-mode .dialog-icon.warning {
 body.light-mode .dialog-icon.error {
     background: rgba(220, 38, 38, 0.15);
     color: #dc2626;
+}
+
+body.light-mode .dialog-icon.question {
+    background: rgba(234, 88, 12, 0.15);
+    color: #ea580c;
 }
 
 .dialog-title {
@@ -153,6 +163,47 @@ body.light-mode .dialog-body::-webkit-scrollbar-thumb {
 
 body.light-mode .dialog-body::-webkit-scrollbar-thumb:hover {
     background: rgba(234, 88, 12, 0.5);
+}
+
+.dialog-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.dialog-input:focus {
+    outline: none;
+    border-color: #4ade80;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(78, 222, 128, 0.1);
+}
+
+.dialog-input::placeholder {
+    color: rgba(226, 232, 240, 0.5);
+}
+
+body.light-mode .dialog-input {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1e293b;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .dialog-input:focus {
+    border-color: #ea580c;
+    background: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+
+body.light-mode .dialog-input::placeholder {
+    color: rgba(71, 85, 105, 0.5);
 }
 
 .dialog-footer {

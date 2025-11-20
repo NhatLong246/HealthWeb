@@ -2,6 +2,20 @@
 CREATE DATABASE HealthTracker;
 GO
 
+-- Bảng Users:
+-- thiếu sdt bảng users
+
+--Bảng DatLichPT:
+-- thiếu ngày tập, thời gian bắt đầu đặt và kết thúc tập
+-- thiếu liên kết khoá ngoai thuộc tính người hủy
+-- thảo luận thêm về trường hợp hoàn tiền
+
+--Bảng GiaoBaiTapChoUser:
+-- thiếu liên kết vơi bảng DatLichPT để giao cho từng ngày mà user book luyện tập
+
+--Bảng DanhGiaPT:
+--Thiếu liên kết với DatLichPT để đánh giá sau khi tập
+
 USE HealthTracker;
 GO
 
@@ -26,6 +40,7 @@ CREATE TABLE Users (
     CreatedDate DATETIME DEFAULT GETDATE() -- Ngày tạo tài khoản, tự động lấy thời gian hiện tại
 );
 GO
+-- thiếu sdt
 
 CREATE TABLE Benh (
 	BenhID VARCHAR(20) PRIMARY KEY,
@@ -160,7 +175,7 @@ CREATE TABLE DinhDuongMonAn (
 	LuongCalo FLOAT, -- Lượng calo
     Protein FLOAT, -- Protein (g)
     ChatBeo FLOAT, -- Chất béo (g)
-    Carbohydrate FLOAT, -- Carbohydrate (g)
+    Carbohydrate FLOAT -- Carbohydrate (g)
 );
 GO
 
@@ -428,12 +443,16 @@ CREATE TABLE DatLichPT (
 		ON DELETE NO ACTION
 );
 GO
+-- thiếu ngày tập, thời gian bắt đầu đặt và kết thúc tập
+-- thiếu liên kết khoá ngoai thuộc tính người hủy
+-- thảo luận thêm về trường hợp hoàn tiền
 
--- Bảng DanhGiaPT: Đánh giá PT
+-- Bảng DanhGiaPT: Đánh giá PT sau mỗi buổi tập
 CREATE TABLE DanhGiaPT (
     DanhGiaID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng, khóa chính
     KhachHangID VARCHAR(20) NOT NULL, -- Người đánh giá
     PTID VARCHAR(20) NOT NULL, -- PT được đánh giá
+    DatLichID VARCHAR(20) NOT NULL, -- Liên kết với buổi tập cụ thể (DatLichPT)
     Diem INT CHECK (Diem BETWEEN 1 AND 5), -- Điểm (1-5 sao), constraint đảm bảo valid range
     BinhLuan NVARCHAR(500), -- Bình luận (e.g., 'PT rất nhiệt tình, giúp tôi giảm 5kg'), public feedback
     NgayDanhGia DATETIME DEFAULT GETDATE(), -- Ngày đánh giá, sort newest first
@@ -446,8 +465,12 @@ CREATE TABLE DanhGiaPT (
 		FOREIGN KEY (PTID) REFERENCES HuanLuyenVien(PTID)
 		ON DELETE NO ACTION,
 
-    -- MỖI CLIENT CHỈ REVIEW 1 PT 1 LẦN (nếu không có BookingID riêng)
-    CONSTRAINT UK_DanhGiaPT_ClientTrainer UNIQUE (KhachHangID, PTID)
+    CONSTRAINT FK_DanhGiaPT_DatLichPT
+        FOREIGN KEY (DatLichID) REFERENCES DatLichPT(DatLichID)
+        ON DELETE NO ACTION, -- Dùng NO ACTION để tránh multiple cascade paths (DatLichPT đã có CASCADE đến Users)
+
+    -- MỖI BUỔI TẬP CHỈ ĐƯỢC ĐÁNH GIÁ 1 LẦN
+    CONSTRAINT UK_DanhGiaPT_DatLichID UNIQUE (DatLichID)
 );
 GO
 
@@ -612,6 +635,7 @@ CREATE TABLE MauTapLuyen (
 );
 GO
 
+
 -- Bảng ChiTietMauTapLuyen: Chi tiết bài tập trong template
 CREATE TABLE ChiTietMauTapLuyen (
     BaiTapID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng, khóa chính
@@ -637,7 +661,7 @@ GO
 
 -- Bảng GiaoBaiTapChoUser: Giao template tập luyện cho người dùng
 CREATE TABLE GiaoBaiTapChoUser (
-    GiaBtID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng
+    GiaoBtID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng 
     UserID VARCHAR(20) NOT NULL,  -- User nào được assign
     MauTapLuyenID INT NOT NULL,   -- Template nào
     NguoiGiao VARCHAR(20),   -- PT nào assign (NULL nếu user tự chọn)
@@ -664,6 +688,7 @@ CREATE TABLE GiaoBaiTapChoUser (
     CONSTRAINT CK_GiaoBaiTapChoUser_TiLeHoanThanh CHECK (TiLeHoanThanh >= 0 AND TiLeHoanThanh <= 100)
 );
 GO
+-- thiếu liên kết vơi bảng DatLichPT để giao cho từng ngày mà user book luyện tập
 
 -- Bảng TheoDoiHoanThanhBaiTap: Theo dõi việc người dùng hoàn thành bài tập
 CREATE TABLE TheoDoiHoanThanhBaiTap (
@@ -802,7 +827,7 @@ CREATE TABLE TinhNangGoi (
     CONSTRAINT CK_FeatureAccess_RequiredPlan CHECK (GoiToiThieu IN ('Free', 'Basic', 'Premium'))
 );
 GO
-
+-- thiếu liên kết với gói thành viên
 
 -- ============================================================================
 -- PHẦN 8: FILE STORAGE MANAGEMENT - Quản lý files upload (NICE-TO-HAVE)

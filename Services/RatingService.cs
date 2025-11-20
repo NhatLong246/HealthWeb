@@ -49,15 +49,15 @@ public class RatingService : IRatingService
                 })
                 .ToListAsync();
 
-            // Kiểm tra xem user đã đánh giá PT nào chưa
-            var ratedPtIds = await _context.DanhGiaPts
-                .Where(r => r.KhachHangId == userId)
-                .Select(r => r.Ptid)
+            // Kiểm tra xem user đã đánh giá buổi tập nào chưa (dựa trên DatLichID)
+            var ratedBookingIds = await _context.DanhGiaPts
+                .Where(r => r.KhachHangId == userId && r.DatLichId != null)
+                .Select(r => r.DatLichId!)
                 .ToListAsync();
 
             foreach (var session in completedSessions)
             {
-                session.HasRated = ratedPtIds.Contains(session.PtId);
+                session.HasRated = ratedBookingIds.Contains(session.BookingId);
             }
 
             return completedSessions;
@@ -112,41 +112,21 @@ public class RatingService : IRatingService
             
             _logger.LogInformation("Mapped {Count} sessions for userId {UserId}", allSessions.Count, userId);
 
-            // Lấy các đánh giá đã có
+            // Lấy các đánh giá đã có (dựa trên DatLichID)
             var ratings = await _context.DanhGiaPts
-                .Where(r => r.KhachHangId == userId)
+                .Where(r => r.KhachHangId == userId && r.DatLichId != null)
                 .ToListAsync();
 
             // Cập nhật thông tin đánh giá cho từng buổi tập
-            // Lưu bookingId vào BinhLuan dưới dạng JSON: {"bookings": {"bookingId": {"rating": 5, "comment": "..."}}}
             foreach (var session in allSessions)
             {
-                // Tìm đánh giá cho PT này từ user này
-                var rating = ratings.FirstOrDefault(r => r.Ptid == session.PtId && r.KhachHangId == userId);
-                if (rating != null && !string.IsNullOrWhiteSpace(rating.BinhLuan))
+                // Tìm đánh giá cho buổi tập này (dựa trên DatLichID)
+                var rating = ratings.FirstOrDefault(r => r.DatLichId == session.BookingId);
+                if (rating != null)
                 {
-                    try
-                    {
-                        // Parse JSON từ BinhLuan
-                        var ratingData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, RatingData>>>(
-                            rating.BinhLuan);
-                        
-                        if (ratingData != null && ratingData.ContainsKey("bookings"))
-                        {
-                            var bookings = ratingData["bookings"];
-                            if (bookings.ContainsKey(session.BookingId))
-                            {
-                                var bookingRating = bookings[session.BookingId];
-                                session.HasRated = true;
-                                session.Rating = bookingRating.Rating;
-                                session.RatingComment = bookingRating.Comment;
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Nếu không parse được JSON, có thể là format cũ - bỏ qua
-                    }
+                    session.HasRated = true;
+                    session.Rating = rating.Diem;
+                    session.RatingComment = rating.BinhLuan;
                 }
             }
 
@@ -165,31 +145,14 @@ public class RatingService : IRatingService
         {
             if (string.IsNullOrWhiteSpace(bookingId))
             {
+                // Nếu không có bookingId, kiểm tra xem có đánh giá nào cho PT này không
                 return await _context.DanhGiaPts
                     .AnyAsync(r => r.KhachHangId == userId && r.Ptid == ptId);
             }
 
-            var rating = await _context.DanhGiaPts
-                .FirstOrDefaultAsync(r => r.KhachHangId == userId && r.Ptid == ptId);
-
-            if (rating == null || string.IsNullOrWhiteSpace(rating.BinhLuan))
-            {
-                return false;
-            }
-
-            try
-            {
-                var ratingData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, RatingData>>>(
-                    rating.BinhLuan);
-                
-                return ratingData != null 
-                    && ratingData.ContainsKey("bookings") 
-                    && ratingData["bookings"].ContainsKey(bookingId);
-            }
-            catch
-            {
-                return false;
-            }
+            // Kiểm tra xem đã đánh giá buổi tập này chưa (dựa trên DatLichID)
+            return await _context.DanhGiaPts
+                .AnyAsync(r => r.KhachHangId == userId && r.DatLichId == bookingId);
         }
         catch (Exception ex)
         {
@@ -226,71 +189,36 @@ public class RatingService : IRatingService
                 return (false, "Không tìm thấy buổi tập hoặc bạn không có quyền đánh giá buổi tập này");
             }
 
-            // Kiểm tra xem user đã đánh giá PT này chưa
+            // Kiểm tra xem user đã đánh giá buổi tập này chưa (dựa trên DatLichID)
             var existingRating = await _context.DanhGiaPts
-                .FirstOrDefaultAsync(r => r.KhachHangId == userId && r.Ptid == ptId);
-
-            Dictionary<string, Dictionary<string, RatingData>> ratingData;
-            
-            if (existingRating != null && !string.IsNullOrWhiteSpace(existingRating.BinhLuan))
-            {
-                try
-                {
-                    // Parse JSON hiện có
-                    ratingData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, RatingData>>>(
-                        existingRating.BinhLuan) ?? new Dictionary<string, Dictionary<string, RatingData>>();
-                }
-                catch
-                {
-                    // Nếu không parse được, tạo mới
-                    ratingData = new Dictionary<string, Dictionary<string, RatingData>>();
-                }
-            }
-            else
-            {
-                ratingData = new Dictionary<string, Dictionary<string, RatingData>>();
-            }
-
-            // Đảm bảo có key "bookings"
-            if (!ratingData.ContainsKey("bookings"))
-            {
-                ratingData["bookings"] = new Dictionary<string, RatingData>();
-            }
-
-            // Cập nhật hoặc thêm đánh giá cho booking này
-            ratingData["bookings"][bookingId] = new RatingData
-            {
-                Rating = rating,
-                Comment = comment ?? string.Empty
-            };
-
-            // Tính điểm trung bình từ tất cả các booking
-            var allRatings = ratingData["bookings"].Values.Select(r => r.Rating).ToList();
-            var averageRating = allRatings.Any() ? (int)Math.Round(allRatings.Average()) : rating;
-
-            // Lưu JSON vào BinhLuan
-            var jsonBinhLuan = System.Text.Json.JsonSerializer.Serialize(ratingData);
+                .FirstOrDefaultAsync(r => r.DatLichId == bookingId);
 
             if (existingRating != null)
             {
                 // Cập nhật đánh giá cũ
-                existingRating.Diem = averageRating; // Lưu điểm trung bình
-                existingRating.BinhLuan = jsonBinhLuan;
+                existingRating.Diem = rating;
+                existingRating.BinhLuan = comment;
                 existingRating.NgayDanhGia = DateTime.Now;
+                
+                _logger.LogInformation("Updating existing rating: RatingId={RatingId}, BookingId={BookingId}, Rating={Rating}", 
+                    existingRating.DanhGiaId, bookingId, rating);
             }
             else
             {
-                // Tạo đánh giá mới
+                // Tạo đánh giá mới cho buổi tập này
                 var newRating = new DanhGiaPt
                 {
                     KhachHangId = userId,
                     Ptid = ptId,
-                    Diem = averageRating, // Lưu điểm trung bình
-                    BinhLuan = jsonBinhLuan,
+                    DatLichId = bookingId, // Liên kết với buổi tập cụ thể
+                    Diem = rating,
+                    BinhLuan = comment,
                     NgayDanhGia = DateTime.Now
                 };
 
                 _context.DanhGiaPts.Add(newRating);
+                
+                _logger.LogInformation("Creating new rating: BookingId={BookingId}, Rating={Rating}", bookingId, rating);
             }
 
             // Lưu vào database
@@ -320,18 +248,18 @@ public class RatingService : IRatingService
             var pt = await _context.HuanLuyenViens.FirstOrDefaultAsync(p => p.Ptid == ptId);
             if (pt != null)
             {
-                // Lấy tất cả đánh giá của PT này (tính từ điểm trung bình trong mỗi record)
+                // Lấy tất cả đánh giá của PT này (mỗi buổi tập = 1 đánh giá)
                 var ratings = await _context.DanhGiaPts
                     .Where(r => r.Ptid == ptId && r.Diem.HasValue)
                     .ToListAsync();
 
-                // Tính tổng số đánh giá (số lượng record)
+                // Tính tổng số đánh giá (số lượng buổi tập đã được đánh giá)
                 pt.TongDanhGia = ratings.Count;
                 
-                // Tính điểm trung bình từ tất cả các record
+                // Tính điểm trung bình từ tất cả các đánh giá
                 if (ratings.Any())
                 {
-                    pt.DiemTrungBinh = ratings.Average(r => r.Diem!.Value);
+                    pt.DiemTrungBinh = (float)ratings.Average(r => r.Diem!.Value);
                 }
                 else
                 {
@@ -349,13 +277,6 @@ public class RatingService : IRatingService
         {
             _logger.LogError(ex, "Error updating PT rating stats for PT {PtId}", ptId);
         }
-    }
-
-    // Helper class để deserialize JSON
-    private class RatingData
-    {
-        public int Rating { get; set; }
-        public string Comment { get; set; } = string.Empty;
     }
 }
 

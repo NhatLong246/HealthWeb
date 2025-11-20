@@ -213,6 +213,58 @@ body.light-mode .booking-badge {
     color: #ffffff;
 }
 
+/* Conflict styling */
+.booking-badge.conflict {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    color: #ffffff;
+    animation: pulse-conflict 2s infinite;
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+body.light-mode .booking-badge.conflict {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.7);
+}
+
+@keyframes pulse-conflict {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+    }
+}
+
+.time-cell.has-booking .booking-badge.conflict {
+    border: 2px solid #ff6b6b;
+}
+
+.booking-card.has-conflict {
+    border-left-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    border: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+body.light-mode .booking-card.has-conflict {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.5);
+}
+
+.conflict-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
 /* List View */
 .schedule-list {
     display: none;

@@ -1510,51 +1510,18 @@ public class StatisticsService : IStatisticsService
         
         var nutritionLogs = await nutritionLogsQuery.ToListAsync(cancellationToken);
 
-        // Find foods with highest macro nutrients
-        // Top food with highest Protein
-        var topProteinFood = await _context.DinhDuongMonAns
-            .AsNoTracking()
-            .Where(m => m.Protein.HasValue && m.TenMonAn != null)
-            .OrderByDescending(m => m.Protein!.Value)
-            .ThenBy(m => m.TenMonAn)
-            .Select(m => new TopFoodDto
+        // Get top foods by usage count (most frequently used foods in nutrition logs)
+        var topUsedFoods = await nutritionLogsQuery
+            .GroupBy(n => new { n.MonAnId, n.MonAn!.TenMonAn })
+            .Select(g => new TopFoodDto
             {
-                FoodName = m.TenMonAn!,
-                LogCount = (int)Math.Round(m.Protein!.Value)
+                FoodName = g.Key.TenMonAn ?? "Không xác định",
+                LogCount = g.Count()
             })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        // Top food with highest Carbohydrate
-        var topCarbsFood = await _context.DinhDuongMonAns
-            .AsNoTracking()
-            .Where(m => m.Carbohydrate.HasValue && m.TenMonAn != null)
-            .OrderByDescending(m => m.Carbohydrate!.Value)
-            .ThenBy(m => m.TenMonAn)
-            .Select(m => new TopFoodDto
-            {
-                FoodName = m.TenMonAn!,
-                LogCount = (int)Math.Round(m.Carbohydrate!.Value)
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        // Top food with highest Fat (ChatBeo)
-        var topFatFood = await _context.DinhDuongMonAns
-            .AsNoTracking()
-            .Where(m => m.ChatBeo.HasValue && m.TenMonAn != null)
-            .OrderByDescending(m => m.ChatBeo!.Value)
-            .ThenBy(m => m.TenMonAn)
-            .Select(m => new TopFoodDto
-            {
-                FoodName = m.TenMonAn!,
-                LogCount = (int)Math.Round(m.ChatBeo!.Value)
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        // Create list of top 3 foods by macro nutrients
-        var top3MacroFoods = new List<TopFoodDto>();
-        if (topProteinFood != null) top3MacroFoods.Add(topProteinFood);
-        if (topCarbsFood != null) top3MacroFoods.Add(topCarbsFood);
-        if (topFatFood != null) top3MacroFoods.Add(topFatFood);
+            .OrderByDescending(f => f.LogCount)
+            .ThenBy(f => f.FoodName)
+            .Take(10) // Get top 10 most used foods
+            .ToListAsync(cancellationToken);
 
         // Create empty calorie trend (not used anymore, but kept for backward compatibility)
         var calorieTrend = new List<CalorieTrendDto>();
@@ -1569,7 +1536,7 @@ public class StatisticsService : IStatisticsService
             CalorieTrend = calorieTrend, // Empty, not used
             MacroTrend = new List<MacroDistributionDto> { macroDistribution },
             TopFoods = new List<TopFoodDto>(), // Not used anymore
-            Top3FavoriteFoods = top3MacroFoods // Top foods by macro nutrients
+            Top3FavoriteFoods = topUsedFoods // Top foods by usage count (most frequently used)
         };
     }
 

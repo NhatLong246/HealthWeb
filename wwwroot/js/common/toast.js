@@ -3,17 +3,17 @@
  * Unified notification system for the entire application
  */
 
-// Toast container
-let toastContainer = null;
+// Toast container - use window to avoid duplicate declaration
+window.toastContainer = window.toastContainer || null;
 
 // Initialize toast container
 function initToastContainer() {
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        document.body.appendChild(toastContainer);
+    if (!window.toastContainer) {
+        window.toastContainer = document.createElement('div');
+        window.toastContainer.className = 'toast-container';
+        document.body.appendChild(window.toastContainer);
     }
-    return toastContainer;
+    return window.toastContainer;
 }
 
 // Get icon for toast type
@@ -36,6 +36,7 @@ function getToastIcon(type) {
 function showToast(message, type = 'info', duration = 5000) {
     // Initialize container
     const container = initToastContainer();
+    if (!container) return null;
     
     // Create toast element
     const toast = document.createElement('div');

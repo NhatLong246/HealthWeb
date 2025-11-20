@@ -4,6 +4,7 @@ using HealthWeb.Models.Entities;
 using HealthWeb.Models.EF;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
+using HealthWeb.Helpers;
 
 namespace HealthWeb.Controllers
 {
@@ -54,10 +55,10 @@ namespace HealthWeb.Controllers
                 .ToListAsync();
 
             // Tính tổng calo, protein, carbs, chất béo
-            var tongCalo = nhatKyDinhDuong.Sum(n => (n.MonAn?.LuongCalo ?? 0) * (n.LuongThucAn ?? 0) / 100);
-            var tongProtein = nhatKyDinhDuong.Sum(n => (n.MonAn?.Protein ?? 0) * (n.LuongThucAn ?? 0) / 100);
-            var tongCarbs = nhatKyDinhDuong.Sum(n => (n.MonAn?.Carbohydrate ?? 0) * (n.LuongThucAn ?? 0) / 100);
-            var tongChatBeo = nhatKyDinhDuong.Sum(n => (n.MonAn?.ChatBeo ?? 0) * (n.LuongThucAn ?? 0) / 100);
+            var tongCalo = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.LuongCalo, n.LuongThucAn, n.MonAn?.DonViTinh));
+            var tongProtein = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.Protein, n.LuongThucAn, n.MonAn?.DonViTinh));
+            var tongCarbs = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.Carbohydrate, n.LuongThucAn, n.MonAn?.DonViTinh));
+            var tongChatBeo = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.ChatBeo, n.LuongThucAn, n.MonAn?.DonViTinh));
 
             // Lấy kế hoạch ăn uống được phân công cho user
             var keHoachAnUong = await _context.PhanCongKeHoachAnUongs
@@ -74,33 +75,38 @@ namespace HealthWeb.Controllers
 
             // Lấy dữ liệu 7 ngày gần nhất để vẽ biểu đồ
             var startDate = dateOnly.AddDays(-6);
-            var nhatKy7Ngay = await _context.NhatKyDinhDuongs
+            var nhatKy7NgayData = await _context.NhatKyDinhDuongs
                 .Include(n => n.MonAn)
                 .Where(n => n.UserId == userId && n.NgayGhiLog >= startDate && n.NgayGhiLog <= dateOnly)
+                .ToListAsync();
+            
+            var nhatKy7Ngay = nhatKy7NgayData
                 .GroupBy(n => n.NgayGhiLog)
                 .Select(g => new
                 {
                     Ngay = g.Key,
-                    TongCalo = g.Sum(n => (n.MonAn != null ? n.MonAn.LuongCalo : 0) * (n.LuongThucAn ?? 0) / 100)
+                    TongCalo = g.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.LuongCalo, n.LuongThucAn, n.MonAn?.DonViTinh))
                 })
                 .OrderBy(x => x.Ngay)
-                .ToListAsync();
+                .ToList();
 
             // Tính tổng calo tuần này
             var startOfWeek = dateOnly.AddDays(-(int)dateOnly.DayOfWeek + 1);
             var endOfWeek = startOfWeek.AddDays(6);
-            var tongCaloTuan = await _context.NhatKyDinhDuongs
+            var nhatKyDinhDuongTuan = await _context.NhatKyDinhDuongs
                 .Include(n => n.MonAn)
                 .Where(n => n.UserId == userId && n.NgayGhiLog >= startOfWeek && n.NgayGhiLog <= endOfWeek)
-                .SumAsync(n => (n.MonAn != null ? n.MonAn.LuongCalo : 0) * (n.LuongThucAn ?? 0) / 100);
+                .ToListAsync();
+            var tongCaloTuan = nhatKyDinhDuongTuan.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.LuongCalo, n.LuongThucAn, n.MonAn?.DonViTinh));
 
             // Tính tổng calo tháng này
             var startOfMonth = new DateOnly(dateOnly.Year, dateOnly.Month, 1);
             var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-            var tongCaloThang = await _context.NhatKyDinhDuongs
+            var nhatKyDinhDuongThang = await _context.NhatKyDinhDuongs
                 .Include(n => n.MonAn)
                 .Where(n => n.UserId == userId && n.NgayGhiLog >= startOfMonth && n.NgayGhiLog <= endOfMonth)
-                .SumAsync(n => (n.MonAn != null ? n.MonAn.LuongCalo : 0) * (n.LuongThucAn ?? 0) / 100);
+                .ToListAsync();
+            var tongCaloThang = nhatKyDinhDuongThang.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.LuongCalo, n.LuongThucAn, n.MonAn?.DonViTinh));
 
             // Lấy lịch sử 7 ngày gần nhất
             var lichSu7Ngay = await _context.NhatKyDinhDuongs
@@ -291,10 +297,10 @@ namespace HealthWeb.Controllers
                 .ToListAsync();
 
             // Tính tổng
-            var tongCalo = nhatKyDinhDuong.Sum(n => n.luongCalo * (n.luongThucAn ?? 0) / 100);
-            var tongProtein = nhatKyDinhDuong.Sum(n => n.protein * (n.luongThucAn ?? 0) / 100);
-            var tongCarbs = nhatKyDinhDuong.Sum(n => n.carbohydrate * (n.luongThucAn ?? 0) / 100);
-            var tongChatBeo = nhatKyDinhDuong.Sum(n => n.chatBeo * (n.luongThucAn ?? 0) / 100);
+            var tongCalo = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.luongCalo, n.luongThucAn, n.donViTinh));
+            var tongProtein = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.protein, n.luongThucAn, n.donViTinh));
+            var tongCarbs = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.carbohydrate, n.luongThucAn, n.donViTinh));
+            var tongChatBeo = nhatKyDinhDuong.Sum(n => NutritionCalculationHelper.CalculateNutritionValue(n.chatBeo, n.luongThucAn, n.donViTinh));
 
             return Json(new
             {

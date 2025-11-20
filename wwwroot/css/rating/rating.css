@@ -1,13 +1,23 @@
-/* Rating Page */
+/* Rating Page - Khoảng cách với header fixed (70px height) */
 .rating-page {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
+    padding-top: calc(70px + 40px) !important; /* Header height (70px) + spacing (40px) */
+    padding-bottom: 3rem; /* Đảm bảo nội dung cuối cùng không bị che */
+    min-height: calc(100vh - 70px);
 }
 
 .rating-header {
     text-align: center;
+    margin-top: 2rem; /* Khoảng cách hợp lý với header */
     margin-bottom: 3rem;
+}
+
+.rating-content {
+    width: 100%;
+    min-height: 0; /* Cho phép nội dung co lại nếu cần */
+    margin-top: 0; /* Không cần margin-top vì đã có margin-bottom ở rating-header */
 }
 
 .rating-header h1 {

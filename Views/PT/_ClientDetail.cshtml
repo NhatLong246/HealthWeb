@@ -89,13 +89,6 @@
                 <div class="stat-label">Mục Tiêu</div>
             </div>
         </div>
-        <div class="detail-stat-item">
-            <div class="stat-icon"><i class="fas fa-clock"></i></div>
-            <div class="stat-content">
-                <div class="stat-value">@FormatRelativeTime(model.LastActivity)</div>
-                <div class="stat-label">Hoạt Động Gần Nhất</div>
-            </div>
-        </div>
     </div>
 
     <!-- Health Info Section -->
@@ -157,43 +150,5 @@
         }
     </div>
 
-    @if (model.HasPendingRequest)
-    {
-        <!-- Pending Request Actions Section -->
-        <div class="detail-section request-actions-section">
-            <div class="request-actions-wrapper">
-                <p class="request-prompt-text">Khách hàng này có yêu cầu tập luyện đang chờ bạn xử lý</p>
-                <div class="request-action-buttons">
-                    <button class="btn-accept-request" onclick="acceptClientRequest('@(model.PendingRequestId)', '@(model.Id)')">
-                        <i class="fas fa-check"></i> <span>Đồng ý</span>
-                    </button>
-                    <button class="btn-reject-request" onclick="showRejectReasonBox('@(model.PendingRequestId)', '@(model.Id)')">
-                        <i class="fas fa-times"></i> <span>Từ chối</span>
-                    </button>
-                </div>
-                <div id="rejectReasonBox_@(model.Id)" class="reject-reason-box" style="display: none;">
-                    <label for="rejectReasonInput_@(model.Id)">Lý do từ chối <span style="color: #ef4444;">*</span></label>
-                    <textarea id="rejectReasonInput_@(model.Id)" rows="3" placeholder="Ví dụ: Lịch trình không phù hợp, đã đủ khách hàng..."></textarea>
-                    <div class="reject-reason-actions">
-                        <button class="btn-cancel-reject" onclick="hideRejectReasonBox('@(model.Id)')">Hủy</button>
-                        <button class="btn-submit-reject" onclick="rejectClientRequest('@(model.PendingRequestId)', '@(model.Id)')">Xác nhận từ chối</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-
-    <!-- Workout Plan Section -->
-    <div class="detail-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h4><i class="fas fa-dumbbell"></i> Kế Hoạch Tập Luyện</h4>
-            <button class="btn-primary" onclick="openWorkoutPlanModal('@(model.Id)', '@(model.Goal ?? "")')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
-                <i class="fas fa-plus"></i> Sắp xếp bài tập
-            </button>
-        </div>
-        <div id="workoutPlanContent_@(model.Id)">
-            <p style="opacity: 0.6; margin: 1rem 0;">Chưa có kế hoạch tập luyện</p>
-        </div>
-    </div>
 </div>
 

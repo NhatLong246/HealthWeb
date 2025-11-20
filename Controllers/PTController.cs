@@ -562,6 +562,33 @@ namespace HealthWeb.Controllers
             }
         }
 
+        // GET: /PT/Requests/CheckConflicts - kiểm tra trùng lịch trước khi accept
+        [HttpGet("PT/Requests/CheckConflicts")]
+        public async Task<IActionResult> CheckRequestConflicts([FromQuery] string requestId)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { hasConflict = false, conflicts = new List<string>() });
+                }
+
+                if (string.IsNullOrWhiteSpace(requestId))
+                {
+                    return Json(new { hasConflict = false, conflicts = new List<string>() });
+                }
+
+                var (hasConflict, conflicts) = await _ptService.CheckRequestConflictsAsync(userId, requestId);
+                return Json(new { hasConflict, conflicts });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking request conflicts");
+                return Json(new { hasConflict = false, conflicts = new List<string>() });
+            }
+        }
+
         // POST: /PT/Requests/Accept - chấp nhận yêu cầu
         [HttpPost("PT/Requests/Accept")]
         [ValidateAntiForgeryToken]
@@ -752,6 +779,131 @@ namespace HealthWeb.Controllers
                 return Json(new { success = false, message = "Không thể tải kế hoạch tập luyện" });
             }
         }
+
+        // GET: /PT/DailyBookingsManagement - Quản lý lịch đặt và giao bài tập theo ngày
+        [HttpGet("PT/DailyBookingsManagement")]
+        public async Task<IActionResult> DailyBookingsManagement([FromQuery] string? date)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                DateOnly? targetDate = null;
+                if (!string.IsNullOrWhiteSpace(date) && DateOnly.TryParse(date, out var parsedDate))
+                {
+                    targetDate = parsedDate;
+                }
+
+                var viewModel = await _ptService.GetDailyBookingsForAssignmentAsync(userId, targetDate);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading daily bookings management");
+                return View(new HealthWeb.Services.DailyBookingsViewModel
+                {
+                    SelectedDate = DateOnly.FromDateTime(DateTime.Today),
+                    Bookings = new List<HealthWeb.Services.DailyBookingItemViewModel>()
+                });
+            }
+        }
+
+        // GET: /PT/DailyBookings/Data - API lấy dữ liệu bookings theo ngày
+        [HttpGet("PT/DailyBookings/Data")]
+        public async Task<IActionResult> GetDailyBookingsData([FromQuery] string? date)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetDailyBookingsData: User not logged in");
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                _logger.LogInformation("GetDailyBookingsData: Request from userId {UserId}, date: {Date}", userId, date);
+
+                DateOnly? targetDate = null;
+                if (!string.IsNullOrWhiteSpace(date) && DateOnly.TryParse(date, out var parsedDate))
+                {
+                    targetDate = parsedDate;
+                    _logger.LogInformation("GetDailyBookingsData: Parsed date: {Date}", targetDate);
+                }
+                else
+                {
+                    _logger.LogInformation("GetDailyBookingsData: Using today's date");
+                }
+
+                var viewModel = await _ptService.GetDailyBookingsForAssignmentAsync(userId, targetDate);
+                
+                _logger.LogInformation("GetDailyBookingsData: Returning {Count} bookings", viewModel?.Bookings?.Count ?? 0);
+                
+                return Json(new { success = true, data = viewModel });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting daily bookings data: {Message}", ex.Message);
+                return Json(new { success = false, message = $"Không thể tải dữ liệu: {ex.Message}" });
+            }
+        }
+
+        // POST: /PT/AssignWorkout - Giao bài tập cho booking
+        [HttpPost("PT/AssignWorkout")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignWorkout([FromBody] AssignWorkoutRequestModel model)
+        {
+            try
+            {
+                var userId = await _ptService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.BookingId))
+                {
+                    return Json(new { success = false, message = "Vui lòng chọn lịch hẹn" });
+                }
+
+                // Support both single TemplateId (backward compatibility) and multiple TemplateIds
+                var templateIds = new List<int>();
+                if (model.TemplateIds != null && model.TemplateIds.Count > 0)
+                {
+                    templateIds = model.TemplateIds;
+                }
+                else if (model.TemplateId > 0)
+                {
+                    templateIds.Add(model.TemplateId);
+                }
+                
+                if (templateIds.Count == 0)
+                {
+                    return Json(new { success = false, message = "Vui lòng chọn ít nhất một bài tập" });
+                }
+
+                // Map TemplateDetails to dictionary for easy lookup
+                var templateDetailsDict = new Dictionary<int, (int? sets, int? reps, int? restTime)>();
+                if (model.TemplateDetails != null)
+                {
+                    foreach (var detail in model.TemplateDetails)
+                    {
+                        templateDetailsDict[detail.TemplateId] = (detail.Sets, detail.Reps, detail.RestTime);
+                    }
+                }
+
+                var (success, message) = await _ptService.AssignWorkoutsToBookingAsync(userId, model.BookingId, templateIds, templateDetailsDict);
+                return Json(new { success, message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning workout");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi giao bài tập" });
+            }
+        }
     }
 
     public class AcceptRequestModel
@@ -769,6 +921,22 @@ namespace HealthWeb.Controllers
     {
         public string ClientId { get; set; } = null!;
         public HealthWeb.Services.CreateWorkoutPlanViewModel Plan { get; set; } = null!;
+    }
+
+    public class AssignWorkoutRequestModel
+    {
+        public string BookingId { get; set; } = null!;
+        public int TemplateId { get; set; } // Deprecated, use TemplateIds instead
+        public List<int>? TemplateIds { get; set; } // Support multiple templates
+        public List<TemplateDetailModel>? TemplateDetails { get; set; } // Set/Rep/Rest time for each template
+    }
+
+    public class TemplateDetailModel
+    {
+        public int TemplateId { get; set; }
+        public int? Sets { get; set; }
+        public int? Reps { get; set; }
+        public int? RestTime { get; set; } // Rest time in seconds
     }
 }
 

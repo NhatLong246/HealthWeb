@@ -25,9 +25,6 @@
         <button class="settings-tab" onclick="switchTab('professional')">
             <i class="fas fa-certificate"></i> Chuyên Môn
         </button>
-        <button class="settings-tab" onclick="switchTab('schedule')">
-            <i class="fas fa-clock"></i> Lịch Làm Việc
-        </button>
     </div>
 
     <!-- Profile Settings -->
@@ -50,11 +47,6 @@
             </div>
 
             <div class="form-row">
-                <div class="form-group">
-                    <label for="phone">Số điện thoại</label>
-                    <input type="tel" id="phone" name="Phone" placeholder="0123456789" value="@(model.Profile?.Phone ?? "")">
-                </div>
-                
                 <div class="form-group">
                     <label for="city">Thành phố</label>
                     <input type="text" id="city" name="ThanhPho" placeholder="Ví dụ: Hà Nội, TP.HCM" value="@(model.Profile?.ThanhPho ?? "")">
@@ -124,41 +116,6 @@
         </div>
     </div>
 
-    <!-- Schedule Settings -->
-    <div class="settings-content" id="scheduleTab">
-        <div class="settings-section">
-            <div class="section-title">
-                <i class="fas fa-calendar-alt"></i> Lịch Làm Việc
-            </div>
-            
-            <div class="form-group">
-                <label for="availableHours">Giờ làm việc</label>
-                <textarea id="availableHours" name="GioRanh" placeholder="Ví dụ: Thứ 2-6: 6h-10h, 18h-22h | Thứ 7-CN: 8h-12h">@(model.Schedule?.GioRanh ?? "")</textarea>
-                <div class="info-text">Mô tả thời gian bạn sẵn sàng nhận khách hàng</div>
-            </div>
-
-            <div class="form-group">
-                <div class="toggle-switch">
-                    <label>Nhận khách hàng mới</label>
-                    <label class="switch">
-                        <input type="checkbox" id="acceptClients" name="NhanKhach" @((model.Schedule?.NhanKhach ?? true) ? "checked" : "")>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="info-text">Bật/tắt để kiểm soát việc nhận khách hàng mới</div>
-            </div>
-
-            <div class="form-group">
-                <label for="maxClients">Số lượng khách hàng tối đa</label>
-                <input type="number" id="maxClients" name="MaxClients" placeholder="Ví dụ: 30" min="1" max="100" value="@(model.Schedule?.MaxClients?.ToString() ?? "")">
-                <div class="info-text">Giới hạn số lượng khách hàng bạn có thể quản lý cùng lúc</div>
-            </div>
-
-            <button type="submit" class="save-btn" onclick="saveSchedule()">
-                <i class="fas fa-save"></i> Lưu Lịch Làm Việc
-            </button>
-        </div>
-    </div>
 </div>
 
 <script src="~/js/pt/settingsPT.js"></script>

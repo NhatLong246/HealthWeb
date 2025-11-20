@@ -67,9 +67,25 @@ public class PaymentService : IPaymentService
                 };
             }
 
-            // Tính toán số tiền dựa trên giá PT
+            // Tính toán số tiền dựa trên giá PT và số giờ
             var ptPrice = booking.Pt?.GiaTheoGio ?? 0;
-            var amount = ptPrice; // Giá 1 buổi tập (có thể tính theo giờ nếu cần)
+            
+            // Parse số giờ từ GhiChu
+            double hours = 1; // Mặc định 1 giờ
+            if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+            {
+                // Tìm "Số giờ buổi này: X.X giờ" trong GhiChu
+                var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                    booking.GhiChu, 
+                    @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                {
+                    hours = parsedHours;
+                }
+            }
+            
+            var amount = ptPrice * hours; // Giá = giá mỗi giờ × số giờ
             
             if (amount <= 0)
             {
@@ -125,9 +141,25 @@ public class PaymentService : IPaymentService
                 return (false, null, "Booking chưa được xác nhận bởi PT");
             }
 
-            // Tính toán số tiền
+            // Tính toán số tiền dựa trên giá PT và số giờ
             var ptPrice = booking.Pt?.GiaTheoGio ?? 0;
-            var amount = ptPrice;
+            
+            // Parse số giờ từ GhiChu
+            double hours = 1; // Mặc định 1 giờ
+            if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+            {
+                // Tìm "Số giờ buổi này: X.X giờ" trong GhiChu
+                var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                    booking.GhiChu, 
+                    @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                {
+                    hours = parsedHours;
+                }
+            }
+            
+            var amount = ptPrice * hours; // Giá = giá mỗi giờ × số giờ
             
             if (amount <= 0)
             {

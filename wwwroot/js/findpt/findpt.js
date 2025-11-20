@@ -2,6 +2,7 @@
 let currentPTs = [];
 let currentPTDetail = null;
 let currentUserId = null;
+let currentPTPricePerHour = 0; // Lưu giá mỗi giờ của PT hiện tại
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
@@ -430,6 +431,20 @@ function openRequestModal(ptId) {
     if (dateContainer) {
         dateContainer.innerHTML = '';
     }
+    dateScheduleCounter = 0;
+    
+    // Lấy giá mỗi giờ của PT
+    const pt = currentPTs.find(p => (p.ptId || p.PtId || p.id || p.Id) === ptId);
+    if (pt) {
+        currentPTPricePerHour = pt.pricePerHour || pt.PricePerHour || 0;
+    } else if (currentPTDetail && (currentPTDetail.ptId || currentPTDetail.PtId) === ptId) {
+        currentPTPricePerHour = currentPTDetail.pricePerHour || currentPTDetail.PricePerHour || 0;
+    } else {
+        currentPTPricePerHour = 0;
+    }
+    
+    // Cập nhật tổng tiền
+    updateTotalPrice();
     
     document.getElementById('requestModal').style.display = 'block';
 }
@@ -483,9 +498,11 @@ function addDateSchedule() {
     if (startInput && endInput) {
         startInput.addEventListener('change', function() {
             validateTimeRange(this, endInput);
+            updateTotalPrice();
         });
         endInput.addEventListener('change', function() {
             validateTimeRange(startInput, this);
+            updateTotalPrice();
         });
     }
 }
@@ -495,6 +512,7 @@ function removeDateSchedule(scheduleId) {
     const item = document.getElementById(scheduleId);
     if (item) {
         item.remove();
+        updateTotalPrice();
     }
 }
 
@@ -504,6 +522,82 @@ function validateTimeRange(startInput, endInput) {
         if (startInput.value >= endInput.value) {
             showWarning('Giờ kết thúc phải sau giờ bắt đầu');
             endInput.value = '';
+            updateTotalPrice();
+        } else {
+            updateTotalPrice();
+        }
+    } else {
+        updateTotalPrice();
+    }
+}
+
+// Calculate total hours from all schedules
+function calculateTotalHours() {
+    let totalHours = 0;
+    
+    document.querySelectorAll('.date-schedule-item').forEach(item => {
+        const startInput = item.querySelector('.schedule-time-start');
+        const endInput = item.querySelector('.schedule-time-end');
+        
+        if (startInput && endInput && startInput.value && endInput.value) {
+            const startTime = startInput.value.split(':');
+            const endTime = endInput.value.split(':');
+            
+            const startMinutes = parseInt(startTime[0]) * 60 + parseInt(startTime[1]);
+            const endMinutes = parseInt(endTime[0]) * 60 + parseInt(endTime[1]);
+            
+            const hours = (endMinutes - startMinutes) / 60;
+            if (hours > 0) {
+                totalHours += hours;
+            }
+        }
+    });
+    
+    return totalHours;
+}
+
+// Update total price display
+function updateTotalPrice() {
+    const totalHours = calculateTotalHours();
+    const totalPrice = totalHours * currentPTPricePerHour;
+    
+    // Tìm hoặc tạo phần hiển thị tổng tiền
+    let priceDisplay = document.getElementById('totalPriceDisplay');
+    
+    if (!priceDisplay) {
+        // Tạo phần hiển thị tổng tiền nếu chưa có
+        const formActions = document.querySelector('.form-actions');
+        if (formActions) {
+            priceDisplay = document.createElement('div');
+            priceDisplay.id = 'totalPriceDisplay';
+            priceDisplay.className = 'total-price-display';
+            priceDisplay.style.cssText = 'margin-bottom: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px; text-align: center;';
+            formActions.parentNode.insertBefore(priceDisplay, formActions);
+        }
+    }
+    
+    if (priceDisplay) {
+        if (totalHours > 0 && currentPTPricePerHour > 0) {
+            priceDisplay.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span><i class="fas fa-clock"></i> Tổng số giờ:</span>
+                    <strong>${totalHours.toFixed(1)} giờ</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span><i class="fas fa-money-bill-wave"></i> Giá mỗi giờ:</span>
+                    <strong>${formatPrice(currentPTPricePerHour)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 2px solid #ddd;">
+                    <span style="font-size: 1.1em; font-weight: bold;"><i class="fas fa-calculator"></i> Tổng tiền:</span>
+                    <strong style="font-size: 1.2em; color: #667eea;">${formatPrice(totalPrice)}</strong>
+                </div>
+            `;
+        } else {
+            priceDisplay.innerHTML = `
+                <div style="color: #999; text-align: center;">
+                    <i class="fas fa-info-circle"></i> Vui lòng chọn ngày và thời gian để tính tổng tiền
+                </div>
+            `;
         }
     }
 }
@@ -518,6 +612,7 @@ function closeRequestModal() {
         dateContainer.innerHTML = '';
     }
     dateScheduleCounter = 0;
+    currentPTPricePerHour = 0;
 }
 
 // Close PT Detail Modal
