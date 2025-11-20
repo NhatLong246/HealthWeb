@@ -955,43 +955,58 @@ function goToTransactionPage(page) {
     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Export transactions
-function exportTransactions() {
-    if (transactionsData.length === 0) {
-        showNotification('Không có dữ liệu để xuất', 'error');
-        return;
+// Export transactions to Excel
+async function exportTransactions() {
+    try {
+        // Get current filter values
+        const searchKeyword = document.getElementById('transaction-search')?.value || '';
+        const paymentMethod = document.getElementById('filter-payment-method')?.value || '';
+        const dateRangeText = document.getElementById('filter-date-range-text')?.textContent || '';
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchKeyword) params.append('search', searchKeyword);
+        if (paymentMethod) params.append('paymentMethod', paymentMethod);
+        
+        // Parse date range if available
+        const dateRange = getCurrentTransactionDateRange();
+        if (dateRange.start) {
+            params.append('dateFrom', dateRange.start.toISOString().split('T')[0]);
+        }
+        if (dateRange.end) {
+            params.append('dateTo', dateRange.end.toISOString().split('T')[0]);
+        }
+        
+        const url = `/Admin/QuanLiGiaoDich/ExportExcel?${params.toString()}`;
+        
+        // Show loading notification
+        showNotification('Đang xuất báo cáo Excel...', 'info');
+        
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success notification after a short delay
+        setTimeout(() => {
+            showNotification('Đã xuất báo cáo Excel thành công!', 'success');
+        }, 500);
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showNotification('Lỗi khi xuất báo cáo Excel: ' + error.message, 'error');
     }
-    
-    // Simple CSV export
-    const headers = ['Mã GD', 'Người mua', 'Người nhận (PT)', 'Tổng tiền', 'Hoa hồng', 'PT nhận', 'Phương thức', 'Trạng thái', 'Ngày giờ'];
-    const rows = transactionsData.map(t => [
-        t.transactionId,
-        t.customerName || '',
-        t.ptName || '',
-        t.amount,
-        t.commission || 0,
-        t.ptRevenue || 0,
-        getPaymentMethodText(t.paymentMethod),
-        getStatusText(t.paymentStatus),
-        formatDate(t.transactionDate)
-    ]);
-    
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-    
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `giao_dich_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showNotification('Đã xuất báo cáo thành công!', 'success');
+}
+
+// Helper function to get current transaction date range
+function getCurrentTransactionDateRange() {
+    if (typeof getActiveDateRange === 'function') {
+        return getActiveDateRange();
+    }
+    return { start: null, end: null };
 }
 
 // Date Range Filter Functions

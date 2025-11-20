@@ -300,11 +300,15 @@ function applyFilters(criteria, markAsApplied = true) {
 
 function normalizeFood(raw) {
     if (!raw) return null;
+    
+    // Lấy ImageUrl từ response (service trả về ImageUrl từ HinhAnh trong database)
+    const imageUrl = raw.ImageUrl ?? raw.imageUrl ?? raw.HinhAnh ?? null;
+    
     return {
         MonAnID: raw.FoodId ?? raw.foodId ?? raw.MonAnID ?? '',
         TenMonAn: raw.Name ?? raw.name ?? raw.TenMonAn ?? 'Không xác định',
         DonViTinh: raw.Unit ?? raw.unit ?? raw.DonViTinh ?? '-',
-        HinhAnh: raw.ImageUrl ?? raw.imageUrl ?? raw.HinhAnh ?? null,
+        HinhAnh: imageUrl ? imageUrl.trim() : null, // Đảm bảo trim và xử lý null
         LuongCalo: Number(raw.Calories ?? raw.calories ?? raw.LuongCalo ?? 0),
         Protein: Number(raw.Protein ?? raw.protein ?? raw.Protein ?? 0),
         ChatBeo: Number(raw.Fat ?? raw.fat ?? raw.ChatBeo ?? 0),
@@ -443,7 +447,7 @@ function createFoodCard(food, index) {
         <div class="food-card-enhanced" data-food-id="${food.MonAnID}" style="animation-delay: ${index * 0.05}s;">
             <div class="food-card-image-container">
                 ${food.HinhAnh ? 
-                    `<img src="${food.HinhAnh}" alt="${food.TenMonAn}" class="food-card-image" loading="lazy" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">` 
+                    `<img src="${food.HinhAnh}" alt="${food.TenMonAn}" class="food-card-image" loading="lazy" crossorigin="anonymous" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" onload="this.nextElementSibling.style.display='none';">` 
                     : ''
                 }
                 <div class="food-card-image-fallback" style="background: ${cardGradient}; display: ${food.HinhAnh ? 'none' : 'flex'};">
@@ -555,7 +559,7 @@ function loadFoodTableView() {
             <td>${food.Carbohydrate}</td>
             <td>
                 ${food.HinhAnh ? 
-                    `<img src="${food.HinhAnh}" alt="${food.TenMonAn}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none';">` 
+                    `<img src="${food.HinhAnh}" alt="${food.TenMonAn}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" loading="lazy" crossorigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><i class="fas fa-image" style="color: #ccc; display: none;"></i>` 
                     : '<i class="fas fa-image" style="color: #ccc;"></i>'
                 }
             </td>
@@ -649,6 +653,9 @@ async function viewFoodDetail(foodId) {
     const fatPercent = detail?.fatPercentage ?? detail?.FatPercentage ?? calculatePercentage(fallback.ChatBeo, fallback);
     const carbPercent = detail?.carbPercentage ?? detail?.CarbPercentage ?? calculatePercentage(fallback.Carbohydrate, fallback);
     
+    // Ưu tiên sử dụng ImageUrl từ detail response, nếu không có thì dùng từ fallback
+    const imageUrl = detail?.ImageUrl ?? detail?.imageUrl ?? fallback.HinhAnh ?? null;
+    
     const content = el('food-detail-content');
     if (!content) return;
     
@@ -657,12 +664,13 @@ async function viewFoodDetail(foodId) {
             <!-- Hero Section with Image -->
             <div class="food-detail-hero">
                 <div class="food-detail-image-wrapper">
-                    ${fallback.HinhAnh ? 
-                        `<img src="${fallback.HinhAnh}" alt="${fallback.TenMonAn}" class="food-detail-image" loading="lazy">` 
-                        : `<div class="food-detail-image-placeholder">
-                            <i class="fas fa-utensils"></i>
-                        </div>`
+                    ${imageUrl ? 
+                        `<img src="${imageUrl}" alt="${fallback.TenMonAn}" class="food-detail-image" loading="lazy" crossorigin="anonymous" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" onload="this.nextElementSibling.style.display='none';">` 
+                        : ''
                     }
+                    <div class="food-detail-image-placeholder" style="display: ${imageUrl ? 'none' : 'flex'};">
+                        <i class="fas fa-utensils"></i>
+                    </div>
                     <div class="food-detail-image-overlay"></div>
                 </div>
                 

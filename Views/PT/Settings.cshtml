@@ -28,12 +28,6 @@
         <button class="settings-tab" onclick="switchTab('schedule')">
             <i class="fas fa-clock"></i> Lịch Làm Việc
         </button>
-        <button class="settings-tab" onclick="switchTab('account')">
-            <i class="fas fa-key"></i> Tài Khoản
-        </button>
-        <button class="settings-tab" onclick="switchTab('notifications')">
-            <i class="fas fa-bell"></i> Thông Báo
-        </button>
     </div>
 
     <!-- Profile Settings -->
@@ -162,93 +156,6 @@
 
             <button type="submit" class="save-btn" onclick="saveSchedule()">
                 <i class="fas fa-save"></i> Lưu Lịch Làm Việc
-            </button>
-        </div>
-    </div>
-
-    <!-- Account Settings -->
-    <div class="settings-content" id="accountTab">
-        <div class="settings-section">
-            <div class="section-title">
-                <i class="fas fa-shield-alt"></i> Bảo Mật Tài Khoản
-            </div>
-            
-            <div class="form-group">
-                <label for="currentPassword">Mật khẩu hiện tại</label>
-                <input type="password" id="currentPassword" name="CurrentPassword" placeholder="Nhập mật khẩu hiện tại">
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="newPassword">Mật khẩu mới</label>
-                    <input type="password" id="newPassword" name="NewPassword" placeholder="Nhập mật khẩu mới">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirmPassword">Xác nhận mật khẩu</label>
-                    <input type="password" id="confirmPassword" name="ConfirmPassword" placeholder="Nhập lại mật khẩu mới">
-                </div>
-            </div>
-
-            <button type="submit" class="save-btn" onclick="changePassword()">
-                <i class="fas fa-key"></i> Đổi Mật Khẩu
-            </button>
-        </div>
-    </div>
-
-    <!-- Notifications Settings -->
-    <div class="settings-content" id="notificationsTab">
-        <div class="settings-section">
-            <div class="section-title">
-                <i class="fas fa-bell"></i> Cài Đặt Thông Báo
-            </div>
-            
-            <div class="form-group">
-                <div class="toggle-switch">
-                    <label>Thông báo đặt lịch mới</label>
-                    <label class="switch">
-                        <input type="checkbox" id="notifyNewBooking" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="info-text">Nhận thông báo khi có khách hàng đặt lịch mới</div>
-            </div>
-
-            <div class="form-group">
-                <div class="toggle-switch">
-                    <label>Thông báo hủy lịch</label>
-                    <label class="switch">
-                        <input type="checkbox" id="notifyCancelBooking" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="info-text">Nhận thông báo khi khách hàng hủy lịch</div>
-            </div>
-
-            <div class="form-group">
-                <div class="toggle-switch">
-                    <label>Thông báo đánh giá</label>
-                    <label class="switch">
-                        <input type="checkbox" id="notifyReview" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="info-text">Nhận thông báo khi khách hàng đánh giá</div>
-            </div>
-
-            <div class="form-group">
-                <div class="toggle-switch">
-                    <label>Thông báo nhắc nhở lịch hẹn</label>
-                    <label class="switch">
-                        <input type="checkbox" id="notifyReminder" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="info-text">Nhận thông báo nhắc nhở trước lịch hẹn</div>
-            </div>
-
-            <button type="submit" class="save-btn" onclick="saveNotifications()">
-                <i class="fas fa-save"></i> Lưu Cài Đặt
             </button>
         </div>
     </div>

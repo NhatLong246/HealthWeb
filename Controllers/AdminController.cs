@@ -7,6 +7,9 @@ using HealthWeb.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using System.Drawing;
 
 namespace HealthWeb.Controllers
 {
@@ -696,12 +699,6 @@ namespace HealthWeb.Controllers
             }
         }
 
-        [HttpGet("HeThongBaoMat")]
-        public IActionResult HeThongBaoMat()
-        {
-            return View();
-        }
-
         // POST: /Admin/Logout - Đăng xuất admin và quay về giao diện user
         [HttpPost("Logout")]
         [ValidateAntiForgeryToken]
@@ -868,6 +865,240 @@ namespace HealthWeb.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = $"Lỗi khi tải danh sách thiết bị: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("QuanLiUser/ExportExcel")]
+        public async Task<IActionResult> ExportUsersToExcel(
+            [FromQuery] string? search = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                var data = await _userAdminService.GetUserManagementDataAsync(cancellationToken);
+                
+                var users = data.Users.ToList();
+                
+                // Apply filters if provided
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var searchLower = search.ToLower();
+                    users = users.Where(u => 
+                        (u.Username?.ToLower().Contains(searchLower) ?? false) ||
+                        (u.Email?.ToLower().Contains(searchLower) ?? false) ||
+                        (u.UserId?.ToLower().Contains(searchLower) ?? false) ||
+                        (u.FullName?.ToLower().Contains(searchLower) ?? false)
+                    ).ToList();
+                }
+                
+                if (dateFrom.HasValue || dateTo.HasValue)
+                {
+                    users = users.Where(u => 
+                        (!dateFrom.HasValue || (u.CreatedDate.HasValue && u.CreatedDate.Value >= dateFrom.Value)) &&
+                        (!dateTo.HasValue || (u.CreatedDate.HasValue && u.CreatedDate.Value <= dateTo.Value.AddDays(1)))
+                    ).ToList();
+                }
+
+                using var package = new ExcelPackage();
+                var worksheet = package.Workbook.Worksheets.Add("Danh sách người dùng");
+
+                // Header row
+                var headers = new[] { "UserID", "Username", "Họ tên", "Email", "Số điện thoại", "Role", "Trạng thái", 
+                    "Ngày tạo", "Lần đăng nhập cuối", "Streak", "Ngày log cuối", "% Hoàn thành mục tiêu", 
+                    "Số mục tiêu mở", "% Tuân thủ ăn", "% Tuân thủ tập", "Số bài tập", "Cảnh báo bỏ lỡ", "Số thực đơn" };
+                
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(79, 129, 189));
+                    worksheet.Cells[1, i + 1].Style.Font.Color.SetColor(Color.White);
+                }
+
+                // Data rows
+                int row = 2;
+                foreach (var user in users)
+                {
+                    worksheet.Cells[row, 1].Value = user.UserId;
+                    worksheet.Cells[row, 2].Value = user.Username;
+                    worksheet.Cells[row, 3].Value = user.FullName;
+                    worksheet.Cells[row, 4].Value = user.Email;
+                    worksheet.Cells[row, 5].Value = user.Phone;
+                    worksheet.Cells[row, 6].Value = user.Role;
+                    worksheet.Cells[row, 7].Value = user.Status;
+                    worksheet.Cells[row, 8].Value = user.CreatedDate?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Cells[row, 9].Value = user.LastLogin?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Cells[row, 10].Value = user.Streak;
+                    worksheet.Cells[row, 11].Value = user.LastLogDate?.ToString("dd/MM/yyyy");
+                    worksheet.Cells[row, 12].Value = user.GoalCompletion;
+                    worksheet.Cells[row, 13].Value = user.OpenGoals;
+                    worksheet.Cells[row, 14].Value = user.NutritionCompliance;
+                    worksheet.Cells[row, 15].Value = user.WorkoutCompliance;
+                    worksheet.Cells[row, 16].Value = user.Exercises;
+                    worksheet.Cells[row, 17].Value = user.MissedWorkoutAlerts;
+                    worksheet.Cells[row, 18].Value = user.Menus;
+                    row++;
+                }
+
+                // Auto-fit columns
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                var fileName = $"Danh_sach_nguoi_dung_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                var fileBytes = package.GetAsByteArray();
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Lỗi khi xuất Excel: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("QuanLiPT/ExportExcel")]
+        public async Task<IActionResult> ExportPTsToExcel(
+            [FromQuery] string? search = null,
+            [FromQuery] string? specialty = null,
+            [FromQuery] string? city = null,
+            [FromQuery] bool? acceptingClients = null,
+            [FromQuery] double? minRating = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                var data = await _ptAdminService.GetPTManagementDataAsync(
+                    search, specialty, city, acceptingClients, minRating, verifiedOnly: true, cancellationToken);
+                
+                var pts = data.Trainers.ToList();
+
+                using var package = new ExcelPackage();
+                var worksheet = package.Workbook.Worksheets.Add("Danh sách huấn luyện viên");
+
+                // Header row
+                var headers = new[] { "PTID", "UserID", "Họ tên", "Email", "Chuyên môn", "Thành phố", "Giá/giờ (VNĐ)", 
+                    "Điểm TB", "Số đánh giá", "Số khách hiện tại", "Xác minh", "Nhận khách", "Kinh nghiệm (năm)", 
+                    "Chứng chỉ", "Tỷ lệ thành công", "Doanh thu tháng này", "Tổng lịch đặt", "Tỷ lệ hủy", 
+                    "Số buổi/tuần", "Ngày đăng ký" };
+                
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(79, 129, 189));
+                    worksheet.Cells[1, i + 1].Style.Font.Color.SetColor(Color.White);
+                }
+
+                // Data rows
+                int row = 2;
+                foreach (var pt in pts)
+                {
+                    worksheet.Cells[row, 1].Value = pt.PTId;
+                    worksheet.Cells[row, 2].Value = pt.UserId;
+                    worksheet.Cells[row, 3].Value = pt.Name;
+                    worksheet.Cells[row, 4].Value = pt.Email;
+                    worksheet.Cells[row, 5].Value = pt.Specialty;
+                    worksheet.Cells[row, 6].Value = pt.City;
+                    worksheet.Cells[row, 7].Value = pt.PricePerHour;
+                    worksheet.Cells[row, 8].Value = pt.Rating;
+                    worksheet.Cells[row, 9].Value = pt.TotalReviews;
+                    worksheet.Cells[row, 10].Value = pt.CurrentClients;
+                    worksheet.Cells[row, 11].Value = pt.Verified ? "Đã xác minh" : "Chưa xác minh";
+                    worksheet.Cells[row, 12].Value = pt.AcceptingClients ? "Đang nhận" : "Không nhận";
+                    worksheet.Cells[row, 13].Value = pt.Experience;
+                    worksheet.Cells[row, 14].Value = pt.Certificate;
+                    worksheet.Cells[row, 15].Value = pt.SuccessRate;
+                    worksheet.Cells[row, 16].Value = pt.RevenueThisMonth;
+                    worksheet.Cells[row, 17].Value = pt.TotalBookings;
+                    worksheet.Cells[row, 18].Value = pt.CancelRate;
+                    worksheet.Cells[row, 19].Value = pt.BookingsPerWeek;
+                    worksheet.Cells[row, 20].Value = pt.RegistrationDate?.ToString("dd/MM/yyyy");
+                    row++;
+                }
+
+                // Auto-fit columns
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                var fileName = $"Danh_sach_huyn_luyen_vien_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                var fileBytes = package.GetAsByteArray();
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Lỗi khi xuất Excel: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("QuanLiGiaoDich/ExportExcel")]
+        public async Task<IActionResult> ExportTransactionsToExcel(
+            [FromQuery] string? search = null,
+            [FromQuery] string? paymentMethod = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                var data = await _transactionAdminService.GetTransactionManagementDataAsync(
+                    search, paymentMethod, dateFrom, dateTo, cancellationToken);
+                
+                var transactions = data.Transactions.ToList();
+
+                using var package = new ExcelPackage();
+                var worksheet = package.Workbook.Worksheets.Add("Danh sách giao dịch");
+
+                // Header row
+                var headers = new[] { "Mã GD", "Mã Booking", "Mã khách hàng", "Tên khách hàng", "Mã PT", "Tên PT", 
+                    "Tổng tiền (VNĐ)", "Hoa hồng App (VNĐ)", "PT nhận (VNĐ)", "Phương thức thanh toán", 
+                    "Trạng thái thanh toán", "Ngày giờ giao dịch", "Tên dịch vụ", "Loại booking", 
+                    "Ngày giờ booking", "Trạng thái booking" };
+                
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(79, 129, 189));
+                    worksheet.Cells[1, i + 1].Style.Font.Color.SetColor(Color.White);
+                }
+
+                // Data rows
+                int row = 2;
+                foreach (var trans in transactions)
+                {
+                    worksheet.Cells[row, 1].Value = trans.TransactionId;
+                    worksheet.Cells[row, 2].Value = trans.BookingId;
+                    worksheet.Cells[row, 3].Value = trans.CustomerId;
+                    worksheet.Cells[row, 4].Value = trans.CustomerName;
+                    worksheet.Cells[row, 5].Value = trans.PTId;
+                    worksheet.Cells[row, 6].Value = trans.PTName;
+                    worksheet.Cells[row, 7].Value = trans.Amount;
+                    worksheet.Cells[row, 8].Value = trans.Commission ?? 0;
+                    worksheet.Cells[row, 9].Value = trans.PTRevenue ?? 0;
+                    worksheet.Cells[row, 10].Value = trans.PaymentMethod;
+                    worksheet.Cells[row, 11].Value = trans.PaymentStatus;
+                    worksheet.Cells[row, 12].Value = trans.TransactionDate?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Cells[row, 13].Value = trans.ServiceName;
+                    worksheet.Cells[row, 14].Value = trans.BookingType;
+                    worksheet.Cells[row, 15].Value = trans.BookingDateTime?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Cells[row, 16].Value = trans.BookingStatus;
+                    row++;
+                }
+
+                // Auto-fit columns
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                var fileName = $"Danh_sach_giao_dich_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                var fileBytes = package.GetAsByteArray();
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Lỗi khi xuất Excel: {ex.Message}" });
             }
         }
     }

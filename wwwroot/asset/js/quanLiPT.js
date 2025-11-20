@@ -1514,9 +1514,7 @@ async function initializeTrainers() {
     
     document.getElementById('pt-btn-apply-filter')?.addEventListener('click', () => applyPTFilters());
     document.getElementById('pt-btn-reset-filter')?.addEventListener('click', () => resetPTFilters());
-    document.getElementById('pt-btn-export')?.addEventListener('click', () => {
-        showNotification('Chức năng xuất Excel đang phát triển...', 'info');
-    });
+    document.getElementById('pt-btn-export')?.addEventListener('click', exportPTsToExcel);
     
     // Debounce search input
     let searchTimeout;
@@ -1599,6 +1597,48 @@ function setupCitySelect() {
 }
 
 // Export for global access
+// Export PTs to Excel
+async function exportPTsToExcel() {
+    try {
+        // Get current filter values
+        const searchKeyword = document.getElementById('pt-search-keyword')?.value || '';
+        const specialty = document.getElementById('pt-filter-specialty')?.value || '';
+        const city = document.getElementById('pt-filter-city')?.value || '';
+        const accepting = document.getElementById('pt-filter-accepting')?.value || '';
+        const minRating = document.getElementById('pt-filter-rating')?.value || '';
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchKeyword) params.append('search', searchKeyword);
+        if (specialty) params.append('specialty', specialty);
+        if (city) params.append('city', city);
+        if (accepting !== '') params.append('acceptingClients', accepting === '1');
+        if (minRating) params.append('minRating', minRating);
+        
+        const url = `/Admin/QuanLiPT/ExportExcel?${params.toString()}`;
+        
+        // Show loading notification
+        showNotification('Đang xuất file Excel...', 'info');
+        
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success notification after a short delay
+        setTimeout(() => {
+            showNotification('Đã xuất file Excel thành công!', 'success');
+        }, 500);
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showNotification('Lỗi khi xuất file Excel: ' + error.message, 'error');
+    }
+}
+
 window.initializeTrainers = initializeTrainers;
 window.viewPTProfile360 = viewPTProfile360;
 window.toggleAcceptingClients = toggleAcceptingClients;
@@ -1614,6 +1654,7 @@ window.closeModal = closeModal;
 window.openEditPTModal = openEditPTModal;
 window.openDeletePTModal = openDeletePTModal;
 window.confirmDeletePT = confirmDeletePT;
+window.exportPTsToExcel = exportPTsToExcel;
 
 // Open Edit PT Modal
 async function openEditPTModal(ptId) {

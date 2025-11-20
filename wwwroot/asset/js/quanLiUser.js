@@ -147,7 +147,6 @@ function normalizeUserCard(raw) {
         openGoals: get(['openGoals', 'OpenGoals'], 0),
         nutritionCompliance: get(['nutritionCompliance', 'NutritionCompliance'], 0),
         workoutCompliance: get(['workoutCompliance', 'WorkoutCompliance'], 0),
-        healthAlerts: get(['healthAlerts', 'HealthAlerts'], 0),
         exercises: get(['exercises', 'Exercises'], 0),
         missedWorkoutAlerts: get(['missedWorkoutAlerts', 'MissedWorkoutAlerts'], 0),
         menus: get(['menus', 'Menus'], 0),
@@ -166,7 +165,6 @@ function normalizeSummary(raw) {
     return {
         totalUsers: get(['totalUsers', 'TotalUsers'], 0),
         averageGoalCompletion: get(['averageGoalCompletion', 'AverageGoalCompletion'], 0),
-        totalHealthAlerts: get(['totalHealthAlerts', 'TotalHealthAlerts'], 0),
         totalExercises: get(['totalExercises', 'TotalExercises'], 0),
         totalMissedWorkoutAlerts: get(['totalMissedWorkoutAlerts', 'TotalMissedWorkoutAlerts'], 0),
         totalMenus: get(['totalMenus', 'TotalMenus'], 0)
@@ -649,7 +647,6 @@ function createUserCard(user, index) {
         const openGoalsValue = Number.isFinite(user.openGoals) ? user.openGoals : 0;
         const nutritionComplianceValue = typeof user.nutritionCompliance === 'number' ? Math.round(user.nutritionCompliance) : 0;
         const workoutComplianceValue = typeof user.workoutCompliance === 'number' ? Math.round(user.workoutCompliance) : 0;
-        const healthAlertsValue = Number.isFinite(user.healthAlerts) ? user.healthAlerts : 0;
         const trainingGoalValue = user.trainingGoal || '-';
         const phoneValue = user.phone || '-';
         const emailValue = user.email || '-';
@@ -721,14 +718,6 @@ function createUserCard(user, index) {
                             </div>
                         </div>
                     </div>
-                    ${healthAlertsValue > 0 ? `
-                    <div class="kpi-mini-item alert">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div>
-                            <span class="kpi-label">Cảnh báo sức khỏe</span>
-                            <span class="kpi-value-small alert">${healthAlertsValue} cảnh báo</span>
-                        </div>
-                    </div>` : ''}
                 </div>
             </div>
             
@@ -737,15 +726,6 @@ function createUserCard(user, index) {
                     <i class="fas fa-eye"></i> Xem chi tiết
                 </button>
                 <div class="user-card-actions">
-                    <button class="btn-card-action edit" onclick="event.stopPropagation(); openStatusModal('${user.userId}')" title="Cập nhật trạng thái">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-card-action reset" onclick="event.stopPropagation(); openResetPasswordModal('${user.userId}')" title="Đặt lại mật khẩu">
-                        <i class="fas fa-key"></i>
-                    </button>
-                    <button class="btn-card-action revoke" onclick="event.stopPropagation(); openRevokePTModal('${user.userId}')" title="Thu hồi quyền PT">
-                        <i class="fas fa-user-slash"></i>
-                    </button>
                     <button class="btn-card-action delete" onclick="event.stopPropagation(); openDeleteModal('${user.userId}')" title="Xóa người dùng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -764,7 +744,6 @@ function createUserCard(user, index) {
 function updateKPICards() {
     const totalEl = document.getElementById('total-users');
     const goalEl = document.getElementById('goal-completion');
-    const healthAlertsEl = document.getElementById('total-health-alerts');
     const exercisesEl = document.getElementById('total-exercises');
     const missedWorkoutAlertsEl = document.getElementById('missed-workout-alerts');
     const menusEl = document.getElementById('total-menus');
@@ -772,7 +751,6 @@ function updateKPICards() {
     const summary = currentSummary || {
         totalUsers: Array.isArray(currentUsers) ? currentUsers.length : 0,
         averageGoalCompletion: 0,
-        totalHealthAlerts: 0,
         totalExercises: 0,
         totalMissedWorkoutAlerts: 0,
         totalMenus: 0
@@ -780,7 +758,6 @@ function updateKPICards() {
 
     if (totalEl) totalEl.textContent = summary.totalUsers ?? 0;
     if (goalEl) goalEl.textContent = summary.averageGoalCompletion ?? 0;
-    if (healthAlertsEl) healthAlertsEl.textContent = summary.totalHealthAlerts ?? 0;
     if (exercisesEl) exercisesEl.textContent = summary.totalExercises ?? 0;
     if (missedWorkoutAlertsEl) missedWorkoutAlertsEl.textContent = summary.totalMissedWorkoutAlerts ?? 0;
     if (menusEl) menusEl.textContent = summary.totalMenus ?? 0;
@@ -798,18 +775,6 @@ function attachEventListeners() {
     const btnResetFilter = document.getElementById('btn-reset-filter');
     if (btnResetFilter) {
         btnResetFilter.addEventListener('click', resetFilters);
-    }
-    
-    // Status modal confirm button
-    const btnConfirmStatus = document.getElementById('btn-confirm-status');
-    if (btnConfirmStatus) {
-        btnConfirmStatus.addEventListener('click', confirmStatusUpdate);
-    }
-    
-    // Reset password modal confirm button
-    const btnConfirmReset = document.getElementById('btn-confirm-reset');
-    if (btnConfirmReset) {
-        btnConfirmReset.addEventListener('click', confirmResetPassword);
     }
     
     
@@ -830,16 +795,64 @@ function attachEventListeners() {
         });
     });
     
-    // Reset method radio buttons
-    const resetMethodRadios = document.querySelectorAll('input[name="reset-method"]');
-    resetMethodRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            const tokenDisplay = document.getElementById('reset-token-display');
-            if (tokenDisplay) {
-                tokenDisplay.style.display = this.value === 'token' ? 'block' : 'none';
-            }
-        });
-    });
+    // Export Excel button
+    const exportBtn = document.getElementById('btn-export');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportUsersToExcel);
+    }
+}
+
+// Export Users to Excel
+async function exportUsersToExcel() {
+    try {
+        // Get current filter values
+        const searchKeyword = document.getElementById('search-keyword')?.value || '';
+        const dateRangeText = document.getElementById('filter-date-range-text')?.textContent || '';
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchKeyword) params.append('search', searchKeyword);
+        
+        // Parse date range if available
+        // Note: This is a simplified version - you may need to adjust based on your date range picker implementation
+        const dateRange = getCurrentDateRange();
+        if (dateRange.start) {
+            params.append('dateFrom', dateRange.start.toISOString().split('T')[0]);
+        }
+        if (dateRange.end) {
+            params.append('dateTo', dateRange.end.toISOString().split('T')[0]);
+        }
+        
+        const url = `/Admin/QuanLiUser/ExportExcel?${params.toString()}`;
+        
+        // Show loading notification
+        showNotification('Đang xuất file Excel...', 'info');
+        
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success notification after a short delay
+        setTimeout(() => {
+            showNotification('Đã xuất file Excel thành công!', 'success');
+        }, 500);
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showNotification('Lỗi khi xuất file Excel: ' + error.message, 'error');
+    }
+}
+
+// Helper function to get current date range
+function getCurrentDateRange() {
+    if (typeof getActiveDateRange === 'function') {
+        return getActiveDateRange();
+    }
+    return { start: null, end: null };
 }
 
 function initializeDateRangeFilter() {
@@ -1632,27 +1645,17 @@ function renderTransactions(transactions) {
     }).join('');
 }
 
-let selectedPTId = null;
-let selectedPTAccessId = null;
-let selectedPTIsActive = false;
-
 function renderPtAccessList(ptAccesses) {
     const container = document.getElementById('pt-access-list');
     if (!container) return;
 
     if (!ptAccesses || ptAccesses.length === 0) {
         setSectionEmpty('#pt-access-list', 'Chưa có PT nào được cấp quyền.');
-        // Hide action buttons if no PTs
-        document.getElementById('btn-grant-pt-modal').style.display = 'none';
-        document.getElementById('btn-revoke-pt-modal').style.display = 'none';
-        selectedPTId = null;
         return;
     }
 
     const html = ptAccesses.map(item => `
-        <div class="pt-access-card ${item.isActive ? 'active' : 'inactive'} ${selectedPTId === item.ptId ? 'selected' : ''}" 
-             data-pt-id="${item.ptId}"
-             onclick="selectPT('${item.ptId}', '${item.accessId}', ${item.isActive})">
+        <div class="pt-access-card ${item.isActive ? 'active' : 'inactive'}">
             <header>
                 <h4><i class="fas fa-user-tie"></i> ${item.ptName}</h4>
                 <span class="status-badge ${item.isActive ? 'status-active' : 'status-inactive'}">
@@ -1667,47 +1670,8 @@ function renderPtAccessList(ptAccesses) {
     `).join('');
 
     container.innerHTML = html;
-    
-    // Update action buttons based on first PT or selected PT
-    if (ptAccesses.length > 0 && !selectedPTId) {
-        const firstPT = ptAccesses[0];
-        selectPT(firstPT.ptId, firstPT.accessId, firstPT.isActive);
-    } else if (selectedPTId) {
-        const selectedPT = ptAccesses.find(p => p.ptId === selectedPTId);
-        if (selectedPT) {
-            selectPT(selectedPT.ptId, selectedPT.accessId, selectedPT.isActive);
-        }
-    }
 }
 
-function selectPT(ptId, accessId, isActive) {
-    selectedPTId = ptId;
-    selectedPTAccessId = accessId;
-    selectedPTIsActive = isActive;
-    
-    // Update UI to show selected state
-    document.querySelectorAll('.pt-access-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    const selectedCard = document.querySelector(`.pt-access-card[data-pt-id="${ptId}"]`);
-    if (selectedCard) {
-        selectedCard.classList.add('selected');
-    }
-    
-    // Show/hide action buttons
-    const grantBtn = document.getElementById('btn-grant-pt-modal');
-    const revokeBtn = document.getElementById('btn-revoke-pt-modal');
-    
-    if (grantBtn && revokeBtn) {
-        if (isActive) {
-            grantBtn.style.display = 'none';
-            revokeBtn.style.display = 'inline-flex';
-        } else {
-            grantBtn.style.display = 'inline-flex';
-            revokeBtn.style.display = 'none';
-        }
-    }
-}
 
 async function ensureUserProfileData(userId, forceReload = false) {
     if (!forceReload && userProfilesCache.has(userId)) {
@@ -1843,7 +1807,6 @@ async function viewProfile360(userId) {
     document.getElementById('profile-opengoals').textContent = safeNumber(user.openGoals, 0);
     document.getElementById('profile-nutritioncompliance').textContent = `${safeNumber(nutritionComplianceValue, 0)}%`;
     document.getElementById('profile-workoutcompliance').textContent = `${safeNumber(workoutComplianceValue, 0)}%`;
-    document.getElementById('profile-healthalerts').textContent = safeNumber(user.healthAlerts, 0);
     
     try {
         await loadUserProfileDetails(userId);
@@ -1900,158 +1863,8 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Open Status Modal
-function openStatusModal(userId) {
-    const user = currentUsers.find(u => u.userId === userId);
-    if (!user) return;
-    currentUserId = userId;
-    openModal('status-modal');
-}
 
-function confirmStatusUpdate() {
-    const newStatus = document.getElementById('new-status').value;
-    if (!newStatus) {
-        alert('Vui lòng chọn trạng thái mới');
-        return;
-    }
-    const user = currentUsers.find(u => u.userId === currentUserId);
-    if (!user) return;
-    user.status = newStatus;
-    showNotification('Cập nhật trạng thái thành công!', 'success');
-    closeModal('status-modal');
-    renderUsersCards();
-    updateKPICards();
-}
 
-function openResetPasswordModal(userId) {
-    const user = currentUsers.find(u => u.userId === userId);
-    if (!user) return;
-    currentUserId = userId;
-    document.getElementById('reset-userid').value = user.userId;
-    document.getElementById('reset-email').value = user.email;
-    openModal('reset-password-modal');
-}
-
-function confirmResetPassword() {
-    const method = document.querySelector('input[name="reset-method"]:checked').value;
-    if (method === 'token') {
-        const token = 'RESET_' + Math.random().toString(36).substr(2, 9).toUpperCase();
-        document.getElementById('reset-token').value = token;
-    }
-    showNotification('Email reset link đã được gửi!', 'success');
-    closeModal('reset-password-modal');
-}
-
-async function openRevokePTModal(userId) {
-    const user = currentUsers.find(u => u.userId === userId);
-    if (!user) return;
-    currentUserId = userId;
-    selectedPTId = null;
-    selectedPTAccessId = null;
-    selectedPTIsActive = false;
-    document.getElementById('revoke-userid').value = user.userId;
-    document.getElementById('revoke-reason').value = '';
-    
-    // Hide action buttons initially
-    document.getElementById('btn-grant-pt-modal').style.display = 'none';
-    document.getElementById('btn-revoke-pt-modal').style.display = 'none';
-    
-    openModal('revoke-pt-modal');
-
-    setSectionLoading('#pt-access-list');
-
-    try {
-        const profile = await ensureUserProfileData(userId);
-        renderPtAccessList(profile.ptAccesses);
-    } catch (error) {
-        console.error('❌ Không thể tải danh sách PT:', error);
-        setSectionError('#pt-access-list');
-    }
-}
-
-// Handle Grant PT Access from Modal
-async function handleGrantPTFromModal() {
-    if (!currentUserId || !selectedPTId) {
-        showNotification('Vui lòng chọn PT', 'warning');
-        return;
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn cấp quyền lại cho PT ${selectedPTId}?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/Admin/QuanLiUser/${encodeURIComponent(currentUserId)}/GrantPT/${encodeURIComponent(selectedPTId)}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to grant PT access');
-        }
-
-        const result = await response.json();
-        showNotification(result.message || 'Đã cấp quyền PT thành công!', 'success');
-        
-        // Invalidate cache and reload PT access list
-        if (userProfilesCache.has(currentUserId)) {
-            userProfilesCache.delete(currentUserId);
-        }
-        const profile = await ensureUserProfileData(currentUserId, true);
-        renderPtAccessList(profile.ptAccesses);
-        
-        // Clear reason textarea
-        document.getElementById('revoke-reason').value = '';
-    } catch (error) {
-        console.error('Error granting PT access:', error);
-        showNotification(error.message || 'Lỗi khi cấp quyền PT', 'error');
-    }
-}
-
-// Handle Revoke PT Access from Modal
-async function handleRevokePTFromModal() {
-    if (!currentUserId || !selectedPTId) {
-        showNotification('Vui lòng chọn PT', 'warning');
-        return;
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn thu hồi quyền của PT ${selectedPTId}?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/Admin/QuanLiUser/${encodeURIComponent(currentUserId)}/RevokePT/${encodeURIComponent(selectedPTId)}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to revoke PT access');
-        }
-
-        const result = await response.json();
-        showNotification(result.message || 'Đã thu hồi quyền PT thành công!', 'success');
-        
-        // Invalidate cache and reload PT access list
-        if (userProfilesCache.has(currentUserId)) {
-            userProfilesCache.delete(currentUserId);
-        }
-        const profile = await ensureUserProfileData(currentUserId, true);
-        renderPtAccessList(profile.ptAccesses);
-        
-        // Clear reason textarea
-        document.getElementById('revoke-reason').value = '';
-    } catch (error) {
-        console.error('Error revoking PT access:', error);
-        showNotification(error.message || 'Lỗi khi thu hồi quyền PT', 'error');
-    }
-}
 
 function openDeleteModal(userId) {
     const user = currentUsers.find(u => u.userId === userId);
@@ -2315,15 +2128,9 @@ function safeNumber(value, fallback = 0) {
 
 // Make functions globally available
 window.viewProfile360 = viewProfile360;
-window.openStatusModal = openStatusModal;
-window.openResetPasswordModal = openResetPasswordModal;
-window.openRevokePTModal = openRevokePTModal;
 window.openDeleteModal = openDeleteModal;
 window.closeModal = closeModal;
 window.goToPage = goToPage;
 window.copyToClipboard = copyToClipboard;
 window.reloadUsersData = reloadUsersData;
-window.handleGrantPTFromModal = handleGrantPTFromModal;
-window.handleRevokePTFromModal = handleRevokePTFromModal;
-window.selectPT = selectPT;
 
