@@ -20,7 +20,7 @@ builder.Services.AddHttpClient();
 
 // Kết nối DB
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlServer(builder.Configuration.GetConnectionString("HealthTracker"))
 );
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
