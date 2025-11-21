@@ -23,6 +23,8 @@ public partial class ChiTietKeHoachTapLuyen
 
     public int? Tuan { get; set; }
 
+    public DateOnly? NgayTap { get; set; }
+
     public int? ThuTuHienThi { get; set; }
 
     public int? DanhGiaDoKho { get; set; }

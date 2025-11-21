@@ -27,5 +27,7 @@ public partial class MucTieu
 
     public virtual ICollection<KeHoachTapLuyen> KeHoachTapLuyens { get; set; } = new List<KeHoachTapLuyen>();
 
+    public virtual ICollection<MucTieuChonBaiTap> MucTieuChonBaiTaps { get; set; } = new List<MucTieuChonBaiTap>();
+
     public virtual User User { get; set; } = null!;
 }

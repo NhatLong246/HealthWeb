@@ -105,6 +105,24 @@ CREATE TABLE MucTieu (
 );
 GO
 
+-- Bảng MucTieuChonBaiTap: Lưu các bài tập được chọn cho mục tiêu (trước khi lên lịch)
+CREATE TABLE MucTieuChonBaiTap (
+    ChonBaiTapID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng
+    MucTieuId VARCHAR(20) NOT NULL, -- Liên kết với MucTieu
+    MauTapLuyenId INT NOT NULL, -- Liên kết với MauTapLuyen
+    ThuTuHienThi INT DEFAULT 0, -- Thứ tự hiển thị (cho drag & drop)
+    DaLapLich BIT DEFAULT 0, -- Đã lên lịch chưa (0: chưa, 1: đã lên lịch)
+    NgayChon DATETIME DEFAULT GETDATE(), -- Ngày chọn bài tập
+    -- Ràng buộc toàn vẹn dữ liệu
+    CONSTRAINT FK_MucTieuChonBaiTap_MucTieu 
+        FOREIGN KEY (MucTieuId) REFERENCES MucTieu(MucTieuID) ON DELETE CASCADE,
+    CONSTRAINT FK_MucTieuChonBaiTap_MauTapLuyen 
+        FOREIGN KEY (MauTapLuyenId) REFERENCES MauTapLuyen(MauTapLuyenID) ON DELETE CASCADE,
+    -- Đảm bảo mỗi mục tiêu không chọn trùng bài tập
+    CONSTRAINT UK_MucTieuChonBaiTap UNIQUE (MucTieuId, MauTapLuyenId)
+);
+GO
+
 -- Bảng ThanhTuu: Lưu trữ thành tựu cho gamification (badge, points, leaderboard)
 CREATE TABLE ThanhTuu (
     ThanhTuuID INT PRIMARY KEY IDENTITY(1,1), -- ID tự tăng, khóa chính
@@ -289,26 +307,33 @@ CREATE TABLE ChiTietKeHoachTapLuyen (
     SoLan INT, -- Số lần mỗi hiệp
 	CaloTieuHaoDuKien FLOAT, 
     ThoiGianPhut INT, -- Thời gian tập (phút), dùng cho bài dạng cardio
-    NgayTrongTuan INT, -- Ngày trong tuần: 1 = Monday, ..., 7 = Sunday
-    Tuan INT, -- Tuần thứ mấy trong kế hoạch (giúp sắp xếp và theo dõi tiến độ)
+    NgayTrongTuan INT, -- Ngày trong tuần: 1 = Monday, ..., 7 = Sunday (giữ lại để tương thích)
+    Tuan INT, -- Tuần thứ mấy trong kế hoạch (giữ lại để tương thích)
+    NgayTap DATE NULL, -- Ngày cụ thể sẽ tập (lưu trực tiếp từ preview schedule, không cần tính)
     ThuTuHienThi INT DEFAULT 0,  -- Thứ tự hiển thị (dùng trong UI)
 	DanhGiaDoKho INT CHECK (DanhGiaDoKho BETWEEN 1 AND 5),-- Đánh giá độ khó (1 = dễ, 5 = cực khó)
 	DanhGiaHieuQua INT CHECK (DanhGiaHieuQua BETWEEN 1 AND 5),-- Đánh giá hieu qua (1 = dễ, 5 = cực khó)
     VideoUrl NVARCHAR(500), -- Link video hướng dẫn bài tập (nếu có)
-    CanhBao NVARCHAR(500), -- Ghi chú cho bài tập (vd: “Chú ý giữ lưng thẳng”)
+    CanhBao NVARCHAR(500), -- Ghi chú cho bài tập (vd: "Chú ý giữ lưng thẳng")
     NoiDung NVARCHAR(1000),
 	HuongDan NVARCHAR(1000),
     -- RÀNG BUỘC HỢP LỆ
     CONSTRAINT CK_ChiTietKeHoachTapLuyen_NgayTrongTuan
-        CHECK (NgayTrongTuan BETWEEN 1 AND 7),
+        CHECK (NgayTrongTuan IS NULL OR NgayTrongTuan BETWEEN 1 AND 7),
 
     CONSTRAINT CK_ChiTietKeHoachTapLuyens_Tuan
-        CHECK (Tuan >= 1),
+        CHECK (Tuan IS NULL OR Tuan >= 1),
 	 -- Khóa ngoại
     CONSTRAINT FK_ChiTietKeHoachTapLuyen_KeHoachTapLuyen
         FOREIGN KEY (KeHoachID) REFERENCES KeHoachTapLuyen(KeHoachID)
         ON DELETE CASCADE
 );
+GO
+
+-- Tạo index để query nhanh theo ngày
+CREATE INDEX IX_ChiTietKeHoachTapLuyen_NgayTap 
+ON ChiTietKeHoachTapLuyen(NgayTap) 
+WHERE NgayTap IS NOT NULL;
 GO
 
 

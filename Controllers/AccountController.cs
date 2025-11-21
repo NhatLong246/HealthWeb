@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Data.SqlClient;
 
 
 namespace HealthWeb.Controllers
@@ -63,9 +64,8 @@ namespace HealthWeb.Controllers
             User? user = null;
             try
             {
-                
-                // Sử dụng CancellationToken để timeout sau 5 giây (tăng từ 3 giây)
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                // Sử dụng CancellationToken để timeout sau 30 giây (tăng từ 5 giây để phù hợp với Connection Timeout)
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                 {
                     // Query: chỉ cho phép login bằng Username
                     user = await _context.Users
@@ -79,14 +79,38 @@ namespace HealthWeb.Controllers
             catch (OperationCanceledException)
             {
                 // Timeout - trả lỗi ngay
-                _logger.LogWarning("Query database timeout sau 5 giây");
-                ModelState.AddModelError("", "Kết nối database quá chậm. Vui lòng thử lại sau.");
+                _logger.LogWarning("Query database timeout sau 30 giây");
+                ModelState.AddModelError("", "Kết nối database quá chậm. Vui lòng kiểm tra SQL Server đã chạy chưa và thử lại sau.");
+                return View(model);
+            }
+            catch (Microsoft.Data.SqlClient.SqlException sqlEx)
+            {
+                // Lỗi SQL Server cụ thể
+                _logger.LogError(sqlEx, "Lỗi SQL Server khi truy vấn database: {Message}", sqlEx.Message);
+                var errorMessage = "Không thể kết nối đến database. ";
+                if (sqlEx.Number == -2) // Timeout
+                {
+                    errorMessage += "Kết nối quá chậm. Vui lòng kiểm tra SQL Server đã chạy chưa.";
+                }
+                else if (sqlEx.Number == 18456) // Login failed
+                {
+                    errorMessage += "Sai thông tin đăng nhập SQL Server. Vui lòng kiểm tra lại username và password trong appsettings.json.";
+                }
+                else if (sqlEx.Number == 2 || sqlEx.Number == 53) // Cannot connect
+                {
+                    errorMessage += "Không thể kết nối đến SQL Server. Vui lòng kiểm tra SQL Server đã chạy chưa và port 1433 có mở không.";
+                }
+                else
+                {
+                    errorMessage += $"Lỗi: {sqlEx.Message}";
+                }
+                ModelState.AddModelError("", errorMessage);
                 return View(model);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi truy vấn database: {Message}", ex.Message);
-                ModelState.AddModelError("", "Không thể kết nối đến database. Vui lòng thử lại sau.");
+                ModelState.AddModelError("", "Không thể kết nối đến database. Vui lòng kiểm tra SQL Server đã chạy chưa và thử lại sau.");
                 return View(model);
             }
 

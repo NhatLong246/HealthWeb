@@ -39,5 +39,7 @@ public partial class MauTapLuyen
 
     public virtual ICollection<GiaoBaiTapChoUser> GiaoBaiTapChoUsers { get; set; } = new List<GiaoBaiTapChoUser>();
 
+    public virtual ICollection<MucTieuChonBaiTap> MucTieuChonBaiTaps { get; set; } = new List<MucTieuChonBaiTap>();
+
     public virtual HuanLuyenVien? NguoiTaoNavigation { get; set; }
 }

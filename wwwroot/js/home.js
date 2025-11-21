@@ -63,22 +63,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Health info dialogs
+    // Health info dialogs - chỉ khởi tạo nếu element tồn tại
     const healthDialog = document.getElementById('healthDialog');
-    console.log('Health dialog element:', healthDialog);
     
     if (!healthDialog) {
-        console.error('Health dialog element not found in DOM!');
-    }
+        // Element không tồn tại - có thể không phải trang cần dialog này
+        // Không log error vì đây là bình thường trên một số trang
+        // console.log('Health dialog element not found - this is normal on some pages');
+    } else {
+        // Chỉ khởi tạo dialog nếu element tồn tại
+        const healthDialogOverlay = healthDialog.querySelector('.health-dialog-overlay');
+        const healthDialogClose = healthDialog.querySelector('.health-dialog-close');
+        const healthDialogIcon = healthDialog.querySelector('.health-dialog-icon');
+        const healthDialogTitle = healthDialog.querySelector('.health-dialog-title');
+        const healthDialogBody = healthDialog.querySelector('.health-dialog-body');
     
-    const healthDialogOverlay = healthDialog?.querySelector('.health-dialog-overlay');
-    const healthDialogClose = healthDialog?.querySelector('.health-dialog-close');
-    const healthDialogIcon = healthDialog?.querySelector('.health-dialog-icon');
-    const healthDialogTitle = healthDialog?.querySelector('.health-dialog-title');
-    const healthDialogBody = healthDialog?.querySelector('.health-dialog-body');
-    
-    // Nội dung cho mỗi dialog
-    const healthDialogContent = {
+        // Nội dung cho mỗi dialog
+        const healthDialogContent = {
         exercise: {
             icon: '<i class="fas fa-person-running"></i>',
             title: '150 phút/tuần',
@@ -177,87 +178,90 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Mở dialog khi click vào book-card
-    // Đợi một chút để đảm bảo DOM đã sẵn sàng
-    setTimeout(() => {
-        const bookCards = document.querySelectorAll('.book-card[data-dialog]');
-        console.log('Found book cards with dialog:', bookCards.length);
+        // Mở dialog khi click vào book-card
+        // Đợi một chút để đảm bảo DOM đã sẵn sàng
+        setTimeout(() => {
+            const bookCards = document.querySelectorAll('.book-card[data-dialog]');
+            
+            // Chỉ log warning nếu thực sự cần book cards (có thể không có trên một số trang)
+            if (bookCards.length === 0) {
+                // Không log warning vì đây là bình thường trên một số trang
+                // console.log('No book cards with data-dialog attribute found - this is normal on some pages');
+                return; // Thoát sớm nếu không có book cards
+            }
+            
+            bookCards.forEach((card, index) => {
+                console.log(`Setting up click handler for card ${index + 1}:`, card);
+                
+                // Xóa event listener cũ nếu có
+                const newCard = card.cloneNode(true);
+                card.parentNode.replaceChild(newCard, card);
+                
+                newCard.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
+                    const dialogType = this.getAttribute('data-dialog');
+                    console.log('Card clicked, dialog type:', dialogType);
+                    
+                    if (!dialogType) {
+                        console.error('No data-dialog attribute found!');
+                        return;
+                    }
+                    
+                    const content = healthDialogContent[dialogType];
+                    
+                    if (!healthDialog) {
+                        console.error('Health dialog element not found!');
+                        return;
+                    }
+                    
+                    if (!content) {
+                        console.error('Dialog content not found for type:', dialogType);
+                        return;
+                    }
+                    
+                    // Lấy icon từ card
+                    const cardIcon = this.querySelector('.book-cover i');
+                    if (cardIcon && healthDialogIcon) {
+                        healthDialogIcon.innerHTML = cardIcon.outerHTML;
+                    }
+                    
+                    if (healthDialogTitle) healthDialogTitle.textContent = content.title;
+                    if (healthDialogBody) healthDialogBody.innerHTML = content.body;
+                    
+                    healthDialog.classList.add('active');
+                    document.body.style.overflow = 'hidden'; // Ngăn scroll khi dialog mở
+                    
+                    console.log('Dialog opened successfully');
+                }, true); // Sử dụng capture phase để chặn sớm nhất
+            });
+        }, 100);
         
-        if (bookCards.length === 0) {
-            console.warn('No book cards with data-dialog attribute found!');
+        // Đóng dialog
+        function closeHealthDialog() {
+            if (healthDialog) {
+                healthDialog.classList.remove('active');
+                document.body.style.overflow = ''; // Khôi phục scroll
+            }
         }
         
-        bookCards.forEach((card, index) => {
-            console.log(`Setting up click handler for card ${index + 1}:`, card);
-            
-            // Xóa event listener cũ nếu có
-            const newCard = card.cloneNode(true);
-            card.parentNode.replaceChild(newCard, card);
-            
-            newCard.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                
-                const dialogType = this.getAttribute('data-dialog');
-                console.log('Card clicked, dialog type:', dialogType);
-                
-                if (!dialogType) {
-                    console.error('No data-dialog attribute found!');
-                    return;
-                }
-                
-                const content = healthDialogContent[dialogType];
-                
-                if (!healthDialog) {
-                    console.error('Health dialog element not found!');
-                    return;
-                }
-                
-                if (!content) {
-                    console.error('Dialog content not found for type:', dialogType);
-                    return;
-                }
-                
-                // Lấy icon từ card
-                const cardIcon = this.querySelector('.book-cover i');
-                if (cardIcon && healthDialogIcon) {
-                    healthDialogIcon.innerHTML = cardIcon.outerHTML;
-                }
-                
-                if (healthDialogTitle) healthDialogTitle.textContent = content.title;
-                if (healthDialogBody) healthDialogBody.innerHTML = content.body;
-                
-                healthDialog.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Ngăn scroll khi dialog mở
-                
-                console.log('Dialog opened successfully');
-            }, true); // Sử dụng capture phase để chặn sớm nhất
+        if (healthDialogClose) {
+            healthDialogClose.addEventListener('click', closeHealthDialog);
+        }
+        
+        if (healthDialogOverlay) {
+            healthDialogOverlay.addEventListener('click', closeHealthDialog);
+        }
+        
+        // Đóng bằng phím ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && healthDialog?.classList.contains('active')) {
+                closeHealthDialog();
+            }
         });
-    }, 100);
-    
-    // Đóng dialog
-    function closeHealthDialog() {
-        if (healthDialog) {
-            healthDialog.classList.remove('active');
-            document.body.style.overflow = ''; // Khôi phục scroll
-        }
-    }
-    
-    if (healthDialogClose) {
-        healthDialogClose.addEventListener('click', closeHealthDialog);
-    }
-    
-    if (healthDialogOverlay) {
-        healthDialogOverlay.addEventListener('click', closeHealthDialog);
-    }
-    
-    // Đóng bằng phím ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && healthDialog?.classList.contains('active')) {
-            closeHealthDialog();
-        }
-    });
+    } // Kết thúc block if (healthDialog)
     
     // Read buttons
     const readBtns = document.querySelectorAll('.btn-read');

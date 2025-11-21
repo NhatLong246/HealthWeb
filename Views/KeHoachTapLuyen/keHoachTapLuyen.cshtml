@@ -31,7 +31,11 @@
                     <button class="tab" data-range="month">Tháng</button>
                     <button class="tab" data-range="year">Năm</button>
                 </div>
-                <div class="range-label" id="rangeLabel"></div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin: 1rem 0;">
+                    <button id="btnPrev" class="icon-btn" style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #60a5fa; cursor: pointer; transition: all 0.3s;" aria-label="Previous">◀</button>
+                    <div class="range-label" id="rangeLabel" style="flex: 1; text-align: center; font-weight: 600;"></div>
+                    <button id="btnNext" class="icon-btn" style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #60a5fa; cursor: pointer; transition: all 0.3s;" aria-label="Next">▶</button>
+                </div>
                 <div id="scheduleContainer">
                     <div class="weekline" id="weekGrid"></div>
                     <div class="monthgrid" id="monthGrid" hidden></div>
@@ -42,78 +46,22 @@
             <div class="card">
                 <h3><span class="title-icon" aria-hidden="true">ℹ️</span> Thông Tin Chi Tiết</h3>
                 <div class="details-grid">
-                    <div><span>Bắt đầu</span><strong>7:00</strong></div>
-                    <div><span>Số ngày còn tập</span><strong>10</strong></div>
-                    <div><span>Buổi</span><strong>Sáng</strong></div>
-                    <div><span>Kết thúc</span><strong>11:00</strong></div>
+                    <div><span>Bắt đầu</span><strong id="detail-gio-bat-dau">--:--</strong></div>
+                    <div><span>Buổi</span><strong id="detail-buoi">--</strong></div>
+                    <div><span>Kết thúc</span><strong id="detail-gio-ket-thuc">--:--</strong></div>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">
-                <h3><span class="title-icon" aria-hidden="true">📚</span> Danh Sách Các Bài Tập</h3>
-                <div class="card-title-actions">
-                    <button class="btn ghost small" id="btnViewAllExercises">Xem tất cả bài tập</button>
-                    <button class="btn primary small" id="btnAddNewExercise">Thêm mới bài tập</button>
-                </div>
-            </div>
+            <h3><span class="title-icon" aria-hidden="true">📚</span> Danh Sách Các Bài Tập</h3>
             <div id="exercise-list" class="exercise-list"></div>
-            <div class="actions">
-                <button class="btn ghost">Tăng cường</button>
-                <button class="btn danger" id="finishEarly">Kết thúc sớm</button>
-            </div>
         </div>
 
-        <div class="grid-2">
-            <div class="card">
-                <h3><span class="title-icon" aria-hidden="true">📊</span> Thống Kê Bài Tập</h3>
-                <div class="chart-wrap">
-                    <ul class="ylabels" aria-hidden="true">
-                        <li>8</li><li>6</li><li>4</li><li>2</li><li>0</li>
-                    </ul>
-                    <div class="barchart" aria-label="Thống kê">
-                        <div class="bar" style="--h:80%"><span>Tập luyện</span></div>
-                        <div class="bar" style="--h:20%"><span>Nghỉ ngơi</span></div>
-                        <div class="bar" style="--h:55%"><span>Dự kiến</span></div>
-                        <div class="bar" style="--h:75%"><span>Hoàn thành</span></div>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stats">
-                    <div class="stat">
-                        <div class="badge green">1200</div>
-                        <small>kcal ước tính</small>
-                    </div>
-                    <div class="stat">
-                        <div class="badge yellow">7/10</div>
-                        <small>Hiệu quả</small>
-                    </div>
-                    <div class="stat">
-                        <div class="badge red">Khá</div>
-                        <small>Mức độ</small>
-                    </div>
-                </div>
-                <div class="advice">
-                    <h4>Lời Khuyên Dành Cho Bạn</h4>
-                    <p>Giữ nhịp thở ổn định và tăng khối lượng từ từ.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section Nhật Ký Hoàn Thành Bài Tập -->
-        <div class="card">
-            <div class="card-title">
-                <h3><span class="title-icon" aria-hidden="true">📝</span> Nhật Ký Hoàn Thành Bài Tập</h3>
-                <button class="btn ghost small" id="btnRefreshJournal">Làm mới</button>
-            </div>
-            <div id="exercise-journal" class="exercise-journal">
-                <div style="text-align: center; padding: 2rem; color: var(--muted);">Đang tải nhật ký...</div>
-            </div>
-        </div>
-
-        <footer class="footer">
+        <footer class="footer" style="display: flex; gap: 1rem; justify-content: space-between; align-items: center;">
+            <button class="btn danger" id="btnCancelPlan" style="background: #ef4444; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                Hủy Kế Hoạch
+            </button>
             <button class="btn primary" id="btnComplete">Hoàn thành</button>
         </footer>
     </section>
@@ -143,64 +91,60 @@
             </div>
 
             <div class="card" id="detail-info">
-                <h3><span class="title-icon" aria-hidden="true">💪</span> Bài tập: <span id="detail-title">(Tên bài tập)</span></h3>
-                <div class="metrics">
-                    <div class="metric soft-yellow"><div class="ico">🗓️</div><div class="num" id="m-sets">45</div><div class="cap">Số buổi tập</div></div>
-                    <div class="metric soft-red"><div class="ico">⏱️</div><div class="num" id="m-rest">30</div><div class="cap">Thời gian nghỉ</div></div>
-                    <div class="metric soft-blue"><div class="ico">🎯</div><div class="num" id="m-quality">Tốt</div><div class="cap">Hiệu quả</div></div>
-                    <div class="metric soft-green"><div class="ico">🔥</div><div class="num" id="m-kcal">1200</div><div class="cap">Calo đốt trung bình</div></div>
-                    <div class="metric soft-purple"><div class="ico">📈</div><div class="num" id="m-ratio">15 / 3 - 5 / 1</div><div class="cap">Tần suất</div></div>
-                    <div class="metric soft-violet"><div class="ico">⚠️</div><div class="num" id="m-level">Khó</div><div class="cap">Mức độ</div></div>
-                </div>
-
-                <div class="media">
-                    <img id="detail-thumb" alt="Ảnh bài tập" />
-                </div>
-                <div class="field">
-                    <label>Nội dung bài tập</label>
-                    <p id="detail-desc"></p>
-                </div>
-                <div class="field">
-                    <label>Hướng dẫn</label>
-                    <div class="guide-box">
-                        <span class="guide-step">1</span>
-                        <div class="guide-text" id="detail-guide">…</div>
+                <h3><span class="title-icon" aria-hidden="true">💪</span> <span id="detail-title">Chi Tiết Bài Tập</span></h3>
+                <div class="detail-badges" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                    <div class="badge-pill yellow" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                        <i class="fas fa-chart-line" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fbbf24;"></i>
+                        <strong id="m-sets" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">0</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Số buổi tập</span>
+                    </div>
+                    <div class="badge-pill pink" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(244, 114, 182, 0.1); border-radius: 8px; border: 1px solid rgba(244, 114, 182, 0.3);">
+                        <i class="fas fa-clock" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #f472b6;"></i>
+                        <strong id="m-rest" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">0</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Thời lượng phút</span>
+                    </div>
+                    <div class="badge-pill blue" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <i class="fas fa-bullseye" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #3b82f6;"></i>
+                        <strong id="m-quality" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">-</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Hiệu quả</span>
+                    </div>
+                    <div class="badge-pill green" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(74, 222, 128, 0.1); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.3);">
+                        <i class="fas fa-fire" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #4ade80;"></i>
+                        <strong id="m-kcal" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">0</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Calo/buổi</span>
+                    </div>
+                    <div class="badge-pill purple" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(168, 85, 247, 0.1); border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                        <i class="fas fa-chart-bar" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #a855f7;"></i>
+                        <strong id="m-ratio" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">-</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Sets - Reps</span>
+                    </div>
+                    <div class="badge-pill lilac" style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <i class="fas fa-layer-group" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #8b5cf6;"></i>
+                        <strong id="m-level" style="font-size: 1.5rem; color: #fff; margin-bottom: 0.25rem;">-</strong>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">Mức độ</span>
                     </div>
                 </div>
-                <div class="warn">
-                    <strong>Cảnh báo</strong>
-                    <span class="ico" aria-hidden="true">⚠️</span>
-                    <ul class="warn-list">
-                        <li>Nội dung bài tập cần khởi động kỹ</li>
-                    </ul>
+
+                <!-- Thông tin bổ sung (nếu có) -->
+                <div id="detailAdditionalInfo" style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid rgba(59, 130, 246, 0.5); display: none;">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem;">
+                        <div id="detailThietBi" style="display: none;"><strong>Thiết bị cần:</strong> <span id="detailThietBiValue"></span></div>
+                        <div id="detailSoTuan" style="display: none;"><strong>Số tuần:</strong> <span id="detailSoTuanValue"></span></div>
+                        <div id="detailSoLanSuDung" style="display: none;"><strong>Đã sử dụng:</strong> <span id="detailSoLanSuDungValue"></span> lần</div>
+                        <div id="detailMoTa" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(59, 130, 246, 0.2);"><strong>Mô tả:</strong> <span id="detailMoTaValue"></span></div>
+                    </div>
+                </div>
+
+                <h3 class="detail-subtitle" style="margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; color: #cbd5e1; font-weight: 600;">Nội dung bài tập</h3>
+                <div class="detail-media" id="detail-video-container" style="margin-bottom: 1rem;">
+                    <!-- Video sẽ được hiển thị ở đây -->
+                </div>
+                <div class="detail-list" id="detail-guide" style="margin-top: 1rem;">
+                    <!-- Hướng dẫn sẽ được hiển thị ở đây -->
                 </div>
             </div>
         </div>
 
-        <div class="grid-2">
-            <div class="card">
-                <h3><span class="title-icon" aria-hidden="true">📊</span> Thống Kê Bài Tập (Thời gian)</h3>
-                <div class="chart-wrap">
-                    <ul class="ylabels" aria-hidden="true">
-                        <li>8</li><li>6</li><li>4</li><li>2</li><li>0</li>
-                    </ul>
-                    <div class="barchart" aria-label="Thống kê thời gian">
-                        <div class="bar" style="--h:80%"><span>Tập luyện</span></div>
-                        <div class="bar" style="--h:20%"><span>Nghỉ ngơi</span></div>
-                        <div class="bar" style="--h:55%"><span>Dự kiến</span></div>
-                        <div class="bar" style="--h:70%"><span>Hoàn thành</span></div>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <h3><span class="title-icon" aria-hidden="true">💡</span> Gợi ý kỹ thuật</h3>
-                <ul class="history small">
-                    <li><span>Giữ lưng trung lập</span><b>Tránh cong</b></li>
-                    <li><span>Kiểm soát nhịp thở</span><b>Hít xuống - thở lên</b></li>
-                    <li><span>Tăng tải từ từ</span><b>5-10%</b></li>
-                </ul>
-            </div>
-        </div>
     </section>
 </div>
 

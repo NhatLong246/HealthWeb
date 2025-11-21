@@ -53,6 +53,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<MucTieu> MucTieus { get; set; }
 
+    public virtual DbSet<MucTieuChonBaiTap> MucTieuChonBaiTaps { get; set; }
+
     public virtual DbSet<NhacNho> NhacNhos { get; set; }
 
     public virtual DbSet<NhatKyDinhDuong> NhatKyDinhDuongs { get; set; }
@@ -236,6 +238,9 @@ public partial class ApplicationDbContext : DbContext
             entity.HasKey(e => e.ChiTietId).HasName("PK__ChiTietK__B117E9EAB53E7106");
 
             entity.ToTable("ChiTietKeHoachTapLuyen");
+
+            entity.HasIndex(e => e.NgayTap, "IX_ChiTietKeHoachTapLuyen_NgayTap")
+                .HasFilter("[NgayTap] IS NOT NULL");
 
             entity.Property(e => e.ChiTietId).HasColumnName("ChiTietID");
             entity.Property(e => e.CanhBao).HasMaxLength(500);
@@ -727,6 +732,42 @@ public partial class ApplicationDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.MucTieus)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK_MucTieu_Users");
+        });
+
+        modelBuilder.Entity<MucTieuChonBaiTap>(entity =>
+        {
+            entity.HasKey(e => e.ChonBaiTapId).HasName("PK_MucTieuChonBaiTap");
+
+            entity.ToTable("MucTieuChonBaiTap");
+
+            entity.Property(e => e.ChonBaiTapId).HasColumnName("ChonBaiTapID");
+            entity.Property(e => e.MucTieuId)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("MucTieuId");
+            entity.Property(e => e.MauTapLuyenId).HasColumnName("MauTapLuyenId");
+            entity.Property(e => e.ThuTuHienThi).HasDefaultValue(0);
+            entity.Property(e => e.DaLapLich).HasDefaultValue(false);
+            entity.Property(e => e.NgayChon)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            // PHẢI chỉ định rõ ràng navigation property để tránh EF tạo shadow properties
+            entity.HasOne(d => d.MucTieu)
+                .WithMany(p => p.MucTieuChonBaiTaps)  // ✅ Chỉ định navigation property từ MucTieu
+                .HasForeignKey(d => d.MucTieuId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MucTieuChonBaiTap_MucTieu");
+
+            entity.HasOne(d => d.MauTapLuyen)
+                .WithMany(p => p.MucTieuChonBaiTaps)  // ✅ Chỉ định navigation property từ MauTapLuyen
+                .HasForeignKey(d => d.MauTapLuyenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MucTieuChonBaiTap_MauTapLuyen");
+
+            entity.HasIndex(e => new { e.MucTieuId, e.MauTapLuyenId })
+                .IsUnique()
+                .HasDatabaseName("UK_MucTieuChonBaiTap");
         });
 
         modelBuilder.Entity<NhacNho>(entity =>
