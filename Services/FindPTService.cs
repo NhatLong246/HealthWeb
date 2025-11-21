@@ -13,6 +13,7 @@ namespace HealthWeb.Services
         Task<List<object>> GetMyRequestsAsync(string userId);
         Task<object?> GetRequestDetailsAsync(string bookingId, string userId);
         Task<(bool success, string message)> CancelRequestAsync(string bookingId, string userId);
+        Task<List<object>> GetConfirmedSessionsWithExercisesAsync(string userId);
         Task<string?> GetCurrentUserIdAsync(HttpContext httpContext);
     }
 
@@ -630,6 +631,135 @@ namespace HealthWeb.Services
             {
                 _logger.LogError(ex, "Error cancelling request {BookingId} for user {UserId}", bookingId, userId);
                 return (false, "Có lỗi xảy ra khi hủy yêu cầu. Vui lòng thử lại.");
+            }
+        }
+
+        public async Task<List<object>> GetConfirmedSessionsWithExercisesAsync(string userId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    return new List<object>();
+                }
+
+                // Lấy tất cả các buổi đã được xác nhận (Confirmed)
+                var confirmedSessions = await _context.DatLichPts
+                    .Include(d => d.Pt)
+                        .ThenInclude(p => p!.User)
+                    .Where(d => d.KhacHangId == userId && d.TrangThai == "Confirmed")
+                    .OrderByDescending(d => d.NgayGioDat)
+                    .ToListAsync();
+
+                var result = new List<object>();
+
+                foreach (var session in confirmedSessions)
+                {
+                    // Lấy TẤT CẢ các bài tập được giao cho buổi này (có thể có nhiều kế hoạch)
+                    var assignedExercises = await _context.GiaoBaiTapChoUsers
+                        .Include(g => g.MauTapLuyen)
+                            .ThenInclude(m => m.ChiTietMauTapLuyens)
+                        .Include(g => g.NguoiGiaoNavigation)
+                            .ThenInclude(pt => pt!.User)
+                        .Where(g => g.DatLichId == session.DatLichId && g.UserId == userId)
+                        .ToListAsync();
+
+                    var ptName = session.Pt != null 
+                        ? (string.IsNullOrWhiteSpace(session.Pt.User.HoTen) ? session.Pt.User.Username : session.Pt.User.HoTen)
+                        : "N/A";
+
+                    var exercises = new List<object>();
+                    bool hasExercises = false;
+                    var exercisePlanNames = new List<string>();
+                    var exercisePlanDescriptions = new List<string>();
+                    DateTime? latestAssignedDate = null;
+                    string? status = null;
+
+                    // Gộp tất cả bài tập từ tất cả các kế hoạch được giao
+                    foreach (var assignedExercise in assignedExercises)
+                    {
+                        if (assignedExercise.MauTapLuyen != null)
+                        {
+                            hasExercises = true;
+                            
+                            // Thêm tên kế hoạch nếu chưa có
+                            if (!string.IsNullOrWhiteSpace(assignedExercise.MauTapLuyen.TenMauTapLuyen) 
+                                && !exercisePlanNames.Contains(assignedExercise.MauTapLuyen.TenMauTapLuyen))
+                            {
+                                exercisePlanNames.Add(assignedExercise.MauTapLuyen.TenMauTapLuyen);
+                            }
+                            
+                            // Thêm mô tả nếu có
+                            if (!string.IsNullOrWhiteSpace(assignedExercise.MauTapLuyen.MoTa)
+                                && !exercisePlanDescriptions.Contains(assignedExercise.MauTapLuyen.MoTa))
+                            {
+                                exercisePlanDescriptions.Add(assignedExercise.MauTapLuyen.MoTa);
+                            }
+                            
+                            // Cập nhật ngày giao mới nhất
+                            if (assignedExercise.NgayGiao.HasValue)
+                            {
+                                if (!latestAssignedDate.HasValue || assignedExercise.NgayGiao.Value > latestAssignedDate.Value)
+                                {
+                                    latestAssignedDate = assignedExercise.NgayGiao.Value;
+                                }
+                            }
+                            
+                            // Cập nhật status
+                            if (!string.IsNullOrWhiteSpace(assignedExercise.TrangThai))
+                            {
+                                status = assignedExercise.TrangThai;
+                            }
+
+                            // Lấy tất cả bài tập từ kế hoạch này
+                            var exerciseDetails = assignedExercise.MauTapLuyen.ChiTietMauTapLuyens
+                                .OrderBy(e => e.Tuan ?? 0)
+                                .ThenBy(e => e.NgayTrongTuan ?? 0)
+                                .ThenBy(e => e.ThuTuHienThi ?? 0)
+                                .Select(e => new
+                                {
+                                    exerciseId = e.BaiTapId,
+                                    exerciseName = e.TenbaiTap,
+                                    sets = e.SoSets,
+                                    reps = e.SoReps,
+                                    duration = e.ThoiLuongPhut,
+                                    restTime = e.ThoiGianNghiGiay,
+                                    week = e.Tuan,
+                                    dayOfWeek = e.NgayTrongTuan,
+                                    videoUrl = e.VideoUrl,
+                                    notes = e.GhiChu,
+                                    planName = assignedExercise.MauTapLuyen.TenMauTapLuyen
+                                })
+                                .ToList();
+
+                            exercises.AddRange(exerciseDetails);
+                        }
+                    }
+
+                    result.Add(new
+                    {
+                        sessionId = session.DatLichId,
+                        sessionDate = session.NgayGioDat,
+                        ptId = session.Ptid,
+                        ptName = ptName,
+                        ptUsername = session.Pt?.User.Username ?? "N/A",
+                        sessionType = session.LoaiBuoiTap ?? "1-on-1",
+                        notes = session.GhiChu,
+                        hasExercises = hasExercises,
+                        exercisePlanName = exercisePlanNames.Count > 0 ? string.Join(", ", exercisePlanNames) : null,
+                        exercisePlanDescription = exercisePlanDescriptions.Count > 0 ? string.Join("\n\n", exercisePlanDescriptions) : null,
+                        assignedDate = latestAssignedDate,
+                        exercises = exercises,
+                        status = status ?? "Chưa giao"
+                    });
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting confirmed sessions with exercises for user {UserId}", userId);
+                return new List<object>();
             }
         }
 

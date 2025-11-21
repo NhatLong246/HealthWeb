@@ -204,6 +204,35 @@ namespace HealthWeb.Controllers
                 return Json(new { success = false, message = "Có lỗi xảy ra khi hủy yêu cầu" });
             }
         }
+
+        // GET: /FindPT/MySessions - Trang hiển thị các buổi đã xác nhận và bài tập được giao
+        [HttpGet("FindPT/MySessions")]
+        public IActionResult MySessions()
+        {
+            return View();
+        }
+
+        // API: Lấy danh sách các buổi đã xác nhận và bài tập được giao
+        [HttpGet("FindPT/MySessions/Data")]
+        public async Task<IActionResult> GetMySessions()
+        {
+            try
+            {
+                var userId = await _findPTService.GetCurrentUserIdAsync(HttpContext);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
+                }
+
+                var sessions = await _findPTService.GetConfirmedSessionsWithExercisesAsync(userId);
+                return Json(new { success = true, data = sessions });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user sessions with exercises");
+                return Json(new { success = false, message = "Không thể tải danh sách buổi tập" });
+            }
+        }
     }
 
     // View Model
