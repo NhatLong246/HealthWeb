@@ -423,6 +423,10 @@ public partial class ApplicationDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasColumnName("UserID");
+            entity.Property(e => e.DatLichId)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("DatLichID");
 
             entity.HasOne(d => d.MauTapLuyen).WithMany(p => p.GiaoBaiTapChoUsers)
                 .HasForeignKey(d => d.MauTapLuyenId)
@@ -436,6 +440,11 @@ public partial class ApplicationDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.GiaoBaiTapChoUsers)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK_GiaoBaiTapChoUser_User");
+
+            entity.HasOne(d => d.DatLich).WithMany()
+                .HasForeignKey(d => d.DatLichId)
+                .OnDelete(DeleteBehavior.NoAction) 
+                .HasConstraintName("FK_GiaoBaiTapChoUser_DatLichPT");
         });
 
         modelBuilder.Entity<GiaoDich>(entity =>

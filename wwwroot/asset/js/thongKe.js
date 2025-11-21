@@ -1581,6 +1581,27 @@
         renderTopGoalTypes(topGoalTypes);
     }
 
+    // Generate unique colors for each category with maximum contrast
+    function generateColors(count) {
+        const colors = [];
+        
+        // Use HSL color space with golden angle (137.508 degrees) for maximum color separation
+        // This ensures each color is visually distinct
+        for (let i = 0; i < count; i++) {
+            // Golden angle approximation for even distribution around color wheel
+            const hue = (i * 137.508) % 360;
+            
+            // Vary saturation and lightness slightly to ensure distinct colors
+            // Alternate between higher and lower saturation/lightness
+            const saturation = 65 + (i % 3) * 10; // 65-85%
+            const lightness = 45 + (i % 2) * 10; // 45-55%
+            
+            colors.push(`hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`);
+        }
+        
+        return colors;
+    }
+
     // Render Goals Type Chart
     function renderGoalsTypeChart(data) {
         const canvas = document.getElementById('goalsTypeChart');
@@ -1598,6 +1619,8 @@
         // Support both PascalCase (from API) and camelCase (fallback)
         const labels = data.map(d => d.GoalType ?? d.goalType ?? '');
         const counts = data.map(d => d.Count ?? d.count ?? 0);
+        const total = counts.reduce((sum, count) => sum + count, 0);
+        const colors = generateColors(labels.length);
 
         charts.goalsTypeChart = new Chart(canvas, {
             type: 'pie',
@@ -1605,7 +1628,9 @@
                 labels: labels,
                 datasets: [{
                     data: counts,
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
@@ -1613,8 +1638,52 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                // For pie charts, get value from dataset data array
+                                const value = context.dataset.data[context.dataIndex] || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} mục tiêu (${percentage}%)`;
+                            },
+                            footer: function(tooltipItems) {
+                                return `Tổng: ${total} mục tiêu`;
+                            }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        boxPadding: 6,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        footerFont: {
+                            size: 12,
+                            style: 'italic'
+                        }
                     }
+                },
+                onHover: (event, activeElements) => {
+                    canvas.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
                 }
             }
         });
@@ -1698,6 +1767,8 @@
         // Support both PascalCase (from API) and camelCase (fallback)
         const labels = data.map(d => d.Type ?? d.type ?? '');
         const counts = data.map(d => d.Count ?? d.count ?? 0);
+        const total = counts.reduce((sum, count) => sum + count, 0);
+        const colors = generateColors(labels.length);
 
         charts.workoutTypeChart = new Chart(canvas, {
             type: 'doughnut',
@@ -1705,7 +1776,9 @@
                 labels: labels,
                 datasets: [{
                     data: counts,
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
@@ -1713,8 +1786,52 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                // For doughnut charts, get value from dataset data array
+                                const value = context.dataset.data[context.dataIndex] || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} kế hoạch (${percentage}%)`;
+                            },
+                            footer: function(tooltipItems) {
+                                return `Tổng: ${total} kế hoạch`;
+                            }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        boxPadding: 6,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        footerFont: {
+                            size: 12,
+                            style: 'italic'
+                        }
                     }
+                },
+                onHover: (event, activeElements) => {
+                    canvas.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
                 }
             }
         });
@@ -1802,8 +1919,8 @@
         renderNutritionMacroChart(macroDistribution);
     }
 
-    // Render Top Foods by Macro Nutrients Chart (bar chart)
-    // Shows: Highest Protein, Highest Carbohydrate, Highest Fat
+    // Render Top Foods by Usage Count Chart (bar chart)
+    // Shows: Most frequently used foods in nutrition logs
     function renderTop3FavoriteFoodsChart(data) {
         const canvas = document.getElementById('nutritionCalorieTrendChart');
         if (!canvas) return;
@@ -1819,7 +1936,7 @@
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Giá trị (g)',
+                        label: 'Số lần sử dụng',
                         data: [],
                         backgroundColor: '#f59e0b'
                     }]
@@ -1842,36 +1959,28 @@
             return;
         }
 
-        // Data contains: [Top Protein Food, Top Carbs Food, Top Fat Food]
+        // Data contains: Top foods by usage count
         // Support both PascalCase (from API) and camelCase (fallback)
-        const proteinFood = data[0] ?? {};
-        const carbsFood = data[1] ?? {};
-        const fatFood = data[2] ?? {};
-
-        const labels = [
-            proteinFood.FoodName ?? proteinFood.foodName ?? 'Giàu đạm nhất',
-            carbsFood.FoodName ?? carbsFood.foodName ?? 'Giàu Carbohydrate nhất',
-            fatFood.FoodName ?? fatFood.foodName ?? 'Giàu chất béo nhất'
-        ];
+        const labels = data.map(food => food.FoodName ?? food.foodName ?? 'Không xác định');
+        const values = data.map(food => food.LogCount ?? food.logCount ?? 0);
         
-        const values = [
-            proteinFood.LogCount ?? proteinFood.logCount ?? 0,
-            carbsFood.LogCount ?? carbsFood.logCount ?? 0,
-            fatFood.LogCount ?? fatFood.logCount ?? 0
-        ];
+        // Generate colors for each bar
+        const colors = generateColors(labels.length);
 
-        console.log('Top Foods by Macro Nutrients:', { labels, values, rawData: data });
+        console.log('Top Foods by Usage Count:', { labels, values, rawData: data });
 
         charts.nutritionCalorieTrendChart = new Chart(canvas, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Giá trị (g)',
+                    label: 'Số lần sử dụng',
                     data: values,
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                    backgroundColor: colors,
                     borderRadius: 8,
-                    borderSkipped: false
+                    borderSkipped: false,
+                    borderWidth: 1,
+                    borderColor: '#fff'
                 }]
             },
             options: {
@@ -1881,15 +1990,24 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
+                            stepSize: 1,
                             callback: function(value) {
-                                return value + 'g';
+                                return value;
                             }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Số lần sử dụng'
                         }
                     },
                     x: {
                         ticks: {
                             maxRotation: 45,
                             minRotation: 0
+                        },
+                        title: {
+                            display: true,
+                            text: 'Món ăn'
                         }
                     }
                 },
@@ -1898,22 +2016,34 @@
                         display: false
                     },
                     tooltip: {
+                        enabled: true,
                         callbacks: {
                             label: function(context) {
-                                return 'Giá trị: ' + context.parsed.y + 'g';
+                                const value = context.parsed.y || 0;
+                                return `Số lần sử dụng: ${value} lần`;
+                            },
+                            title: function(context) {
+                                return context[0].label || '';
                             }
-                        }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        borderWidth: 1,
+                        padding: 12
                     },
                     datalabels: {
                         display: true,
                         anchor: 'end',
                         align: 'top',
                         formatter: function(value) {
-                            return value + 'g';
+                            return value;
                         },
                         color: '#333',
                         font: {
-                            weight: 'bold'
+                            weight: 'bold',
+                            size: 12
                         }
                     }
                 }

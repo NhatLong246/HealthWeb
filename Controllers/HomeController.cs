@@ -68,7 +68,7 @@ public class HomeController : Controller
                 .Where(n => n.UserId == userId && n.NgayGhiLog == today)
                 .ToListAsync();
 
-            var tongCalo = nhatKyDinhDuongToday.Sum(n => (n.MonAn?.LuongCalo ?? 0) * (n.LuongThucAn ?? 0) / 100);
+            var tongCalo = nhatKyDinhDuongToday.Sum(n => HealthWeb.Helpers.NutritionCalculationHelper.CalculateNutritionValue(n.MonAn?.LuongCalo, n.LuongThucAn, n.MonAn?.DonViTinh));
 
             // Truyền thông tin vào View
             ViewData["HasBasicInfo"] = hasBasicInfo;

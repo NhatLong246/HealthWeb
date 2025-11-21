@@ -1,0 +1,177 @@
+@model HealthWeb.Services.DailyBookingsViewModel
+@{
+    ViewData["Title"] = "Quản Lý Lịch Đặt & Giao Bài Tập - HealthWeb";
+    Layout = "_Layout";
+    
+    var model = Model ?? new HealthWeb.Services.DailyBookingsViewModel
+    {
+        SelectedDate = DateOnly.FromDateTime(DateTime.Today),
+        Bookings = new List<HealthWeb.Services.DailyBookingItemViewModel>(),
+        AvailableTemplates = new List<HealthWeb.Services.WorkoutTemplateViewModel>()
+    };
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/pt/pt-common.css">
+<link rel="stylesheet" href="~/css/pt/dailyBookingsManagement.css">
+
+@Html.AntiForgeryToken()
+
+<div class="daily-bookings-container">
+    <div class="page-header">
+        <h1><i class="fas fa-calendar-check"></i> Quản Lý Lịch Đặt & Giao Bài Tập</h1>
+        <p class="page-subtitle">Xác nhận lịch đặt và giao bài tập cho từng khách hàng theo ngày</p>
+    </div>
+
+    <!-- Date Selector -->
+    <div class="date-selector-section">
+        <div class="date-controls">
+            <button class="date-nav-btn" onclick="changeDate(-1)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <input type="date" id="selectedDate" value="@(model.SelectedDate.ToString("yyyy-MM-dd"))" onchange="loadBookingsForDate()" class="date-input">
+            <button class="date-nav-btn" onclick="changeDate(1)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="btn-today" onclick="goToToday()">
+                <i class="fas fa-calendar-day"></i> Hôm nay
+            </button>
+        </div>
+    </div>
+
+    <!-- Bookings List -->
+    <div class="bookings-section">
+        <h2 class="section-title">
+            <i class="fas fa-list"></i> Lịch Hẹn Ngày @(model.SelectedDate.ToString("dd/MM/yyyy"))
+            <span class="booking-count" id="bookingCount">(@(model.Bookings.Count) buổi)</span>
+        </h2>
+
+        <div id="bookingsList" class="bookings-list">
+            @if (model.Bookings != null && model.Bookings.Any())
+            {
+                @foreach (var booking in model.Bookings)
+                {
+                    <div class="booking-card" data-booking-id="@booking.BookingId">
+                        <div class="booking-header">
+                            <div class="booking-client-info">
+                                <div class="client-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="client-details">
+                                    <h3>@booking.ClientName</h3>
+                                    <p class="booking-time">
+                                        <i class="fas fa-clock"></i> 
+                                        @booking.StartTime.ToString("HH:mm") - @booking.EndTime.ToString("HH:mm")
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="booking-status">
+                                <span class="status-badge status-@(booking.Status.ToLower())">
+                                    @if (booking.Status == "Pending")
+                                    {
+                                        <text>Chờ duyệt</text>
+                                    }
+                                    else if (booking.Status == "Confirmed")
+                                    {
+                                        <text>Đã xác nhận</text>
+                                    }
+                                    else
+                                    {
+                                        @booking.Status
+                                    }
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="booking-body">
+                            <div class="booking-info-row">
+                                <span><i class="fas fa-dumbbell"></i> @booking.Type</span>
+                            </div>
+
+                            @if (booking.HasAssignedWorkout)
+                            {
+                                <div class="assigned-workout">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Đã giao: <strong>@booking.AssignedWorkoutName</strong></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="no-workout">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <span>Chưa giao bài tập</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="booking-actions">
+                            @if (booking.Status == "Pending")
+                            {
+                                <button class="btn-accept" onclick="acceptBooking('@booking.BookingId', '@booking.ClientId')">
+                                    <i class="fas fa-check"></i> Xác nhận
+                                </button>
+                                <button class="btn-reject" onclick="rejectBooking('@booking.BookingId', '@booking.ClientId')">
+                                    <i class="fas fa-times"></i> Từ chối
+                                </button>
+                            }
+                            
+                            @if (booking.Status == "Confirmed")
+                            {
+                                <button class="btn-assign-workout" onclick="openAssignWorkoutModal('@booking.BookingId', '@booking.ClientId', @(booking.HasAssignedWorkout ? "true" : "false"))">
+                                    <i class="fas fa-dumbbell"></i> 
+                                    @(booking.HasAssignedWorkout ? "Đổi bài tập" : "Giao bài tập")
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Không có lịch hẹn nào trong ngày này</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Assign Workout Modal -->
+<div id="assignWorkoutModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-dumbbell"></i> Giao Bài Tập</h3>
+            <button class="modal-close" onclick="closeAssignWorkoutModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="template-list" id="templateList">
+                <!-- Templates will be loaded here -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="assignWorkoutBtn" class="btn-assign-workout" onclick="assignWorkout()" disabled style="opacity: 0.5;">
+                <i class="fas fa-check"></i> Giao bài tập
+            </button>
+            <button class="btn-cancel" onclick="closeAssignWorkoutModal()">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/common/toast.js" asp-append-version="true"></script>
+<script src="~/js/common/dialog.js" asp-append-version="true"></script>
+<script src="~/js/pt/dailyBookingsManagement.js" asp-append-version="true"></script>
+<script>
+    // Initialize data
+    const initialData = {
+        selectedDate: '@(model.SelectedDate.ToString("yyyy-MM-dd"))',
+        bookings: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(model.Bookings)),
+        templates: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(model.AvailableTemplates))
+    };
+    
+    // Make data available globally
+    window.dailyBookingsData = initialData;
+</script>
+

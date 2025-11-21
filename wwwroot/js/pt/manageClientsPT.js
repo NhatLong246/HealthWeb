@@ -199,9 +199,46 @@ function getToken() {
 
 // Accept client request
 async function acceptClientRequest(requestId, clientId) {
-    const confirmed = await customConfirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?', 'Xác nhận chấp nhận yêu cầu', 'question');
-    if (!confirmed) {
-        return;
+    // Kiểm tra trùng lịch trước
+    try {
+        const checkResponse = await fetch(`/PT/Requests/CheckConflicts?requestId=${encodeURIComponent(requestId)}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        const checkResult = await checkResponse.json();
+        
+        // Nếu có trùng lịch, hiển thị thông báo và KHÔNG cho phép xác nhận
+        if (checkResult.hasConflict && checkResult.conflicts && checkResult.conflicts.length > 0) {
+            const conflictsList = checkResult.conflicts.map(c => `• ${c}`).join('<br>');
+            const errorMessage = `<div style="text-align: left;">
+                <p style="color: #ff6b6b; font-weight: bold; margin-bottom: 1rem;">
+                    <i class="fas fa-exclamation-triangle"></i> KHÔNG THỂ XÁC NHẬN: Yêu cầu này có trùng lịch với các booking đã xác nhận:
+                </p>
+                <div style="background: rgba(255, 107, 107, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 3px solid #ff6b6b;">
+                    ${conflictsList}
+                </div>
+                <p style="color: #ff6b6b; font-weight: bold;">
+                    Vui lòng kiểm tra lại lịch trình trước khi xác nhận yêu cầu này.
+                </p>
+            </div>`;
+            
+            await customAlert(errorMessage, 'Trùng Lịch - Không Thể Xác Nhận', 'error', true);
+            return; // Chặn không cho xác nhận
+        }
+
+        // Nếu không có trùng lịch, hiển thị confirm thông thường
+        const confirmed = await customConfirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?', 'Xác nhận chấp nhận yêu cầu', 'question');
+        if (!confirmed) {
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking conflicts:', error);
+        // Nếu không check được, vẫn cho phép accept với confirm thông thường
+        const confirmed = await customConfirm('Bạn có chắc chắn muốn chấp nhận yêu cầu này?', 'Xác nhận chấp nhận yêu cầu', 'question');
+        if (!confirmed) {
+            return;
+        }
     }
 
     try {

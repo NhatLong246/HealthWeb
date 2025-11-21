@@ -41,7 +41,33 @@
     {
         var targetDate = GetDateForDay(dayIndex);
         return model.Bookings
-            .Where(b => DateOnly.FromDateTime(b.StartTime) == targetDate && b.StartTime.Hour == hour)
+            .Where(b => 
+            {
+                // Kiểm tra booking có trong ngày này không
+                if (DateOnly.FromDateTime(b.StartTime) != targetDate)
+                    return false;
+                
+                // Tính giờ kết thúc
+                var endTime = b.StartTime.AddMinutes(b.Duration);
+                var startHour = b.StartTime.Hour;
+                var endHour = endTime.Hour;
+                
+                // Nếu kết thúc đúng giờ (ví dụ: 11:00), booking kéo dài đến hết giờ 10 (không bao gồm giờ 11)
+                // Nếu kết thúc trong giờ (ví dụ: 11:30), booking kéo dài đến giờ 11
+                if (endTime.Minute == 0 && endTime.Second == 0)
+                {
+                    // Kết thúc đúng giờ, không bao gồm giờ kết thúc
+                    endHour = endTime.Hour - 1;
+                }
+                else
+                {
+                    // Kết thúc trong giờ, bao gồm giờ kết thúc
+                    endHour = endTime.Hour;
+                }
+                
+                // Kiểm tra xem giờ hiện tại có nằm trong khoảng từ startHour đến endHour không
+                return hour >= startHour && hour <= endHour;
+            })
             .ToList();
     }
 }
@@ -104,7 +130,14 @@
                     @if (cellBookings.Any())
                     {
                         var booking = cellBookings.First();
-                        <div class="booking-badge @(booking.Status.ToLower())" title="@($"{booking.ClientName} - {booking.StartTime:HH:mm} ({booking.Type})")">
+                        var conflictClass = booking.HasConflict ? "conflict" : "";
+                        var conflictTitle = booking.HasConflict ? " ⚠️ TRÙNG LỊCH" : "";
+                        <div class="booking-badge @(booking.Status.ToLower()) @conflictClass" 
+                             title="@($"{booking.ClientName} - {booking.StartTime:HH:mm} ({booking.Type}){conflictTitle}")">
+                            @if (booking.HasConflict)
+                            {
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>
+                            }
                             @booking.ClientName.Split(' ').Last()
                         </div>
                     }
@@ -132,7 +165,13 @@
                         @foreach (var booking in dayBookings)
                         {
                             var endTime = booking.StartTime.AddMinutes(booking.Duration);
-                            <div class="booking-card @(booking.Status.ToLower())" onclick="viewBooking('@booking.ClientName')">
+                            <div class="booking-card @(booking.Status.ToLower()) @(booking.HasConflict ? "has-conflict" : "")" onclick="viewBooking('@booking.ClientName')">
+                                @if (booking.HasConflict)
+                                {
+                                    <div class="conflict-warning" style="background: #ff6b6b; color: white; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                                        <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO: Trùng lịch với booking khác
+                                    </div>
+                                }
                                 <div class="booking-card-header">
                                     <div class="booking-client-info">
                                         <div class="booking-avatar">

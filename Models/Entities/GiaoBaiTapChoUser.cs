@@ -25,9 +25,13 @@ public partial class GiaoBaiTapChoUser
 
     public DateTime? NgayGiao { get; set; }
 
+    public string? DatLichId { get; set; }
+
     public virtual MauTapLuyen MauTapLuyen { get; set; } = null!;
 
     public virtual HuanLuyenVien? NguoiGiaoNavigation { get; set; }
+
+    public virtual DatLichPt? DatLich { get; set; }
 
     public virtual ICollection<TheoDoiHoanThanhBaiTap> TheoDoiHoanThanhBaiTaps { get; set; } = new List<TheoDoiHoanThanhBaiTap>();
 

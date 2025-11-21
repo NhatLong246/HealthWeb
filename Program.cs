@@ -21,6 +21,7 @@ builder.Services.AddHttpClient();
 // Kết nối DB với retry logic
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
+    //Connection bên Nhân
     var connectionString = builder.Configuration.GetConnectionString("HealthTracker");
     options.UseSqlServer(connectionString, sqlOptions =>
     {
@@ -30,7 +31,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(30);
     });
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")) // đây là connection của ĐA
 });
+    
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<INutritionAdminService, NutritionAdminService>();

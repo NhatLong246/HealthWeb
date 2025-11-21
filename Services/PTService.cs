@@ -32,6 +32,7 @@ namespace HealthWeb.Services
         Task<object?> GetClientDetailAsync(string ptUserId, string clientId);
         Task<ClientDetailViewModel?> GetClientDetailViewModelAsync(string ptUserId, string clientId);
         Task<List<PendingRequestViewModel>> GetPendingRequestsAsync(string userId);
+        Task<(bool hasConflict, List<string> conflicts)> CheckRequestConflictsAsync(string userId, string requestId);
         Task<(bool success, string message)> AcceptRequestAsync(string userId, string requestId);
         Task<(bool success, string message)> RejectRequestAsync(string userId, string requestId, string reason);
         Task<List<WorkoutTemplateViewModel>> GetWorkoutTemplatesByGoalAsync(string goal);
@@ -40,6 +41,9 @@ namespace HealthWeb.Services
         Task<List<ClientBookingViewModel>> GetClientBookingsForWorkoutAsync(string ptUserId, string clientId);
         Task<(bool success, string message)> CreateWorkoutPlanAsync(string ptUserId, string clientId, CreateWorkoutPlanViewModel model);
         Task<WorkoutPlanViewModel?> GetClientWorkoutPlanAsync(string ptUserId, string clientId);
+        Task<DailyBookingsViewModel> GetDailyBookingsForAssignmentAsync(string userId, DateOnly? date);
+        Task<(bool success, string message)> AssignWorkoutToBookingAsync(string userId, string bookingId, int templateId);
+        Task<(bool success, string message)> AssignWorkoutsToBookingAsync(string userId, string bookingId, List<int> templateIds, Dictionary<int, (int? sets, int? reps, int? restTime)>? templateDetails = null);
     }
 
     public class PTService : IPTService
@@ -300,6 +304,7 @@ namespace HealthWeb.Services
                     .Include(g => g.Pt)
                     .Where(g =>
                         g.Ptid == ptId &&
+                        g.TrangThaiThanhToan == "Completed" &&
                         g.NgayGiaoDich.HasValue &&
                         g.NgayGiaoDich.Value >= startOfMonth &&
                         g.NgayGiaoDich.Value < endOfMonth)
@@ -372,6 +377,7 @@ namespace HealthWeb.Services
                     .Include(g => g.Pt)
                     .Where(g =>
                         g.Ptid == ptId &&
+                        g.TrangThaiThanhToan == "Completed" &&
                         g.NgayGiaoDich.HasValue &&
                         g.NgayGiaoDich.Value >= startOfMonth &&
                         g.NgayGiaoDich.Value < endOfMonth)
@@ -840,24 +846,83 @@ namespace HealthWeb.Services
                     .Include(d => d.Pt)
                         .ThenInclude(p => p.User)
                     .Include(d => d.GiaoDich)
-                    .Where(d => d.Ptid == trainer.Ptid && d.NgayGioDat >= startDate && d.NgayGioDat < endDate)
+                    .Where(d => d.Ptid == trainer.Ptid 
+                        && d.NgayGioDat >= startDate 
+                        && d.NgayGioDat < endDate
+                        && d.TrangThai == "Confirmed") // Chỉ hiển thị các booking đã xác nhận
                     .OrderBy(d => d.NgayGioDat)
                     .ToListAsync();
+
+                // Kiểm tra trùng lịch cho mỗi booking
+                var bookingViewModels = bookings.Select(b =>
+                {
+                    // Parse số giờ từ GhiChu để tính Duration chính xác
+                    int durationMinutes = 60; // Mặc định 1 giờ (60 phút)
+                    if (!string.IsNullOrWhiteSpace(b.GhiChu))
+                    {
+                        // Tìm "Số giờ buổi này: X.X giờ" trong GhiChu
+                        var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                            b.GhiChu,
+                            @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var hours))
+                        {
+                            durationMinutes = (int)(hours * 60); // Chuyển giờ sang phút
+                        }
+                    }
+
+                    var bookingStart = b.NgayGioDat;
+                    var bookingEnd = bookingStart.AddMinutes(durationMinutes);
+                    
+                    // Kiểm tra trùng lịch với các booking khác (chỉ kiểm tra Confirmed)
+                    bool hasConflict = false;
+                    if (b.TrangThai == "Confirmed")
+                    {
+                        hasConflict = bookings.Any(otherBooking =>
+                        {
+                            if (otherBooking.DatLichId == b.DatLichId || otherBooking.TrangThai != "Confirmed")
+                                return false;
+                            
+                            // Parse số giờ của booking khác
+                            int otherDurationMinutes = 60;
+                            if (!string.IsNullOrWhiteSpace(otherBooking.GhiChu))
+                            {
+                                var otherHoursMatch = System.Text.RegularExpressions.Regex.Match(
+                                    otherBooking.GhiChu,
+                                    @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                if (otherHoursMatch.Success && double.TryParse(otherHoursMatch.Groups[1].Value, out var otherHours))
+                                {
+                                    otherDurationMinutes = (int)(otherHours * 60);
+                                }
+                            }
+                            
+                            var otherStart = otherBooking.NgayGioDat;
+                            var otherEnd = otherStart.AddMinutes(otherDurationMinutes);
+                            
+                            // Kiểm tra overlap: (start1 < end2) && (end1 > start2)
+                            return bookingStart < otherEnd && bookingEnd > otherStart;
+                        });
+                    }
+
+                    return new ScheduleBookingViewModel
+                    {
+                        Id = b.DatLichId,
+                        ClientName = string.IsNullOrWhiteSpace(b.KhacHang.HoTen) ? b.KhacHang.Username : b.KhacHang.HoTen,
+                        StartTime = b.NgayGioDat,
+                        Duration = durationMinutes,
+                        Status = string.IsNullOrWhiteSpace(b.TrangThai) ? "Pending" : b.TrangThai,
+                        Type = string.IsNullOrWhiteSpace(b.LoaiBuoiTap) ? "1-on-1" : b.LoaiBuoiTap,
+                        Notes = b.GhiChu,
+                        HasConflict = hasConflict
+                    };
+                }).ToList();
 
                 var viewModel = new ScheduleViewModel
                 {
                     WeekStart = weekStart,
                     WeekEnd = weekEnd,
-                    Bookings = bookings.Select(b => new ScheduleBookingViewModel
-                    {
-                        Id = b.DatLichId,
-                        ClientName = string.IsNullOrWhiteSpace(b.KhacHang.HoTen) ? b.KhacHang.Username : b.KhacHang.HoTen,
-                        StartTime = b.NgayGioDat,
-                        Duration = 60, // Default duration
-                        Status = string.IsNullOrWhiteSpace(b.TrangThai) ? "Pending" : b.TrangThai,
-                        Type = string.IsNullOrWhiteSpace(b.LoaiBuoiTap) ? "1-on-1" : b.LoaiBuoiTap,
-                        Notes = b.GhiChu
-                    }).ToList()
+                    Bookings = bookingViewModels
                 };
 
                 return viewModel;
@@ -1780,6 +1845,114 @@ namespace HealthWeb.Services
             }
         }
 
+        public async Task<(bool hasConflict, List<string> conflicts)> CheckRequestConflictsAsync(string userId, string requestId)
+        {
+            var conflicts = new List<string>();
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(userId);
+                if (trainer == null)
+                {
+                    return (false, conflicts);
+                }
+
+                var ptId = trainer.Ptid;
+
+                // Tìm booking đầu tiên với requestId này
+                var firstBooking = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
+                    .FirstOrDefaultAsync(d => d.DatLichId == requestId && d.Ptid == ptId);
+
+                if (firstBooking == null)
+                {
+                    return (false, conflicts);
+                }
+
+                // Lấy tất cả bookings cùng client và cùng ngày tạo (cùng request group)
+                var requestGroup = await _context.DatLichPts
+                    .Include(b => b.GiaoDich)
+                    .Where(d => d.Ptid == ptId &&
+                               d.KhacHangId == firstBooking.KhacHangId &&
+                               d.NgayTao == firstBooking.NgayTao &&
+                               (d.TrangThai == null || d.TrangThai == "Pending"))
+                    .ToListAsync();
+
+                if (requestGroup.Count == 0)
+                {
+                    return (false, conflicts);
+                }
+
+                // Lấy tất cả bookings đã confirmed
+                var allConfirmedBookings = await _context.DatLichPts
+                    .Include(b => b.KhacHang)
+                    .Where(b => b.Ptid == ptId &&
+                               b.TrangThai == "Confirmed" &&
+                               b.DatLichId != firstBooking.DatLichId)
+                    .ToListAsync();
+
+                // Kiểm tra trùng lịch
+                foreach (var booking in requestGroup)
+                {
+                    // Parse số giờ từ GhiChu để tính thời gian kết thúc
+                    double hours = 1;
+                    if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+                    {
+                        var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                            booking.GhiChu,
+                            @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                        {
+                            hours = parsedHours;
+                        }
+                    }
+
+                    var bookingStart = booking.NgayGioDat;
+                    var bookingEnd = bookingStart.AddHours(hours);
+                    var bookingDate = bookingStart.Date; // Lấy ngày (không có giờ)
+
+                    // Kiểm tra trùng lịch với các booking đã confirmed
+                    foreach (var confirmedBooking in allConfirmedBookings)
+                    {
+                        // Parse số giờ của booking đã confirmed
+                        double confirmedHours = 1;
+                        if (!string.IsNullOrWhiteSpace(confirmedBooking.GhiChu))
+                        {
+                            var confirmedHoursMatch = System.Text.RegularExpressions.Regex.Match(
+                                confirmedBooking.GhiChu,
+                                @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (confirmedHoursMatch.Success && double.TryParse(confirmedHoursMatch.Groups[1].Value, out var parsedConfirmedHours))
+                            {
+                                confirmedHours = parsedConfirmedHours;
+                            }
+                        }
+
+                        var confirmedStart = confirmedBooking.NgayGioDat;
+                        var confirmedEnd = confirmedStart.AddHours(confirmedHours);
+                        var confirmedDate = confirmedStart.Date; // Lấy ngày (không có giờ)
+
+                        // Kiểm tra: Nếu cùng ngày thì conflict (theo yêu cầu: trong ngày đó đang có lịch với user khác)
+                        // PT không thể có 2 booking với 2 user khác nhau trong cùng 1 ngày, bất kể giờ nào
+                        if (bookingDate == confirmedDate)
+                        {
+                            var conflictingClientName = string.IsNullOrWhiteSpace(confirmedBooking.KhacHang.HoTen)
+                                ? confirmedBooking.KhacHang.Username
+                                : confirmedBooking.KhacHang.HoTen;
+                            conflicts.Add($"{conflictingClientName} ({confirmedStart:dd/MM/yyyy HH:mm} - {confirmedEnd:HH:mm})");
+                        }
+                    }
+                }
+
+                return (conflicts.Any(), conflicts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking request conflicts for user {UserId}, request {RequestId}", userId, requestId);
+                return (false, conflicts);
+            }
+        }
+
         public async Task<(bool success, string message)> AcceptRequestAsync(string userId, string requestId)
         {
             try
@@ -1826,15 +1999,100 @@ namespace HealthWeb.Services
                 var ptPrice = ptInfo?.GiaTheoGio ?? 0;
                 const double COMMISSION_RATE = 0.15; // 15% hoa hồng app
 
+                // Kiểm tra trùng lịch với các booking đã confirmed TRƯỚC KHI accept
+                var conflictingBookings = new List<(string ClientName, DateTime StartTime, DateTime EndTime)>();
+                var allConfirmedBookings = await _context.DatLichPts
+                    .Include(b => b.KhacHang)
+                    .Where(b => b.Ptid == ptId && 
+                               b.TrangThai == "Confirmed" && 
+                               b.DatLichId != firstBooking.DatLichId) // Loại trừ booking hiện tại
+                    .ToListAsync();
+
+                // Kiểm tra trùng lịch TRƯỚC KHI accept - nếu có conflicts thì chặn
+                foreach (var booking in requestGroup)
+                {
+                    // Parse số giờ từ GhiChu để tính thời gian kết thúc
+                    double hours = 1;
+                    if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+                    {
+                        var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                            booking.GhiChu,
+                            @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                        {
+                            hours = parsedHours;
+                        }
+                    }
+
+                    var bookingStart = booking.NgayGioDat;
+                    var bookingEnd = bookingStart.AddHours(hours);
+                    var bookingDate = bookingStart.Date; // Lấy ngày (không có giờ)
+
+                    // Kiểm tra trùng lịch với các booking đã confirmed
+                    foreach (var confirmedBooking in allConfirmedBookings)
+                    {
+                        // Parse số giờ của booking đã confirmed
+                        double confirmedHours = 1;
+                        if (!string.IsNullOrWhiteSpace(confirmedBooking.GhiChu))
+                        {
+                            var confirmedHoursMatch = System.Text.RegularExpressions.Regex.Match(
+                                confirmedBooking.GhiChu,
+                                @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (confirmedHoursMatch.Success && double.TryParse(confirmedHoursMatch.Groups[1].Value, out var parsedConfirmedHours))
+                            {
+                                confirmedHours = parsedConfirmedHours;
+                            }
+                        }
+
+                        var confirmedStart = confirmedBooking.NgayGioDat;
+                        var confirmedEnd = confirmedStart.AddHours(confirmedHours);
+                        var confirmedDate = confirmedStart.Date; // Lấy ngày (không có giờ)
+
+                        // Kiểm tra: Nếu cùng ngày thì conflict (theo yêu cầu: trong ngày đó đang có lịch với user khác)
+                        // PT không thể có 2 booking với 2 user khác nhau trong cùng 1 ngày, bất kể giờ nào
+                        if (bookingDate == confirmedDate)
+                        {
+                            var conflictingClientName = string.IsNullOrWhiteSpace(confirmedBooking.KhacHang.HoTen)
+                                ? confirmedBooking.KhacHang.Username
+                                : confirmedBooking.KhacHang.HoTen;
+                            conflictingBookings.Add((conflictingClientName, confirmedStart, confirmedEnd));
+                        }
+                    }
+                }
+
+                // Nếu có conflicts, CHẶN không cho accept
+                if (conflictingBookings.Any())
+                {
+                    var conflictDetails = string.Join(", ", conflictingBookings.Select(c =>
+                        $"{c.ClientName} ({c.StartTime:dd/MM/yyyy HH:mm} - {c.EndTime:HH:mm})"));
+                    return (false, $"Không thể xác nhận: Yêu cầu này có trùng lịch với các booking đã xác nhận: {conflictDetails}. Vui lòng kiểm tra lại lịch trình.");
+                }
+
                 // Cập nhật tất cả bookings trong group thành Confirmed và tạo transaction cho mỗi booking
                 foreach (var booking in requestGroup)
                 {
+                    // Parse số giờ từ GhiChu để tính giá
+                    double hours = 1; // Mặc định 1 giờ
+                    if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+                    {
+                        var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                            booking.GhiChu, 
+                            @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                        {
+                            hours = parsedHours;
+                        }
+                    }
+                    
                     booking.TrangThai = "Confirmed";
                     
                     // Tạo transaction cho mỗi booking (nếu chưa có)
                     if (booking.GiaoDich == null && ptPrice > 0)
                     {
-                        var amount = ptPrice;
+                        var amount = ptPrice * hours; // Giá = giá mỗi giờ × số giờ
                         var commission = amount * COMMISSION_RATE;
                         var ptRevenue = amount - commission;
                         
@@ -1903,7 +2161,7 @@ namespace HealthWeb.Services
                 }
 
                 // Tạo thông báo cho client
-                var notification = new ThongBao
+                var clientNotification = new ThongBao
                 {
                     UserId = clientId,
                     NoiDung = $"PT {ptName} đã chấp nhận yêu cầu tập luyện của bạn. Bạn đã được thêm vào danh sách khách hàng với {requestGroup.Count} buổi tập đã được xác nhận. Vui lòng thanh toán để hoàn tất đặt lịch.",
@@ -1912,7 +2170,28 @@ namespace HealthWeb.Services
                     DaDoc = false,
                     NgayTao = DateTime.Now
                 };
-                _context.ThongBaos.Add(notification);
+                _context.ThongBaos.Add(clientNotification);
+
+                // Tạo thông báo cho PT nếu có trùng lịch
+                if (conflictingBookings.Any() && ptInfo?.User != null)
+                {
+                    var ptUserId = ptInfo.UserId;
+                    var conflictDetails = string.Join(", ", conflictingBookings.Select(c => 
+                        $"{c.ClientName} ({c.StartTime:dd/MM/yyyy HH:mm} - {c.EndTime:HH:mm})"));
+                    
+                    var ptNotification = new ThongBao
+                    {
+                        UserId = ptUserId,
+                        NoiDung = $"⚠️ CẢNH BÁO: Bạn vừa chấp nhận yêu cầu có trùng lịch với các booking đã xác nhận: {conflictDetails}. Vui lòng kiểm tra lại lịch trình.",
+                        Loai = "PT",
+                        MaLienQuan = null,
+                        DaDoc = false,
+                        NgayTao = DateTime.Now
+                    };
+                    _context.ThongBaos.Add(ptNotification);
+                    
+                    _logger.LogWarning("PT {PtId} accepted request with conflicting bookings: {Conflicts}", ptId, conflictDetails);
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -2025,8 +2304,18 @@ namespace HealthWeb.Services
                     return new List<WorkoutTemplateViewModel>();
                 }
 
-                var templates = await _context.MauTapLuyens
-                    .Where(m => m.MucTieu == goal && (m.CongKhai == true || m.DaXacThuc == true))
+                // Filter templates by goal - so sánh linh hoạt (contains hoặc exact match)
+                var goalLower = goal.ToLower();
+                var templatesData = await _context.MauTapLuyens
+                    .Include(t => t.ChiTietMauTapLuyens)
+                    .Where(m => (m.CongKhai == true || m.DaXacThuc == true) && m.MucTieu != null)
+                    .ToListAsync();
+
+                // Filter on client side for flexible matching
+                var templates = templatesData
+                    .Where(m => m.MucTieu != null && 
+                               (m.MucTieu.ToLower().Contains(goalLower) || 
+                                goalLower.Contains(m.MucTieu.ToLower())))
                     .OrderByDescending(m => m.DiemTrungBinh ?? 0)
                     .ThenByDescending(m => m.SoLanSuDung ?? 0)
                     .Select(m => new WorkoutTemplateViewModel
@@ -2038,11 +2327,12 @@ namespace HealthWeb.Services
                         Weeks = m.SoTuan ?? 4,
                         EstimatedCalories = m.CaloUocTinh ?? 0,
                         Equipment = m.ThietBiCan,
-                        ExerciseCount = m.ChiTietMauTapLuyens.Count,
+                        ExerciseCount = m.ChiTietMauTapLuyens != null ? m.ChiTietMauTapLuyens.Count : 0,
                         Rating = m.DiemTrungBinh ?? 0,
-                        UsageCount = m.SoLanSuDung ?? 0
+                        UsageCount = m.SoLanSuDung ?? 0,
+                        Goal = m.MucTieu
                     })
-                    .ToListAsync();
+                    .ToList();
 
                 return templates;
             }
@@ -2456,6 +2746,522 @@ namespace HealthWeb.Services
                 return null;
             }
         }
+
+        public async Task<DailyBookingsViewModel> GetDailyBookingsForAssignmentAsync(string userId, DateOnly? date)
+        {
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(userId);
+                if (trainer == null)
+                {
+                    return new DailyBookingsViewModel
+                    {
+                        SelectedDate = date ?? DateOnly.FromDateTime(DateTime.Today),
+                        Bookings = new List<DailyBookingItemViewModel>()
+                    };
+                }
+
+                var ptId = trainer.Ptid;
+                if (string.IsNullOrEmpty(ptId))
+                {
+                    _logger.LogWarning("GetDailyBookingsForAssignmentAsync: PT ID is null or empty for userId: {UserId}", userId);
+                    return new DailyBookingsViewModel
+                    {
+                        SelectedDate = date ?? DateOnly.FromDateTime(DateTime.Today),
+                        Bookings = new List<DailyBookingItemViewModel>(),
+                        AvailableTemplates = new List<WorkoutTemplateViewModel>()
+                    };
+                }
+
+                var targetDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+                
+                // Chuyển đổi DateOnly sang DateTime với timezone hiện tại
+                // Đảm bảo startDateTime là 00:00:00 của ngày đó
+                // và endDateTime là 00:00:00 của ngày tiếp theo
+                var startDateTime = targetDate.ToDateTime(TimeOnly.MinValue);
+                var endDateTime = targetDate.AddDays(1).ToDateTime(TimeOnly.MinValue);
+
+                _logger.LogInformation("GetDailyBookingsForAssignmentAsync: Querying bookings for PT {PtId}, date {Date}, range {Start} to {End}", 
+                    ptId, targetDate, startDateTime, endDateTime);
+
+                // Debug: Kiểm tra tổng số bookings của PT này (không filter gì)
+                var totalBookingsForPT = await _context.DatLichPts
+                    .Where(b => b.Ptid == ptId)
+                    .CountAsync();
+                _logger.LogInformation("GetDailyBookingsForAssignmentAsync: Total bookings for PT {PtId}: {Total}", ptId, totalBookingsForPT);
+
+                // Debug: Lấy tất cả bookings của PT này để xem PTID có đúng không
+                var allPTBookings = await _context.DatLichPts
+                    .Where(b => b.Ptid == ptId)
+                    .Select(b => new { b.DatLichId, b.NgayGioDat, b.TrangThai })
+                    .Take(10)
+                    .ToListAsync();
+                _logger.LogInformation("GetDailyBookingsForAssignmentAsync: Sample bookings for PT {PtId}: {Count} records", ptId, allPTBookings.Count);
+                foreach (var b in allPTBookings)
+                {
+                    _logger.LogInformation("  - Booking {Id}: Date={Date}, Status={Status}", b.DatLichId, b.NgayGioDat, b.TrangThai ?? "null");
+                }
+
+                // Debug: Kiểm tra bookings trong khoảng thời gian (không filter TrangThai)
+                // Sử dụng DateOnly để so sánh chính xác hơn
+                var bookingsInRange = await _context.DatLichPts
+                    .Where(b => b.Ptid == ptId &&
+                               DateOnly.FromDateTime(b.NgayGioDat) == targetDate)
+                    .CountAsync();
+                _logger.LogInformation("GetDailyBookingsForAssignmentAsync: Bookings on date {Date} (any status): {Count}", targetDate, bookingsInRange);
+
+                // Lấy tất cả bookings trong ngày (Pending và Confirmed)
+                // Sử dụng DateOnly để so sánh chính xác, tránh vấn đề timezone
+                var bookings = await _context.DatLichPts
+                    .Include(b => b.KhacHang)
+                    .Where(b => b.Ptid == ptId &&
+                               DateOnly.FromDateTime(b.NgayGioDat) == targetDate &&
+                               (b.TrangThai == null || b.TrangThai == "Pending" || b.TrangThai == "Confirmed"))
+                    .OrderBy(b => b.NgayGioDat)
+                    .ToListAsync();
+
+                _logger.LogInformation("GetDailyBookingsForAssignmentAsync: Found {Count} bookings for PT {PtId} on {Date} (Pending/Confirmed only)", 
+                    bookings.Count, ptId, targetDate);
+                
+                // Debug: Log chi tiết từng booking nếu có
+                if (bookings.Count > 0)
+                {
+                    foreach (var booking in bookings)
+                    {
+                        _logger.LogInformation("Booking: ID={Id}, Date={Date}, Status={Status}, Client={Client}", 
+                            booking.DatLichId, booking.NgayGioDat, booking.TrangThai ?? "null", booking.KhacHangId);
+                    }
+                }
+
+                // Lấy danh sách templates để giao bài
+                var templatesData = await _context.MauTapLuyens
+                    .Include(t => t.ChiTietMauTapLuyens)
+                    .Where(t => t.CongKhai == true || t.DaXacThuc == true || t.NguoiTao == ptId)
+                    .OrderByDescending(t => t.DiemTrungBinh ?? 0)
+                    .ThenByDescending(t => t.SoLanSuDung ?? 0)
+                    .ToListAsync();
+
+                var templates = templatesData.Select(t => new WorkoutTemplateViewModel
+                {
+                    TemplateId = t.MauTapLuyenId,
+                    Name = t.TenMauTapLuyen,
+                    Description = t.MoTa,
+                    Difficulty = t.DoKho ?? "Beginner",
+                    Weeks = t.SoTuan ?? 4,
+                    EstimatedCalories = t.CaloUocTinh ?? 0,
+                    Equipment = t.ThietBiCan,
+                    ExerciseCount = t.ChiTietMauTapLuyens != null ? t.ChiTietMauTapLuyens.Count : 0,
+                    Rating = t.DiemTrungBinh ?? 0,
+                    UsageCount = t.SoLanSuDung ?? 0,
+                    Goal = t.MucTieu
+                }).ToList();
+
+                // Lấy danh sách assignments cho các bookings này
+                var bookingIds = bookings.Select(b => b.DatLichId).ToList();
+                var assignments = await _context.GiaoBaiTapChoUsers
+                    .Include(g => g.MauTapLuyen)
+                    .Where(g => g.DatLichId != null && bookingIds.Contains(g.DatLichId) && g.TrangThai == "Active")
+                    .ToListAsync();
+
+                // Group assignments by DatLichId để hỗ trợ nhiều bài tập cho một booking
+                var assignmentDict = assignments
+                    .GroupBy(a => a.DatLichId!)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                // Lấy danh sách client IDs từ bookings
+                var clientIds = bookings.Select(b => b.KhacHangId).Distinct().ToList();
+                
+                // Lấy mục tiêu từ GhiChu của bookings (ưu tiên)
+                var goalFromBookingDict = new Dictionary<string, string>();
+                foreach (var booking in bookings)
+                {
+                    if (!string.IsNullOrWhiteSpace(booking.GhiChu))
+                    {
+                        var lines = booking.GhiChu.Split('\n');
+                        foreach (var line in lines)
+                        {
+                            if (line.Trim().StartsWith("Mục tiêu:"))
+                            {
+                                var goal = line.Replace("Mục tiêu:", "").Trim();
+                                if (!string.IsNullOrEmpty(goal) && !goalFromBookingDict.ContainsKey(booking.KhacHangId))
+                                {
+                                    goalFromBookingDict[booking.KhacHangId] = goal;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Lấy mục tiêu từ bảng MucTieu (fallback)
+                var goalFromMucTieuDict = new Dictionary<string, string>();
+                if (clientIds.Any())
+                {
+                    var mucTieuEntries = await _context.MucTieus
+                        .Where(m => clientIds.Contains(m.UserId))
+                        .OrderByDescending(m => m.NgayBatDau)
+                        .Select(m => new { m.UserId, m.LoaiMucTieu, m.NgayBatDau })
+                        .ToListAsync();
+
+                    goalFromMucTieuDict = mucTieuEntries
+                        .GroupBy(m => m.UserId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.OrderByDescending(x => x.NgayBatDau).First().LoaiMucTieu
+                        );
+                }
+
+                var bookingItems = bookings.Select(b =>
+                {
+                    DateTime startTime = b.NgayGioDat;
+                    DateTime endTime = b.NgayGioDat.AddHours(1); // Default 1 hour
+
+                    // Parse thời gian từ GhiChu
+                    if (!string.IsNullOrWhiteSpace(b.GhiChu))
+                    {
+                        // Lấy ngày của booking (chỉ phần date, không có time)
+                        var bookingDate = DateOnly.FromDateTime(b.NgayGioDat);
+                        
+                        // Tìm thời gian bắt đầu và kết thúc từ "Thời gian rảnh" trong GhiChu
+                        // Format: "Thời gian rảnh: - 20/11/2025 (Thursday): 10:43 - 12:30- 22/11/2025 (Saturday): 13:43 - 15:00"
+                        // Hoặc có thể có xuống dòng: "Thời gian rảnh:\n- 20/11/2025 (Thursday): 10:43 - 12:30"
+                        // Pattern linh hoạt hơn để match các format khác nhau
+                        var timeRangePattern = @"(?:Thời gian rảnh[:\s]*)?(?:-)?\s*(\d{1,2}/\d{1,2}/\d{4})\s*\([^)]+\)\s*:\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})";
+                        var timeMatches = System.Text.RegularExpressions.Regex.Matches(
+                            b.GhiChu,
+                            timeRangePattern,
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+                        
+                        _logger.LogInformation("Parsing GhiChu for booking {Id}, found {Count} time range matches", 
+                            b.DatLichId, timeMatches.Count);
+
+                        foreach (System.Text.RegularExpressions.Match match in timeMatches)
+                        {
+                            if (match.Groups.Count >= 4)
+                            {
+                                // Parse ngày từ match
+                                if (DateTime.TryParse(match.Groups[1].Value, out var matchedDate))
+                                {
+                                    var matchedDateOnly = DateOnly.FromDateTime(matchedDate);
+                                    
+                                    // Nếu ngày khớp với ngày của booking
+                                    if (matchedDateOnly == bookingDate)
+                                    {
+                                        // Parse thời gian bắt đầu và kết thúc
+                                        if (TimeSpan.TryParse(match.Groups[2].Value, out var startTimeSpan) &&
+                                            TimeSpan.TryParse(match.Groups[3].Value, out var endTimeSpan))
+                                        {
+                                            // Chuyển đổi TimeSpan sang TimeOnly
+                                            var startTimeOnly = TimeOnly.FromTimeSpan(startTimeSpan);
+                                            var endTimeOnly = TimeOnly.FromTimeSpan(endTimeSpan);
+                                            
+                                            // Tạo DateTime với ngày của booking và thời gian từ GhiChu
+                                            startTime = bookingDate.ToDateTime(startTimeOnly);
+                                            endTime = bookingDate.ToDateTime(endTimeOnly);
+                                            
+                                            // Đảm bảo endTime > startTime
+                                            if (endTime <= startTime)
+                                            {
+                                                endTime = startTime.AddHours(1);
+                                            }
+                                            
+                                            _logger.LogInformation("Parsed time from GhiChu for booking {Id}: {Start} - {End}", 
+                                                b.DatLichId, startTime, endTime);
+                                            break; // Đã tìm thấy, không cần tìm tiếp
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Nếu không tìm thấy thời gian từ "Thời gian rảnh", fallback về parse số giờ
+                        if (endTime == b.NgayGioDat.AddHours(1)) // Vẫn là default
+                        {
+                            var hoursMatch = System.Text.RegularExpressions.Regex.Match(
+                                b.GhiChu,
+                                @"Số giờ buổi này:\s*([\d.]+)\s*giờ",
+                                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (hoursMatch.Success && double.TryParse(hoursMatch.Groups[1].Value, out var parsedHours))
+                            {
+                                endTime = b.NgayGioDat.AddHours(parsedHours);
+                                _logger.LogInformation("Parsed hours from GhiChu for booking {Id}: {Hours} hours", 
+                                    b.DatLichId, parsedHours);
+                            }
+                        }
+                    }
+
+                    var assignmentsForBooking = assignmentDict.GetValueOrDefault(b.DatLichId) ?? new List<GiaoBaiTapChoUser>();
+                    var hasAssignedWorkout = assignmentsForBooking.Any();
+                    
+                    // Kết hợp tất cả tên bài tập đã giao
+                    string? assignedWorkoutName = null;
+                    if (assignmentsForBooking.Any())
+                    {
+                        var workoutNames = assignmentsForBooking
+                            .Where(a => a.MauTapLuyen != null && !string.IsNullOrEmpty(a.MauTapLuyen.TenMauTapLuyen))
+                            .Select(a => a.MauTapLuyen!.TenMauTapLuyen!)
+                            .Distinct()
+                            .ToList();
+                        
+                        if (workoutNames.Any())
+                        {
+                            assignedWorkoutName = string.Join(", ", workoutNames);
+                        }
+                    }
+
+                    // Lấy mục tiêu: ưu tiên từ GhiChu, nếu không có thì lấy từ MucTieu
+                    string? goal = null;
+                    if (goalFromBookingDict.TryGetValue(b.KhacHangId, out var bookingGoal))
+                    {
+                        goal = bookingGoal;
+                    }
+                    else if (goalFromMucTieuDict.TryGetValue(b.KhacHangId, out var mucTieuGoal))
+                    {
+                        goal = mucTieuGoal;
+                    }
+
+                    return new DailyBookingItemViewModel
+                    {
+                        BookingId = b.DatLichId,
+                        ClientId = b.KhacHangId,
+                        ClientName = b.KhacHang?.HoTen ?? b.KhacHang?.Username ?? "Khách hàng",
+                        StartTime = startTime,
+                        EndTime = endTime,
+                        Status = b.TrangThai ?? "Pending",
+                        Type = b.LoaiBuoiTap ?? "In-person",
+                        HasAssignedWorkout = hasAssignedWorkout,
+                        AssignedWorkoutId = assignmentsForBooking.FirstOrDefault()?.GiaBtId, // Lấy ID đầu tiên cho backward compatibility
+                        AssignedWorkoutName = assignedWorkoutName,
+                        Goal = goal
+                    };
+                }).ToList();
+
+                return new DailyBookingsViewModel
+                {
+                    SelectedDate = targetDate,
+                    Bookings = bookingItems ?? new List<DailyBookingItemViewModel>(),
+                    AvailableTemplates = templates ?? new List<WorkoutTemplateViewModel>()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting daily bookings for assignment: {Error}\nStackTrace: {StackTrace}", 
+                    ex.Message, ex.StackTrace);
+                return new DailyBookingsViewModel
+                {
+                    SelectedDate = date ?? DateOnly.FromDateTime(DateTime.Today),
+                    Bookings = new List<DailyBookingItemViewModel>(),
+                    AvailableTemplates = new List<WorkoutTemplateViewModel>()
+                };
+            }
+        }
+
+        public async Task<(bool success, string message)> AssignWorkoutToBookingAsync(string userId, string bookingId, int templateId)
+        {
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(userId);
+                if (trainer == null)
+                {
+                    return (false, "Không tìm thấy thông tin PT");
+                }
+
+                var ptId = trainer.Ptid;
+
+                // Kiểm tra booking có thuộc PT này không
+                var booking = await _context.DatLichPts
+                    .Include(b => b.KhacHang)
+                    .FirstOrDefaultAsync(b => b.DatLichId == bookingId && b.Ptid == ptId);
+
+                if (booking == null)
+                {
+                    return (false, "Không tìm thấy lịch hẹn");
+                }
+
+                // Kiểm tra template có tồn tại không
+                var template = await _context.MauTapLuyens
+                    .Include(t => t.ChiTietMauTapLuyens)
+                    .FirstOrDefaultAsync(t => t.MauTapLuyenId == templateId);
+
+                if (template == null)
+                {
+                    return (false, "Không tìm thấy template bài tập");
+                }
+
+                // Kiểm tra xem đã có bài tập được giao chưa
+                var existingAssignment = await _context.GiaoBaiTapChoUsers
+                    .Include(g => g.MauTapLuyen)
+                    .FirstOrDefaultAsync(g => g.DatLichId == bookingId && g.TrangThai == "Active");
+
+                if (existingAssignment != null)
+                {
+                    // Cập nhật assignment hiện tại
+                    existingAssignment.MauTapLuyenId = templateId;
+                    existingAssignment.NgayGiao = DateTime.Now;
+                }
+                else
+                {
+                    // Tạo assignment mới
+                    var assignment = new GiaoBaiTapChoUser
+                    {
+                        UserId = booking.KhacHangId,
+                        MauTapLuyenId = templateId,
+                        NguoiGiao = ptId,
+                        NgayBatDau = DateOnly.FromDateTime(booking.NgayGioDat),
+                        NgayKetThuc = DateOnly.FromDateTime(booking.NgayGioDat).AddDays(template.SoTuan ?? 7 * 7), // Mặc định 7 tuần
+                        TuanHienTai = 1,
+                        TiLeHoanThanh = 0,
+                        TrangThai = "Active",
+                        NgayGiao = DateTime.Now,
+                        DatLichId = bookingId
+                    };
+
+                    _context.GiaoBaiTapChoUsers.Add(assignment);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Tạo thông báo cho client
+                var notification = new ThongBao
+                {
+                    UserId = booking.KhacHangId,
+                    NoiDung = $"PT đã giao bài tập '{template.TenMauTapLuyen}' cho buổi tập ngày {booking.NgayGioDat:dd/MM/yyyy HH:mm}",
+                    Loai = "PT",
+                    MaLienQuan = null,
+                    DaDoc = false,
+                    NgayTao = DateTime.Now
+                };
+                _context.ThongBaos.Add(notification);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Workout template {TemplateId} assigned to booking {BookingId} by PT {PtId}", templateId, bookingId, ptId);
+
+                return (true, $"Đã giao bài tập '{template.TenMauTapLuyen}' cho khách hàng");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning workout to booking {BookingId}", bookingId);
+                return (false, "Có lỗi xảy ra khi giao bài tập");
+            }
+        }
+
+        public async Task<(bool success, string message)> AssignWorkoutsToBookingAsync(string userId, string bookingId, List<int> templateIds, Dictionary<int, (int? sets, int? reps, int? restTime)>? templateDetails = null)
+        {
+            try
+            {
+                var trainer = await GetCurrentTrainerAsync(userId);
+                if (trainer == null)
+                {
+                    return (false, "Không tìm thấy thông tin PT");
+                }
+
+                var ptId = trainer.Ptid;
+
+                // Kiểm tra booking có thuộc PT này không
+                var booking = await _context.DatLichPts
+                    .Include(b => b.KhacHang)
+                    .FirstOrDefaultAsync(b => b.DatLichId == bookingId && b.Ptid == ptId);
+
+                if (booking == null)
+                {
+                    return (false, "Không tìm thấy lịch hẹn");
+                }
+
+                if (templateIds == null || templateIds.Count == 0)
+                {
+                    return (false, "Vui lòng chọn ít nhất một bài tập");
+                }
+
+                // Kiểm tra tất cả templates có tồn tại không
+                var templates = await _context.MauTapLuyens
+                    .Where(t => templateIds.Contains(t.MauTapLuyenId))
+                    .ToListAsync();
+
+                if (templates.Count != templateIds.Count)
+                {
+                    return (false, "Một số bài tập không tồn tại");
+                }
+
+                // Xóa các assignments cũ cho booking này (nếu có)
+                var existingAssignments = await _context.GiaoBaiTapChoUsers
+                    .Where(g => g.DatLichId == bookingId && g.TrangThai == "Active")
+                    .ToListAsync();
+
+                foreach (var existing in existingAssignments)
+                {
+                    existing.TrangThai = "Cancelled";
+                }
+
+                // Tạo assignments mới cho mỗi template
+                var assignedNames = new List<string>();
+                foreach (var template in templates)
+                {
+                    // Get template details if available
+                    var details = templateDetails?.GetValueOrDefault(template.MauTapLuyenId);
+                    
+                    var assignment = new GiaoBaiTapChoUser
+                    {
+                        UserId = booking.KhacHangId,
+                        MauTapLuyenId = template.MauTapLuyenId,
+                        NguoiGiao = ptId,
+                        NgayBatDau = DateOnly.FromDateTime(booking.NgayGioDat),
+                        NgayKetThuc = DateOnly.FromDateTime(booking.NgayGioDat).AddDays(template.SoTuan ?? 7 * 7),
+                        TuanHienTai = 1,
+                        TiLeHoanThanh = 0,
+                        TrangThai = "Active",
+                        NgayGiao = DateTime.Now,
+                        DatLichId = bookingId
+                    };
+
+                    _context.GiaoBaiTapChoUsers.Add(assignment);
+                    
+                    // Build assignment name with details if available
+                    var templateName = template.TenMauTapLuyen ?? "N/A";
+                    if (details.HasValue && (details.Value.sets.HasValue || details.Value.reps.HasValue || details.Value.restTime.HasValue))
+                    {
+                        var detailParts = new List<string>();
+                        if (details.Value.sets.HasValue) detailParts.Add($"{details.Value.sets} sets");
+                        if (details.Value.reps.HasValue) detailParts.Add($"{details.Value.reps} reps");
+                        if (details.Value.restTime.HasValue) detailParts.Add($"{details.Value.restTime}s rest");
+                        if (detailParts.Any())
+                        {
+                            templateName += $" ({string.Join(", ", detailParts)})";
+                        }
+                    }
+                    assignedNames.Add(templateName);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Tạo thông báo cho client
+                var templateNames = string.Join(", ", assignedNames);
+                var notification = new ThongBao
+                {
+                    UserId = booking.KhacHangId,
+                    NoiDung = $"PT đã giao {assignedNames.Count} bài tập ({templateNames}) cho buổi tập ngày {booking.NgayGioDat:dd/MM/yyyy HH:mm}",
+                    Loai = "PT",
+                    MaLienQuan = null,
+                    DaDoc = false,
+                    NgayTao = DateTime.Now
+                };
+                _context.ThongBaos.Add(notification);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Workout templates {TemplateIds} assigned to booking {BookingId} by PT {PtId}", 
+                    string.Join(", ", templateIds), bookingId, ptId);
+
+                var message = assignedNames.Count == 1 
+                    ? $"Đã giao bài tập '{assignedNames[0]}' cho khách hàng"
+                    : $"Đã giao {assignedNames.Count} bài tập cho khách hàng";
+
+                return (true, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning workouts to booking {BookingId}", bookingId);
+                return (false, "Có lỗi xảy ra khi giao bài tập");
+            }
+        }
     }
 
     // View Models (moved from controller)
@@ -2569,6 +3375,7 @@ namespace HealthWeb.Services
         public string Status { get; set; } = null!;
         public string Type { get; set; } = null!;
         public string? Notes { get; set; }
+        public bool HasConflict { get; set; } = false; // Có trùng lịch với booking khác
     }
 
     public class SettingsViewModel
@@ -2695,6 +3502,28 @@ namespace HealthWeb.Services
         public int DurationPerSession { get; set; }
         public DateTime CreatedDate { get; set; }
         public List<ExerciseViewModel> Exercises { get; set; } = new();
+    }
+
+    public class DailyBookingsViewModel
+    {
+        public DateOnly SelectedDate { get; set; }
+        public List<DailyBookingItemViewModel> Bookings { get; set; } = new();
+        public List<WorkoutTemplateViewModel> AvailableTemplates { get; set; } = new();
+    }
+
+    public class DailyBookingItemViewModel
+    {
+        public string BookingId { get; set; } = null!;
+        public string ClientId { get; set; } = null!;
+        public string ClientName { get; set; } = null!;
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Status { get; set; } = null!;
+        public string Type { get; set; } = null!;
+        public bool HasAssignedWorkout { get; set; }
+        public int? AssignedWorkoutId { get; set; }
+        public string? AssignedWorkoutName { get; set; }
+        public string? Goal { get; set; } // Mục tiêu của user
     }
 }
 

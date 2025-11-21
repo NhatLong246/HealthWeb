@@ -533,7 +533,7 @@ namespace HealthWeb.Controllers
                     {
                         Date = g.Key.ToString("yyyy-MM-dd"),
                         Calories = g.Sum(x => x.MonAn != null 
-                            ? ((x.MonAn.LuongCalo ?? 0) * (x.LuongThucAn ?? 0) / 100.0)
+                            ? HealthWeb.Helpers.NutritionCalculationHelper.CalculateNutritionValue(x.MonAn.LuongCalo, x.LuongThucAn, x.MonAn.DonViTinh)
                             : 0)
                     })
                     .ToListAsync();
@@ -630,16 +630,17 @@ namespace HealthWeb.Controllers
                 }
 
                 // Thực tế: Tính từ nhật ký dinh dưỡng
-                var actualMacros = await _context.NhatKyDinhDuongs
+                var actualMacrosData = await _context.NhatKyDinhDuongs
                     .Where(x => x.UserId == userId && x.NgayGhiLog >= startDate)
                     .Include(x => x.MonAn)
-                    .Select(x => new
-                    {
-                        Protein = (x.MonAn.Protein ?? 0) * (x.LuongThucAn ?? 0) / 100,
-                        Carbs = (x.MonAn.Carbohydrate ?? 0) * (x.LuongThucAn ?? 0) / 100,
-                        Fat = (x.MonAn.ChatBeo ?? 0) * (x.LuongThucAn ?? 0) / 100
-                    })
                     .ToListAsync();
+                
+                var actualMacros = actualMacrosData.Select(x => new
+                {
+                    Protein = HealthWeb.Helpers.NutritionCalculationHelper.CalculateNutritionValue(x.MonAn?.Protein, x.LuongThucAn, x.MonAn?.DonViTinh),
+                    Carbs = HealthWeb.Helpers.NutritionCalculationHelper.CalculateNutritionValue(x.MonAn?.Carbohydrate, x.LuongThucAn, x.MonAn?.DonViTinh),
+                    Fat = HealthWeb.Helpers.NutritionCalculationHelper.CalculateNutritionValue(x.MonAn?.ChatBeo, x.LuongThucAn, x.MonAn?.DonViTinh)
+                }).ToList();
 
                 var totalProtein = actualMacros.Sum(x => x.Protein);
                 var totalCarbs = actualMacros.Sum(x => x.Carbs);

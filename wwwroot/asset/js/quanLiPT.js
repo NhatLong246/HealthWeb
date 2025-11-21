@@ -468,6 +468,12 @@ async function viewPTProfile360(ptid) {
         document.getElementById('pt-detail-success-rate').textContent = (pt.successRate || 0).toFixed(1);
         
         // Document links - show/hide based on availability
+        // Support both PascalCase (from API) and camelCase (fallback)
+        const avatarUrl = pt.AvatarUrl ?? pt.avatarUrl;
+        const cccdUrl = pt.CCCDUrl ?? pt.cccdUrl;
+        const portraitUrl = pt.PortraitUrl ?? pt.portraitUrl;
+        const documentUrl = pt.DocumentUrl ?? pt.documentUrl;
+        
         const avatarLink = document.getElementById('pt-detail-avatar-link');
         const avatarNone = document.getElementById('pt-detail-avatar-none');
         const cccdLink = document.getElementById('pt-detail-cccd-link');
@@ -478,8 +484,8 @@ async function viewPTProfile360(ptid) {
         const documentNone = document.getElementById('pt-detail-document-none');
         
         if (avatarLink && avatarNone) {
-            if (pt.avatarUrl) {
-                avatarLink.href = pt.avatarUrl;
+            if (avatarUrl) {
+                avatarLink.href = avatarUrl;
                 avatarLink.style.display = 'inline-flex';
                 avatarNone.style.display = 'none';
             } else {
@@ -488,8 +494,8 @@ async function viewPTProfile360(ptid) {
             }
         }
         if (cccdLink && cccdNone) {
-            if (pt.cccdUrl) {
-                cccdLink.href = pt.cccdUrl;
+            if (cccdUrl) {
+                cccdLink.href = cccdUrl;
                 cccdLink.style.display = 'inline-flex';
                 cccdNone.style.display = 'none';
             } else {
@@ -498,8 +504,8 @@ async function viewPTProfile360(ptid) {
             }
         }
         if (portraitLink && portraitNone) {
-            if (pt.portraitUrl) {
-                portraitLink.href = pt.portraitUrl;
+            if (portraitUrl) {
+                portraitLink.href = portraitUrl;
                 portraitLink.style.display = 'inline-flex';
                 portraitNone.style.display = 'none';
             } else {
@@ -508,8 +514,8 @@ async function viewPTProfile360(ptid) {
             }
         }
         if (documentLink && documentNone) {
-            if (pt.documentUrl) {
-                documentLink.href = pt.documentUrl;
+            if (documentUrl) {
+                documentLink.href = documentUrl;
                 documentLink.style.display = 'inline-flex';
                 documentNone.style.display = 'none';
             } else {
@@ -906,7 +912,6 @@ function renderPTScheduleList(filtered) {
                         <div class="schedule-card-date-time">
                             <span><i class="fas fa-calendar-alt"></i> ${dateTime.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                             <span><i class="fas fa-clock"></i> ${dateTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                            <span><i class="fas fa-hourglass-half"></i> ${session.duration} phút</span>
                         </div>
                         <div class="schedule-card-meta">
                             <div class="schedule-card-meta-item">

@@ -4,7 +4,7 @@
  */
 
 // Tạo dialog HTML
-function createDialogHTML(title, message, type = 'info', showCancel = false) {
+function createDialogHTML(title, message, type = 'info', showCancel = false, allowHtml = false) {
     const icons = {
         info: '<i class="fas fa-info-circle"></i>',
         success: '<i class="fas fa-check-circle"></i>',
@@ -14,6 +14,7 @@ function createDialogHTML(title, message, type = 'info', showCancel = false) {
     };
     
     const icon = icons[type] || icons.info;
+    const messageContent = allowHtml ? message : escapeHtml(message);
     
     return `
         <div class="dialog-overlay" id="customDialogOverlay">
@@ -25,7 +26,7 @@ function createDialogHTML(title, message, type = 'info', showCancel = false) {
                     <div class="dialog-title">${escapeHtml(title)}</div>
                 </div>
                 <div class="dialog-body">
-                    ${escapeHtml(message)}
+                    ${messageContent}
                 </div>
                 <div class="dialog-footer">
                     ${showCancel ? `
@@ -55,7 +56,7 @@ function escapeHtml(text) {
 }
 
 // Hiển thị dialog
-function showDialog(title, message, type = 'info', showCancel = false) {
+function showDialog(title, message, type = 'info', showCancel = false, allowHtml = false) {
     return new Promise((resolve) => {
         // Xóa dialog cũ nếu có
         const oldDialog = document.getElementById('customDialogOverlay');
@@ -64,7 +65,7 @@ function showDialog(title, message, type = 'info', showCancel = false) {
         }
         
         // Tạo dialog mới
-        const dialogHTML = createDialogHTML(title, message, type, showCancel);
+        const dialogHTML = createDialogHTML(title, message, type, showCancel, allowHtml);
         document.body.insertAdjacentHTML('beforeend', dialogHTML);
         
         const overlay = document.getElementById('customDialogOverlay');
@@ -142,14 +143,136 @@ function closeDialog() {
 }
 
 // Thay thế alert()
-window.customAlert = function(message, title = 'Thông báo', type = 'info') {
-    return showDialog(title, message, type, false);
+window.customAlert = function(message, title = 'Thông báo', type = 'info', allowHtml = false) {
+    return showDialog(title, message, type, false, allowHtml);
 };
 
 // Thay thế confirm()
-window.customConfirm = function(message, title = 'Xác nhận', type = 'question') {
-    return showDialog(title, message, type, true);
+window.customConfirm = function(message, title = 'Xác nhận', type = 'question', allowHtml = false) {
+    return showDialog(title, message, type, true, allowHtml);
 };
+
+// Thay thế prompt() - Custom prompt với input field
+window.customPrompt = function(message, title = 'Nhập thông tin', placeholder = '', defaultValue = '') {
+    return new Promise((resolve) => {
+        // Xóa dialog cũ nếu có
+        const oldDialog = document.getElementById('customPromptOverlay');
+        if (oldDialog) {
+            oldDialog.remove();
+        }
+        
+        // Tạo dialog HTML với input field
+        const promptHTML = `
+            <div class="dialog-overlay" id="customPromptOverlay">
+                <div class="dialog-container" id="customPromptContainer">
+                    <div class="dialog-header">
+                        <div class="dialog-icon question">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <div class="dialog-title">${escapeHtml(title)}</div>
+                    </div>
+                    <div class="dialog-body">
+                        <p style="margin-bottom: 15px;">${escapeHtml(message)}</p>
+                        <textarea 
+                            id="customPromptInput" 
+                            class="dialog-input" 
+                            placeholder="${escapeHtml(placeholder)}"
+                            rows="4"
+                        >${escapeHtml(defaultValue)}</textarea>
+                    </div>
+                    <div class="dialog-footer">
+                        <button class="dialog-btn dialog-btn-secondary" id="promptCancelBtn">
+                            <i class="fas fa-times"></i> Hủy
+                        </button>
+                        <button class="dialog-btn dialog-btn-primary" id="promptConfirmBtn">
+                            <i class="fas fa-check"></i> Xác nhận
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
+        
+        const overlay = document.getElementById('customPromptOverlay');
+        const container = document.getElementById('customPromptContainer');
+        const input = document.getElementById('customPromptInput');
+        const confirmBtn = document.getElementById('promptConfirmBtn');
+        const cancelBtn = document.getElementById('promptCancelBtn');
+        
+        // Focus vào input
+        setTimeout(() => {
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 100);
+        
+        // Xử lý nút Xác nhận
+        const handleConfirm = () => {
+            const value = input ? input.value.trim() : '';
+            closePromptDialog();
+            resolve(value);
+        };
+        
+        // Xử lý nút Hủy
+        const handleCancel = () => {
+            closePromptDialog();
+            resolve(null);
+        };
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', handleConfirm);
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', handleCancel);
+        }
+        
+        // Đóng khi click vào overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                handleCancel();
+            }
+        });
+        
+        // Xử lý Enter và ESC
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleConfirm();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancel();
+            }
+        };
+        
+        if (input) {
+            input.addEventListener('keydown', handleKeyDown);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        });
+    });
+};
+
+// Đóng prompt dialog
+function closePromptDialog() {
+    const overlay = document.getElementById('customPromptOverlay');
+    const container = document.getElementById('customPromptContainer');
+    
+    if (overlay && container) {
+        overlay.classList.add('closing');
+        container.classList.add('closing');
+        
+        setTimeout(() => {
+            overlay.remove();
+        }, 200);
+    }
+}
 
 // Override alert và confirm mặc định (chỉ khi cần thiết)
 // Lưu ý: window.alert và window.confirm mặc định không trả về Promise
@@ -157,6 +280,6 @@ window.customConfirm = function(message, title = 'Xác nhận', type = 'question
 
 // Export functions
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { showDialog, customAlert, customConfirm };
+    module.exports = { showDialog, customAlert, customConfirm, customPrompt };
 }
 

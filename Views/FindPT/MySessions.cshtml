@@ -1,0 +1,177 @@
+@{
+    ViewData["Title"] = "Buổi tập của tôi - HealthWeb";
+    Layout = "_Layout";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="~/css/findpt/findpt.css">
+<link rel="stylesheet" href="~/css/findpt/mysessions.css">
+
+<div class="find-pt-container">
+    <div class="find-pt-header">
+        <h1><i class="fas fa-dumbbell"></i> Buổi tập của tôi</h1>
+        <p>Xem các buổi tập đã được xác nhận và bài tập PT đã giao cho bạn</p>
+    </div>
+
+    <div id="sessionsList" class="sessions-list-container">
+        <div style="text-align: center; padding: 3rem;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #4ade80; margin-bottom: 1rem;"></i>
+            <p>Đang tải danh sách buổi tập...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadMySessions();
+    });
+
+    async function loadMySessions() {
+        const container = document.getElementById('sessionsList');
+        
+        try {
+            const response = await fetch('/FindPT/MySessions/Data');
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có buổi tập nào</h3>
+                        <p>Bạn chưa có buổi tập nào đã được xác nhận. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sessions = result.data;
+            
+            if (sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Không có buổi tập nào</h3>
+                        <p>Bạn chưa có buổi tập nào đã được xác nhận. <a href="/FindPT">Tìm PT ngay</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = sessions.map(session => {
+                const dateTime = new Date(session.sessionDate);
+                const formattedDate = dateTime.toLocaleDateString('vi-VN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let exercisesHtml = '';
+                
+                if (session.hasExercises && session.exercises && session.exercises.length > 0) {
+                    exercisesHtml = `
+                        <div class="exercise-plan-section">
+                            <div class="exercise-plan-header">
+                                <h4><i class="fas fa-clipboard-list"></i> Kế hoạch bài tập: ${escapeHtml(session.exercisePlanName || 'N/A')}</h4>
+                                ${session.exercisePlanDescription ? `<p class="exercise-plan-description">${escapeHtml(session.exercisePlanDescription)}</p>` : ''}
+                                ${session.assignedDate ? `<p class="exercise-assigned-date"><i class="fas fa-calendar-check"></i> Đã giao: ${new Date(session.assignedDate).toLocaleDateString('vi-VN')}</p>` : ''}
+                            </div>
+                            <div class="exercises-list">
+                                ${session.exercises.map((exercise, index) => {
+                                    let exerciseDetails = [];
+                                    if (exercise.sets) exerciseDetails.push(`${exercise.sets} sets`);
+                                    if (exercise.reps) exerciseDetails.push(`${exercise.reps} reps`);
+                                    if (exercise.duration) exerciseDetails.push(`${exercise.duration} phút`);
+                                    if (exercise.restTime) exerciseDetails.push(`Nghỉ ${exercise.restTime}s`);
+                                    
+                                    return `
+                                        <div class="exercise-item">
+                                            <div class="exercise-number">${index + 1}</div>
+                                            <div class="exercise-content">
+                                                <h5>${escapeHtml(exercise.exerciseName || 'N/A')}</h5>
+                                                ${exerciseDetails.length > 0 ? `
+                                                    <div class="exercise-details">
+                                                        ${exerciseDetails.join(' • ')}
+                                                    </div>
+                                                ` : ''}
+                                                ${exercise.notes ? `
+                                                    <div class="exercise-notes">
+                                                        <i class="fas fa-sticky-note"></i> ${escapeHtml(exercise.notes)}
+                                                    </div>
+                                                ` : ''}
+                                                ${exercise.videoUrl ? `
+                                                    <a href="${escapeHtml(exercise.videoUrl)}" target="_blank" class="exercise-video-link">
+                                                        <i class="fas fa-video"></i> Xem video hướng dẫn
+                                                    </a>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    exercisesHtml = `
+                        <div class="no-exercises-section">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>PT chưa giao bài tập cho buổi này</p>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-pt-info">
+                                <div class="pt-avatar">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="pt-details">
+                                    <h3>${escapeHtml(session.ptName || 'N/A')}</h3>
+                                    <p>@@${escapeHtml(session.ptUsername || 'N/A')}</p>
+                                </div>
+                            </div>
+                            <div class="session-date-badge">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate}</span>
+                            </div>
+                        </div>
+                        <div class="session-details">
+                            <div class="detail-item">
+                                <i class="fas fa-dumbbell"></i>
+                                <span>Loại buổi: ${escapeHtml(session.sessionType || '1-on-1')}</span>
+                            </div>
+                        </div>
+                        ${session.notes ? `
+                            <div class="session-notes">
+                                <strong><i class="fas fa-sticky-note"></i> Ghi chú:</strong>
+                                <p>${escapeHtml(session.notes)}</p>
+                            </div>
+                        ` : ''}
+                        ${exercisesHtml}
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Lỗi khi tải danh sách</h3>
+                    <p>Vui lòng thử lại sau</p>
+                </div>
+            `;
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+
