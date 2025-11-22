@@ -4245,6 +4245,11 @@ function showMoveExerciseModal(exerciseName, currentDayDate, currentSessionTime)
     // Lấy danh sách ngày không thể tập
     const blockedDates = getBlockedDates();
     
+    // Lấy ngày hôm nay (chỉ ngày, không có giờ) để so sánh
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDateStr = formatDateForComparison(today);
+    
     // Tạo danh sách các ngày có thể di chuyển đến
     // Tìm tất cả các ngày có schedule trong tất cả các tuần, kể cả những ngày chưa có bài tập
     const availableDays = [];
@@ -4259,6 +4264,10 @@ function showMoveExerciseModal(exerciseName, currentDayDate, currentSessionTime)
             
             const dayDateStr = formatDateForComparison(currentDate);
             if (dayDateStr === currentDayDate) continue; // Bỏ qua ngày hiện tại
+            
+            // QUAN TRỌNG: Kiểm tra xem ngày này có phải là ngày quá khứ không
+            // Chỉ cho phép di chuyển đến ngày hôm nay hoặc tương lai
+            if (dayDateStr < todayDateStr) continue; // Bỏ qua ngày quá khứ
             
             // Kiểm tra xem ngày này có bị chặn không
             if (isDateBlocked(currentDate, blockedDates)) continue;
@@ -4439,6 +4448,28 @@ function showMoveExerciseModal(exerciseName, currentDayDate, currentSessionTime)
 function moveExercise(fromWeekIdx, fromDayIdx, fromSessionIdx, fromExerciseIdx,
                       toWeekIdx, toDayIdx, toSessionIdx, dayOption = null) {
     if (!previewScheduleData) return;
+    
+    // QUAN TRỌNG: Kiểm tra ngày đích có phải là ngày quá khứ không
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDateStr = formatDateForComparison(today);
+    
+    // Lấy ngày đích từ dayOption hoặc từ previewScheduleData
+    let targetDate = null;
+    if (dayOption && dayOption.date) {
+        targetDate = new Date(dayOption.date);
+    } else if (toWeekIdx >= 0 && toDayIdx >= 0 && previewScheduleData[toWeekIdx] && previewScheduleData[toWeekIdx].days[toDayIdx]) {
+        targetDate = new Date(previewScheduleData[toWeekIdx].days[toDayIdx].date);
+    }
+    
+    if (targetDate) {
+        targetDate.setHours(0, 0, 0, 0);
+        const targetDateStr = formatDateForComparison(targetDate);
+        if (targetDateStr < todayDateStr) {
+            alert('Không thể di chuyển bài tập đến ngày quá khứ. Vui lòng chọn ngày hôm nay hoặc ngày trong tương lai.');
+            return;
+        }
+    }
     
     // Lấy bài tập cần di chuyển
     const exercise = previewScheduleData[fromWeekIdx].days[fromDayIdx]

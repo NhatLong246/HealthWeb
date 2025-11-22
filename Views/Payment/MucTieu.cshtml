@@ -1,0 +1,529 @@
+﻿@{
+	Layout = "_Layout";
+	ViewData["Title"] = "Mục tiêu luyện tập";
+}
+
+@section Styles {
+	<link rel="stylesheet" type="text/css" href="~/asset/css/mucTieu.css" asp-append-version="true">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+}
+
+<section class="muc-tieu-section">
+	<div class="muc-tieu-container">
+		<div class="muc-tieu-header">
+			<div class="header-content-wrapper">
+				<div class="header-text">
+					<h1 class="section-title">
+						<i class="fas fa-bullseye"></i>
+						Mục Tiêu Luyện Tập
+					</h1>
+					<p class="subtitle">Chọn mục tiêu, chọn nhiều bài tập và sắp xếp lịch tập luyện phù hợp</p>
+				</div>
+				<div class="header-actions">
+					<button class="btn-map" id="openGymMap">
+						<i class="fas fa-map-marker-alt"></i>
+						<span>GYM Map</span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Inline expandable map at top -->
+		<section id="gymMapWrapper" class="gym-map-wrapper" hidden>
+			<div id="gymMap"></div>
+		</section>
+
+		<main class="screen" id="screenSetup" style="display: block;">
+			<section class="card-group">
+				<div class="group-header">
+					<span class="group-icon"><i class="fas fa-list-check"></i></span>
+					<h2>Danh Sách Mục Tiêu</h2>
+				</div>
+				<div class="row-list" id="list-exercises">
+					<div class="goal-item selectable" data-group="goal" data-value="giam-can" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-fire"></i></div>
+						<span>Giảm Cân</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-tay" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-hand-fist"></i></div>
+						<span>Cơ Tay</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-bung" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-dumbbell"></i></div>
+						<span>Cơ Bụng</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-chan" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-walking"></i></div>
+						<span>Cơ Chân</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-dui" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-running"></i></div>
+						<span>Cơ Đùi</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-mong" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-dumbbell"></i></div>
+						<span>Cơ Mông</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-nguc" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-heart"></i></div>
+						<span>Cơ Ngực</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-vai" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-dumbbell"></i></div>
+						<span>Cơ Vai</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-xo" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-dumbbell"></i></div>
+						<span>Cơ Xô</span>
+					</div>
+					<div class="goal-item selectable" data-group="goal" data-value="co-co" role="button" tabindex="0">
+						<div class="goal-icon"><i class="fas fa-head-side-virus"></i></div>
+						<span>Cơ Cổ</span>
+					</div>
+				</div>
+			</section>
+
+			<section class="card-group">
+				<div class="group-header">
+					<span class="group-icon"><i class="fas fa-chart-line"></i></span>
+					<h2>Trình Độ Hiện Tại Với Bài Tập</h2>
+				</div>
+				<div class="row-list">
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Beginner">
+						<div class="chip-content">
+							<i class="fas fa-seedling"></i>
+							<span>Người Mới</span>
+						</div>
+					</div>
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Intermediate">
+						<div class="chip-content">
+							<i class="fas fa-chart-line"></i>
+							<span>Trung Bình</span>
+						</div>
+					</div>
+					<div class="chip selectable" role="button" tabindex="0" data-group="level" data-value="Advanced">
+						<div class="chip-content">
+							<i class="fas fa-trophy"></i>
+							<span>Nâng Cao</span>
+						</div>
+					</div>
+				</div>
+			</section>
+
+
+			<div class="summary-layout">
+				<div class="col-left">
+					<section class="card-group">
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-list-check"></i></span>
+							<h2>Danh Sách Các Bài Tập Được Đề Xuất</h2>
+							<div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+								<span id="selectedCountBadge" style="display: none; background: linear-gradient(135deg, #4ade80, #22d3ee); color: #fff; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; font-weight: 600;">
+									Đã chọn: <span id="selectedCount">0</span> bài tập
+								</span>
+							</div>
+						</div>
+						<div class="row-list" id="suggestedExercisesList">
+							<div class="no-data-message" style="width: 100%; text-align: center; padding: 2rem; color: #cbd5e1;">
+								<i class="fas fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+								<p>Vui lòng chọn một mục tiêu và trình độ để xem các bài tập được đề xuất</p>
+								<p style="font-size: 0.875rem; margin-top: 0.5rem; opacity: 0.7;">Bạn có thể chọn nhiều bài tập trước khi lên lịch</p>
+							</div>
+						</div>
+					</section>
+
+					<!-- Xếp Lịch Cho Bạn - Đặt sau Danh Sách Các Bài Tập Được Đề Xuất -->
+					<section class="card-group">
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-calendar-alt"></i></span>
+							<h2>Xếp Lịch Cho Bạn</h2>
+						</div>
+						<div class="schedule">
+							<div class="schedule-col">
+								<h3>Buổi Tập</h3>
+								<div class="session-grid">
+									<div class="grid-head">Thứ</div>
+									<div class="grid-head">Buổi</div>
+									<div class="grid-head">Bắt đầu</div>
+									<div class="grid-head">Kết thúc</div>
+									<div class="grid-head">Thao tác</div>
+
+									<div class="grid-row">
+										<button class="pill schedule-picker" data-type="day">Thứ 2</button>
+										<button class="pill schedule-picker" data-type="session">Sáng</button>
+										<button class="pill schedule-picker" data-type="time-start">07:00</button>
+										<button class="pill schedule-picker" data-type="time-end">11:00</button>
+										<button class="btn-delete-session" title="Xóa buổi tập">
+											<i class="fas fa-trash"></i>
+										</button>
+									</div>
+								</div>
+								<div class="session-actions"><button class="btn add-row" id="addSession">Thêm</button></div>
+							</div>
+							<div class="schedule-col" style="margin-top: 1.5rem;">
+								<h3>Ngày Không Thể Tập</h3>
+								<div style="display: flex; flex-direction: column; gap: 1rem;">
+									<div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+										<label class="holiday-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #cbd5e1; transition: all 0.2s ease;">
+											<input type="checkbox" class="holiday-checkbox" data-holiday="tet" style="cursor: pointer; width: 18px; height: 18px; accent-color: #3b82f6;">
+											<span>Tết Nguyên Đán</span>
+										</label>
+										<label class="holiday-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #cbd5e1; transition: all 0.2s ease;">
+											<input type="checkbox" class="holiday-checkbox" data-holiday="giang-sinh" style="cursor: pointer; width: 18px; height: 18px; accent-color: #3b82f6;">
+											<span>Giáng Sinh</span>
+										</label>
+										<label class="holiday-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #cbd5e1; transition: all 0.2s ease;">
+											<input type="checkbox" class="holiday-checkbox" data-holiday="quoc-khanh" style="cursor: pointer; width: 18px; height: 18px; accent-color: #3b82f6;">
+											<span>Quốc Khánh</span>
+										</label>
+										<label class="holiday-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #cbd5e1; transition: all 0.2s ease;">
+											<input type="checkbox" class="holiday-checkbox" data-holiday="le-lao-dong" style="cursor: pointer; width: 18px; height: 18px; accent-color: #3b82f6;">
+											<span>Lễ Lao Động</span>
+										</label>
+									</div>
+									<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+										<label style="color: #cbd5e1; font-size: 0.875rem; font-weight: 500;">Chọn ngày cụ thể:</label>
+										<input type="date" id="customHolidayDate" style="padding: 0.5rem 1rem; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #cbd5e1; font-size: 0.875rem;">
+										<button type="button" id="addCustomHoliday" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); align-self: flex-start;">
+											<i class="fas fa-plus"></i> Thêm ngày
+										</button>
+									</div>
+									<div id="customHolidaysList" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+										<!-- Danh sách ngày tùy chỉnh sẽ được thêm vào đây -->
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<!-- Lịch luyện tập dự kiến -->
+					<section class="card-group" id="previewScheduleSection">
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-calendar-check"></i></span>
+							<h2>Lịch Luyện Tập Dự Kiến</h2>
+						</div>
+						<div id="previewScheduleContent">
+							<div id="previewScheduleEmpty" style="text-align: center; padding: 2rem; color: #cbd5e1;">
+								<i class="fas fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+								<p>Vui lòng chọn bài tập và xếp lịch để xem lịch luyện tập dự kiến</p>
+							</div>
+							<div id="previewScheduleActions" style="display: none; text-align: center; padding: 1rem;">
+								<button class="btn start-orange" id="btnCreateSchedule" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+									<i class="fas fa-calendar-plus"></i> Tạo lịch
+								</button>
+							</div>
+							<div id="previewScheduleOptions" style="display: none; text-align: center; padding: 1rem; gap: 1rem; flex-direction: column;">
+								<p style="margin-bottom: 1rem; color: #cbd5e1; font-weight: 600;">Chọn thời điểm bắt đầu:</p>
+								<div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+									<button class="btn" id="btnStartThisWeek" style="padding: 0.75rem 1.5rem; font-size: 1rem; background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3);">
+										<i class="fas fa-calendar-day"></i> Bắt đầu trong tuần này
+									</button>
+									<button class="btn" id="btnStartNextWeek" style="padding: 0.75rem 1.5rem; font-size: 1rem; background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
+										<i class="fas fa-calendar-week"></i> Bắt đầu vào tuần sau
+									</button>
+								</div>
+								<div style="margin-top: 1rem;">
+									<button class="btn" id="btnBackToCreate" style="padding: 0.75rem 1.5rem; font-size: 1rem; background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);">
+										<i class="fas fa-arrow-left"></i> Quay lại
+									</button>
+								</div>
+							</div>
+							<div id="previewScheduleCalendar" style="display: none; margin-top: 1.5rem;">
+								<!-- Lịch sẽ được render ở đây -->
+							</div>
+						</div>
+					</section>
+
+					<!-- Danh sách bài tập đã chọn -->
+					<section class="card-group" id="selectedExercisesSection" style="display: none;">
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-check-circle"></i></span>
+							<h2>Bài Tập Đã Chọn</h2>
+							<button class="btn" id="clearAllSelected" style="margin-left: auto; padding: 0.5rem 1rem; font-size: 0.875rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+								<i class="fas fa-trash-alt"></i> Xóa tất cả
+							</button>
+						</div>
+						<div class="row-list" id="selectedExercisesList">
+							<!-- Danh sách bài tập đã chọn sẽ được render ở đây -->
+						</div>
+					</section>
+
+					<section class="card-group">
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-play-circle"></i></span>
+							<h2>Bắt đầu thôi</h2>
+						</div>
+						<p class="date-range" id="dateRangeText" style="text-align: center; color: #94a3b8; font-size: 0.875rem; margin: 1rem 0; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid #3b82f6;">
+							<i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i>
+							<span id="dateRangeContent">Chưa có lịch tập</span>
+						</p>
+						<div class="cta-row" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+							<button class="btn start-orange" id="btnAddExercise" style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 600;">
+								<i class="fas fa-calendar-check"></i> Lên lịch tập luyện
+							</button>
+							<button class="btn" id="btnViewSelected" style="width: 100%; padding: 0.875rem; font-size: 0.95rem; background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); display: none;">
+								<i class="fas fa-eye"></i> Xem đã chọn (<span id="btnSelectedCount">0</span>)
+							</button>
+						</div>
+						<div id="selectionHint" style="margin-top: 1.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; color: #cbd5e1; display: none;">
+							<div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+								<i class="fas fa-lightbulb" style="color: #fbbf24; font-size: 1.1rem; margin-top: 0.1rem;"></i>
+								<div>
+									<strong style="color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Gợi ý:</strong>
+									<span>Chọn nhiều bài tập từ danh sách đề xuất, sau đó nhấn "Lên lịch tập luyện" để tạo kế hoạch.</span>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+
+				<aside class="col-right">
+					<section class="card-group" id="exerciseDetail" hidden>
+						<div class="group-header">
+							<span class="group-icon"><i class="fas fa-clipboard-list"></i></span>
+							<h2>Chi Tiết Bài Tập</h2>
+						</div>
+					<div class="detail-badges">
+						<div class="badge-pill yellow"><i class="fas fa-chart-line"></i><strong id="dSessions">0</strong><span>Số buổi tập</span></div>
+						<div class="badge-pill pink"><i class="fas fa-clock"></i><strong id="dTime">0</strong><span>Thời lượng phút</span></div>
+						<div class="badge-pill blue"><i class="fas fa-bullseye"></i><strong id="dEffect">-</strong><span>Hiệu quả</span></div>
+						<div class="badge-pill green"><i class="fas fa-fire"></i><strong id="dCalories">0</strong><span>Calo/buổi</span></div>
+						<div class="badge-pill purple"><i class="fas fa-chart-bar"></i><strong id="dScheme">-</strong><span>Sets - Reps</span></div>
+						<div class="badge-pill lilac"><i class="fas fa-layer-group"></i><strong id="dDiff">-</strong><span>Mức độ</span></div>
+					</div>
+					<!-- Thông tin bổ sung -->
+					<div id="detailAdditionalInfo" style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid rgba(59, 130, 246, 0.5); display: none;">
+						<div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem;">
+							<div id="detailThietBi" style="display: none;"><strong>Thiết bị cần:</strong> <span id="detailThietBiValue"></span></div>
+							<div id="detailSoTuan" style="display: none;"><strong>Số tuần:</strong> <span id="detailSoTuanValue"></span></div>
+							<div id="detailSoLanSuDung" style="display: none;"><strong>Đã sử dụng:</strong> <span id="detailSoLanSuDungValue"></span> lần</div>
+							<div id="detailMoTa" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(59, 130, 246, 0.2);"><strong>Mô tả:</strong> <span id="detailMoTaValue"></span></div>
+						</div>
+					</div>
+
+						<h3 class="detail-subtitle">Nội dung bài tập</h3>
+						<div class="detail-media" id="dImage">
+							<i class="fas fa-dumbbell"></i>
+						</div>
+						<div class="detail-list" id="dGuide"></div>
+					</section>
+				</aside>
+			</div>
+		</main>
+	</div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="~/asset/js/mucTieu.js" asp-append-version="true"></script>
+<script>
+    // Kiểm tra đăng nhập khi trang load
+    document.addEventListener('DOMContentLoaded', async function() {
+        @if (ViewData["RequireLogin"] != null && (bool)ViewData["RequireLogin"])
+        {
+            <text>
+            showLoginRequiredNotification('@ViewData["LoginMessage"]');
+            </text>
+        }
+        else
+        {
+            <text>
+            // Kiểm tra authentication từ server
+            try {
+                const response = await fetch('/Account/IsAuthenticated', { credentials: 'same-origin' });
+                const result = await response.json();
+                if (!result.isAuthenticated) {
+                    showLoginRequiredNotification('Vui lòng đăng nhập để sử dụng tính năng này.');
+                }
+            } catch (error) {
+                console.error('Error checking authentication:', error);
+            }
+            </text>
+        }
+    });
+
+    // Cập nhật hiển thị số lượng bài tập đã chọn
+    function updateSelectedCountDisplay() {
+        const count = selectedMauTapLuyenIds ? selectedMauTapLuyenIds.size : 0;
+        const badge = document.getElementById('selectedCountBadge');
+        const countSpan = document.getElementById('selectedCount');
+        const btnCount = document.getElementById('btnSelectedCount');
+        const btnView = document.getElementById('btnViewSelected');
+        const selectedSection = document.getElementById('selectedExercisesSection');
+        const hint = document.getElementById('selectionHint');
+        
+        if (countSpan) countSpan.textContent = count;
+        if (btnCount) btnCount.textContent = count;
+        
+        if (count > 0) {
+            if (badge) badge.style.display = 'flex';
+            if (btnView) btnView.style.display = 'inline-flex';
+            if (hint) hint.style.display = 'block';
+        } else {
+            if (badge) badge.style.display = 'none';
+            if (btnView) btnView.style.display = 'none';
+            if (hint) hint.style.display = 'none';
+        }
+    }
+
+    // Hiển thị/ẩn danh sách bài tập đã chọn
+    function toggleSelectedExercisesList() {
+        const section = document.getElementById('selectedExercisesSection');
+        if (section) {
+            if (section.style.display === 'none') {
+                loadSelectedExercisesList();
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        }
+    }
+
+    // Load danh sách bài tập đã chọn
+    async function loadSelectedExercisesList() {
+        if (!currentMucTieuId) return;
+        
+        const container = document.getElementById('selectedExercisesList');
+        if (!container) return;
+        
+        try {
+            const response = await fetch(`/MucTieu/GetBaiTapDaChon?mucTieuId=${encodeURIComponent(currentMucTieuId)}`);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                container.innerHTML = '';
+                
+                if (result.data.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-data-message" style="width: 100%; text-align: center; padding: 2rem; color: #cbd5e1;">
+                            <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                            <p>Chưa có bài tập nào được chọn</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                result.data.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'tile with-action';
+                    card.style.cssText = 'position: relative; padding: 1rem;';
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #fff;">${item.TenMauTapLuyen || 'Chưa có tên'}</div>
+                                <div style="font-size: 0.875rem; color: #94a3b8; display: flex; gap: 1rem; flex-wrap: wrap;">
+                                    <span><i class="fas fa-clock"></i> ${item.SoTuan || 0} tuần</span>
+                                    <span><i class="fas fa-fire"></i> ${item.CaloUocTinh || 0} calo</span>
+                                    <span><i class="fas fa-layer-group"></i> ${item.DoKho || 'N/A'}</span>
+                                </div>
+                            </div>
+                            <button class="btn danger remove-selected-btn" data-mau-tap-luyen-id="${item.MauTapLuyenId}" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                <i class="fas fa-times"></i> Xóa
+                            </button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+                
+                // Thêm event listener cho các nút xóa
+                container.querySelectorAll('.remove-selected-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const mauTapLuyenId = parseInt(this.getAttribute('data-mau-tap-luyen-id'));
+                        if (confirm('Bạn có chắc muốn xóa bài tập này khỏi danh sách đã chọn?')) {
+                            await removeBaiTapFromMucTieu(mauTapLuyenId);
+                            // Cập nhật trạng thái button (đã được xử lý trong removeBaiTapFromMucTieu)
+                            // Reload danh sách
+                            loadSelectedExercisesList();
+                            updateSelectedCountDisplay();
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Error loading selected exercises:', error);
+        }
+    }
+
+
+    // Xóa tất cả bài tập đã chọn
+    async function clearAllSelected() {
+        if (!currentMucTieuId) return;
+        
+        if (confirm('Bạn có chắc muốn xóa tất cả bài tập đã chọn?')) {
+            const ids = Array.from(selectedMauTapLuyenIds);
+            for (const id of ids) {
+                await removeBaiTapFromMucTieu(id);
+                // Cập nhật trạng thái button (đã được xử lý trong removeBaiTapFromMucTieu)
+            }
+            loadSelectedExercisesList();
+            updateSelectedCountDisplay();
+        }
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnView = document.getElementById('btnViewSelected');
+        const btnClear = document.getElementById('clearAllSelected');
+        
+        if (btnView) {
+            btnView.addEventListener('click', toggleSelectedExercisesList);
+        }
+        
+        if (btnClear) {
+            btnClear.addEventListener('click', clearAllSelected);
+        }
+    });
+
+    function showLoginRequiredNotification(message) {
+        // Tạo overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);';
+        
+        // Tạo dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'background: rgba(30, 41, 59, 0.98); padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); animation: slideUp 0.3s ease;';
+        
+        dialog.innerHTML = `
+            <div style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: #fff;">Yêu cầu đăng nhập</h2>
+            <p style="font-size: 1rem; opacity: 0.8; margin-bottom: 2rem; color: #fff;">${message}</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="/Account/Login" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #4ade80, #22d3ee); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </a>
+                <a href="/" style="padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.1); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;">
+                    <i class="fas fa-home"></i> Về trang chủ
+                </a>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Thêm animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideUp {
+                from {
+                    transform: translateY(50px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Đóng khi click vào overlay
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                window.location.href = '/';
+            }
+        });
+    }
+</script>

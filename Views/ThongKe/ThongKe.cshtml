@@ -56,7 +56,7 @@
                         <div class="stat-label">Thành Tựu</div>
                     </div>
                 </div>
-                <div class="stat-card stat-card-orange">
+                @* <div class="stat-card stat-card-orange">
                     <div class="stat-icon">
                         <i class="fas fa-bullseye"></i>
                     </div>
@@ -64,7 +64,7 @@
                         <div class="stat-value" id="goalAchieved">0%</div>
                         <div class="stat-label">Mục Tiêu Đạt Được</div>
                     </div>
-                </div>
+                </div> *@
             </div>
 
             <!-- Main Content Grid -->
@@ -96,17 +96,6 @@
 
                 <!-- Right Column -->
                 <div class="col-right">
-                    <!-- Achievements -->
-                    <section class="card-group">
-                        <div class="group-header">
-                            <span class="group-icon"><i class="fas fa-award"></i></span>
-                            <h2>Thành Tựu Đã Đạt Được</h2>
-                        </div>
-                        <div class="achievements-list" id="achievementsList">
-                            <div class="loading">Đang tải...</div>
-                        </div>
-                    </section>
-
                     <!-- Detailed Statistics -->
                     <section class="card-group">
                         <div class="group-header">
@@ -146,48 +135,6 @@
                 </div>
             </div>
 
-            <!-- Health Statistics Section -->
-            <div class="health-nutrition-section">
-                <h2 class="section-title with-icon">
-                    <i class="fas fa-heartbeat"></i>
-                    Sức Khỏe
-                </h2>
-                
-                <div class="period-selector">
-                    <button class="period-btn active" data-period="7days">7 Ngày</button>
-                    <button class="period-btn" data-period="1month">1 Tháng</button>
-                    <button class="period-btn" data-period="3months">3 Tháng</button>
-                </div>
-
-                <div class="health-stats-grid">
-                    <section class="card-group">
-                        <div class="group-header">
-                            <span class="group-icon"><i class="fas fa-weight"></i></span>
-                            <h2>Theo Dõi Cân Nặng & BMI</h2>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="healthChart"></canvas>
-                        </div>
-                        <div class="health-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">Tốc độ thay đổi:</span>
-                                <span class="summary-value" id="avgChangePerWeek">0 kg/tuần</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="card-group">
-                        <div class="group-header">
-                            <span class="group-icon"><i class="fas fa-bullseye"></i></span>
-                            <h2>Mục Tiêu Cân Nặng</h2>
-                        </div>
-                        <div class="goals-list" id="weightGoalsList">
-                            <div class="loading">Đang tải...</div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-
             <!-- Nutrition Statistics Section -->
             <div class="health-nutrition-section">
                 <h2 class="section-title with-icon">
@@ -202,30 +149,6 @@
                 </div>
 
                 <div class="nutrition-stats-grid">
-                    <section class="card-group">
-                        <div class="group-header">
-                            <span class="group-icon"><i class="fas fa-fire"></i></span>
-                            <h2>Calo Tiêu Thụ vs Đốt Cháy</h2>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="caloriesChart"></canvas>
-                        </div>
-                        <div class="nutrition-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">Tổng tiêu thụ:</span>
-                                <span class="summary-value" id="totalConsumed">0 calo</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">Tổng đốt cháy:</span>
-                                <span class="summary-value" id="totalBurned">0 calo</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">Deficit/Surplus:</span>
-                                <span class="summary-value" id="totalDeficit">0 calo</span>
-                            </div>
-                        </div>
-                    </section>
-
                     <section class="card-group">
                         <div class="group-header">
                             <span class="group-icon"><i class="fas fa-chart-pie"></i></span>

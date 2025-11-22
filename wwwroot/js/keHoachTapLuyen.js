@@ -447,8 +447,17 @@ function formatDateForAPI(date) {
 // Load bài tập cho một ngày cụ thể
 async function loadExercisesForDate(date) {
   try {
+    // QUAN TRỌNG: Cập nhật currentViewDate ngay khi load bài tập cho một ngày
+    // Đảm bảo currentViewDate luôn phản ánh đúng ngày đang xem
+    if (date) {
+      const newViewDate = new Date(date);
+      newViewDate.setHours(0, 0, 0, 0); // Reset giờ để so sánh chính xác
+      currentViewDate = newViewDate;
+      console.log(`[loadExercisesForDate] Updated currentViewDate to: ${formatDateForAPI(currentViewDate)}`);
+    }
+    
     const dateStr = formatDateForAPI(date);
-    console.log(`Loading exercises for date: ${dateStr}`);
+    console.log(`[loadExercisesForDate] Loading exercises for date: ${dateStr}, currentViewDate: ${formatDateForAPI(currentViewDate)}`);
     
     const response = await fetch(`/KeHoachTapLuyen/GetExercisesByDay?ngay=${dateStr}`);
     const data = await response.json();
@@ -582,6 +591,11 @@ function renderWeek(now = new Date()) {
     node.style.cursor = "pointer";
     node.dataset.date = dateStr;
     node.addEventListener("click", async () => {
+      // QUAN TRỌNG: Cập nhật currentViewDate khi click vào ngày trong lịch tuần
+      currentViewDate = new Date(dayDate);
+      currentViewDate.setHours(0, 0, 0, 0);
+      console.log(`[renderWeek] Clicked on day: ${dateStr}, updated currentViewDate to: ${formatDateForAPI(currentViewDate)}`);
+      
       // Load bài tập cho ngày được chọn
       await loadExercisesForDate(dayDate);
       // Highlight ngày được chọn
@@ -635,6 +649,11 @@ function renderMonth(now = new Date()) {
       c.style.cursor = "pointer";
       c.dataset.date = dateStr;
       c.addEventListener("click", async () => {
+        // QUAN TRỌNG: Cập nhật currentViewDate khi click vào ngày trong lịch tháng
+        currentViewDate = new Date(date);
+        currentViewDate.setHours(0, 0, 0, 0);
+        console.log(`[renderMonth] Clicked on day: ${dateStr}, updated currentViewDate to: ${formatDateForAPI(currentViewDate)}`);
+        
         if (selectedDateCell) selectedDateCell.classList.remove("selected");
         c.classList.add("selected");
         selectedDateCell = c;
@@ -2035,15 +2054,24 @@ async function completeWorkoutSession() {
   if (!confirmed) return;
   
   try {
-    // Lấy ngày từ currentViewDate hoặc ngày hiện tại
+    // QUAN TRỌNG: Lấy ngày từ currentViewDate (đã được cập nhật khi load bài tập)
+    // Đảm bảo sử dụng đúng ngày đang xem, không phải ngày hiện tại
     const selectedDate = currentViewDate || new Date();
+    // Reset giờ để đảm bảo so sánh chính xác
+    selectedDate.setHours(0, 0, 0, 0);
     const dateStr = formatDateForAPI(selectedDate);
     
     console.log('completeWorkoutSession - Sending request with:', {
       ngay: dateStr,
+      currentViewDate: formatDateForAPI(currentViewDate),
       chiTietIds: exercises.map(ex => ex.chiTietId),
       exerciseCount: exercises.length
     });
+    
+    // Log cảnh báo nếu currentViewDate không được set đúng
+    if (!currentViewDate) {
+      console.warn('completeWorkoutSession - WARNING: currentViewDate is not set, using current date instead');
+    }
     
     const response = await fetch('/KeHoachTapLuyen/CompleteWorkoutSession', {
       method: 'POST',

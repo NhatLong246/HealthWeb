@@ -1641,12 +1641,28 @@ namespace HealthWeb.Controllers
                 {
                     _logger.LogInformation("CheckGoalCompleted - Goal completed! All {Count} scheduled days have been completed", ngayCoLichTap.Count);
                     
-                    // QUAN TRỌNG 1: Set DangSuDung = false cho kế hoạch hiện tại
+                    // QUAN TRỌNG 1: Set DaHoanThanh = true, TienDoHienTai = 100 và NgayKetThuc cho MucTieu để admin có thể thấy mục tiêu đã hoàn thành
+                    if (keHoach.MucTieu != null)
+                    {
+                        keHoach.MucTieu.DaHoanThanh = true;
+                        // Set tiến độ hiện tại = 100% khi mục tiêu hoàn thành
+                        keHoach.MucTieu.TienDoHienTai = 100.0;
+                        // Cập nhật ngày kết thúc nếu chưa có hoặc ngày hiện tại sớm hơn
+                        var today = DateOnly.FromDateTime(DateTime.Now);
+                        if (!keHoach.MucTieu.NgayKetThuc.HasValue || keHoach.MucTieu.NgayKetThuc.Value > today)
+                        {
+                            keHoach.MucTieu.NgayKetThuc = today;
+                        }
+                        _logger.LogInformation("CheckGoalCompleted - Setting DaHoanThanh = true, TienDoHienTai = 100 and NgayKetThuc = {NgayKetThuc} for MucTieuId {MucTieuId}", 
+                            today, keHoach.MucTieuId);
+                    }
+                    
+                    // QUAN TRỌNG 2: Set DangSuDung = false cho kế hoạch hiện tại
                     // để kế hoạch không còn hiển thị ở giao diện keHoachTapLuyen.cshtml
                     keHoach.DangSuDung = false;
                     _logger.LogInformation("CheckGoalCompleted - Setting DangSuDung = false for KeHoachId {KeHoachId}", keHoach.KeHoachId);
                     
-                    // QUAN TRỌNG 2: Reset DaLapLich = false cho tất cả MucTieuChonBaiTap liên quan
+                    // QUAN TRỌNG 3: Reset DaLapLich = false cho tất cả MucTieuChonBaiTap liên quan
                     // để cho phép xóa bài tập sau khi hoàn thành mục tiêu
                     var mucTieuChonBaiTaps = await _context.MucTieuChonBaiTaps
                         .Where(c => c.MucTieuId == keHoach.MucTieuId && c.DaLapLich == true)
@@ -1664,7 +1680,7 @@ namespace HealthWeb.Controllers
 
                     // Lưu tất cả thay đổi
                     var saveResult = await _context.SaveChangesAsync();
-                    _logger.LogInformation("CheckGoalCompleted - SaveChangesAsync returned: {Result}, deactivated plan and reset {Count} MucTieuChonBaiTap records", 
+                    _logger.LogInformation("CheckGoalCompleted - SaveChangesAsync returned: {Result}, marked goal as completed, deactivated plan and reset {Count} MucTieuChonBaiTap records", 
                         saveResult, mucTieuChonBaiTaps.Count);
                     
                     // Verify: Kiểm tra xem kế hoạch đã được deactivate chưa

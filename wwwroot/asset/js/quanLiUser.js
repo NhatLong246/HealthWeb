@@ -1526,53 +1526,6 @@ function renderNutritionPlans(plans) {
     container.innerHTML = html;
 }
 
-function renderAchievements(achievements) {
-    const container = document.getElementById('achievements-list');
-    if (!container) return;
-
-    if (!achievements || achievements.length === 0) {
-        setSectionEmpty('#achievements-list', 'Chưa có thành tựu nào.');
-        return;
-    }
-
-    const html = achievements.map(item => `
-        <div class="achievement-card">
-            <header>
-                <h4><i class="fas fa-trophy"></i> ${item.badgeName}</h4>
-                <span class="score">${formatNumber(item.score)}</span>
-            </header>
-            <div class="achievement-body">
-                <div><label>Ngày đạt</label><span>${formatDate(item.achievedAt)}</span></div>
-                <p>${item.description || 'Không có mô tả'}</p>
-            </div>
-        </div>
-    `).join('');
-
-    container.innerHTML = `<div class="achievement-grid">${html}</div>`;
-}
-
-function renderNotifications(notifications) {
-    const container = document.getElementById('notifications-list');
-    if (!container) return;
-
-    if (!notifications || notifications.length === 0) {
-        setSectionEmpty('#notifications-list', 'Chưa có thông báo nào.');
-        return;
-    }
-
-    const html = notifications.map(item => `
-        <div class="notification-item ${item.isRead ? 'read' : 'unread'}">
-            <div class="notification-header">
-                <span><i class="fas fa-bell"></i> ${item.type || 'Thông báo'}</span>
-                <time>${formatDateTime(item.createdAt)}</time>
-            </div>
-            <p>${item.content}</p>
-        </div>
-    `).join('');
-
-    container.innerHTML = html;
-}
-
 function renderTransactions(transactions) {
     const list = document.getElementById('transactions-list');
     const counter = document.getElementById('transactions-count');
@@ -1708,8 +1661,6 @@ async function loadUserProfileDetails(userId) {
         '#goals-list',
         '#workout-plans-list',
         '#nutrition-plans-list',
-        '#achievements-list',
-        '#notifications-list',
         '#pt-access-list'
     ];
 
@@ -1730,8 +1681,6 @@ async function loadUserProfileDetails(userId) {
         renderGoals(profile.goals);
         renderWorkoutPlans(profile.workoutPlans);
         renderNutritionPlans(profile.nutritionPlans);
-        renderAchievements(profile.achievements);
-        renderNotifications(profile.notifications);
         renderTransactions(profile.transactions);
         renderPtAccessList(profile.ptAccesses);
     } catch (error) {
@@ -1766,8 +1715,6 @@ async function viewProfile360(userId) {
         setSectionError('#goals-list');
         setSectionError('#workout-plans-list');
         setSectionError('#nutrition-plans-list');
-        setSectionError('#achievements-list');
-        setSectionError('#notifications-list');
         setSectionError('#pt-access-list');
         const txList = document.getElementById('transactions-list');
         if (txList) {

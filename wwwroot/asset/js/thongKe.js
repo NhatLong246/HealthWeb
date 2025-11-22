@@ -1561,7 +1561,6 @@
         updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-value', formatNumber(totalGoals));
         updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:first-child strong', formatNumber(completedGoals));
         updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:nth-child(2) strong', formatNumber(inProgressGoals));
-        updateTextContent('#panel-goals-analytics .analytics-card:nth-child(1) .metric-details span:last-child strong', formatNumber(cancelledGoals));
 
         // Card 2: Phân bố mục tiêu theo trạng thái
         const statusCard = document.querySelector('#panel-goals-analytics .analytics-card:nth-child(2)');
@@ -1569,7 +1568,6 @@
             const statusItems = statusCard.querySelectorAll('.metric-item .metric-value-small');
             if (statusItems.length >= 1) statusItems[0].textContent = `${completedPercent.toFixed(1)}%`;
             if (statusItems.length >= 2) statusItems[1].textContent = `${inProgressPercent.toFixed(1)}%`;
-            if (statusItems.length >= 3) statusItems[2].textContent = `${cancelledPercent.toFixed(1)}%`;
         }
 
         // Card 3: Thời gian hoàn thành TB
@@ -1680,6 +1678,21 @@
                             size: 12,
                             style: 'italic'
                         }
+                    },
+                    datalabels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 14,
+                            weight: 'bold',
+                            family: 'Arial, sans-serif'
+                        },
+                        formatter: function(value, context) {
+                            return value;
+                        },
+                        anchor: 'center',
+                        align: 'center',
+                        textStrokeColor: '#000000',
+                        textStrokeWidth: 2
                     }
                 },
                 onHover: (event, activeElements) => {
@@ -1828,6 +1841,21 @@
                             size: 12,
                             style: 'italic'
                         }
+                    },
+                    datalabels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 14,
+                            weight: 'bold',
+                            family: 'Arial, sans-serif'
+                        },
+                        formatter: function(value, context) {
+                            return value;
+                        },
+                        anchor: 'center',
+                        align: 'center',
+                        textStrokeColor: '#000000',
+                        textStrokeWidth: 2
                     }
                 },
                 onHover: (event, activeElements) => {

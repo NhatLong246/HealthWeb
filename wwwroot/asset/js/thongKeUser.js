@@ -39,7 +39,7 @@
         }
     }
     let progressChart, distributionChart, comparisonChart;
-    let healthChart, caloriesChart, macroChart;
+    let healthChart, macroChart;
     let currentHealthPeriod = '7days';
     let currentNutritionPeriod = '7days';
 
@@ -74,7 +74,7 @@
         const requiredElements = [
             'totalSessions', 'totalTime', 'totalAchievements', 'goalAchieved',
             'progressChart', 'distributionChart', 'comparisonChart',
-            'healthChart', 'caloriesChart', 'macroChart'
+            'healthChart', 'macroChart'
         ];
         
         requiredElements.forEach(id => {
@@ -209,19 +209,6 @@
             healthChart.options.plugins.tooltip.bodyColor = tooltipColors.bodyColor;
             healthChart.options.plugins.tooltip.borderColor = tooltipColors.borderColor;
             healthChart.update('none');
-        }
-        
-        // Cập nhật Calories Chart
-        if (caloriesChart) {
-            caloriesChart.options.scales.y.ticks.color = textColor;
-            caloriesChart.options.scales.y.grid.color = gridColor;
-            caloriesChart.options.scales.x.ticks.color = textColor;
-            caloriesChart.options.plugins.legend.labels.color = textColor;
-            caloriesChart.options.plugins.tooltip.backgroundColor = tooltipColors.backgroundColor;
-            caloriesChart.options.plugins.tooltip.titleColor = tooltipColors.titleColor;
-            caloriesChart.options.plugins.tooltip.bodyColor = tooltipColors.bodyColor;
-            caloriesChart.options.plugins.tooltip.borderColor = tooltipColors.borderColor;
-            caloriesChart.update('none');
         }
         
         // Cập nhật Macro Chart
@@ -1136,37 +1123,6 @@
             const currentUserId = await getUserId();
             if (!currentUserId) return;
             
-            const response = await fetch(`/ThongKe/GetNutritionStats?period=${currentNutritionPeriod}`, {
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                console.error('GetNutritionStats response not ok:', response.status);
-                return;
-            }
-            
-            const result = await response.json();
-            
-            if (result.success && result.data) {
-                if (result.data.length > 0 && result.summary) {
-                    renderCaloriesChart(result.data, result.summary);
-                    console.log('Nutrition stats loaded:', result.data, 'summary:', result.summary);
-                } else {
-                    console.log('Không có dữ liệu dinh dưỡng hoặc thiếu summary. Data:', result.data, 'Summary:', result.summary);
-                    // Vẫn render chart với dữ liệu rỗng để hiển thị trạng thái
-                    if (caloriesChart) {
-                        caloriesChart.destroy();
-                        caloriesChart = null;
-                    }
-                }
-            } else {
-                console.warn('GetNutritionStats không thành công:', result.message || 'Unknown error', result);
-                if (caloriesChart) {
-                    caloriesChart.destroy();
-                    caloriesChart = null;
-                }
-            }
-            
             // Load macro ratio
             try {
                 const macroResponse = await fetch(`/ThongKe/GetMacroRatio?period=${currentNutritionPeriod}`, {
@@ -1190,144 +1146,6 @@
             }
         } catch (error) {
             console.error('Error loading nutrition data:', error);
-        }
-    }
-
-    // Render calories chart
-    function renderCaloriesChart(data, summary) {
-        try {
-            console.log('renderCaloriesChart called with data:', data, 'summary:', summary);
-            
-            if (caloriesChart) {
-                caloriesChart.destroy();
-            }
-
-            const ctx = document.getElementById('caloriesChart');
-            if (!ctx) {
-                console.error('caloriesChart canvas element not found!');
-                return;
-            }
-
-        // Parse dates correctly (format: yyyy-MM-dd)
-        const labels = data.map(d => {
-            if (!d.Date) return '';
-            // Handle both Date objects and string formats
-            let date;
-            if (typeof d.Date === 'string') {
-                // Parse yyyy-MM-dd format
-                const parts = d.Date.split('-');
-                if (parts.length === 3) {
-                    date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                } else {
-                    date = new Date(d.Date);
-                }
-            } else {
-                date = new Date(d.Date);
-            }
-            
-            // Check if date is valid
-            if (isNaN(date.getTime())) {
-                console.warn('Invalid date:', d.Date);
-                return d.Date; // Return original string if invalid
-            }
-            
-            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-        });
-        const consumed = data.map(d => d.Consumed || 0);
-        const burned = data.map(d => d.Burned || 0);
-
-        // Update summary
-        const totalConsumedEl = document.getElementById('totalConsumed');
-        const totalBurnedEl = document.getElementById('totalBurned');
-        const deficitEl = document.getElementById('totalDeficit');
-        
-        if (totalConsumedEl && summary) {
-            totalConsumedEl.textContent = `${summary.totalConsumed?.toLocaleString('vi-VN') || 0} calo`;
-        }
-        if (totalBurnedEl && summary) {
-            totalBurnedEl.textContent = `${summary.totalBurned?.toLocaleString('vi-VN') || 0} calo`;
-        }
-        if (deficitEl && summary) {
-            const deficit = summary.totalDeficit || 0;
-            deficitEl.textContent = `${deficit >= 0 ? '+' : ''}${deficit.toLocaleString('vi-VN')} calo`;
-            deficitEl.style.color = deficit < 0 ? '#10b981' : '#ef4444';
-        }
-
-        caloriesChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Tiêu thụ',
-                        data: consumed,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 8
-                    },
-                    {
-                        label: 'Đốt cháy',
-                        data: burned,
-                        backgroundColor: '#10b981',
-                        borderRadius: 8
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            color: getChartTextColor(),
-                            font: { size: 12, weight: '500' }
-                        }
-                    },
-                    tooltip: (() => {
-                        const colors = getTooltipColors();
-                        return {
-                            backgroundColor: colors.backgroundColor,
-                            padding: 12,
-                            titleColor: colors.titleColor,
-                            bodyColor: colors.bodyColor,
-                            titleFont: { size: 14, weight: '600' },
-                            bodyFont: { size: 13, weight: '500' },
-                            borderColor: colors.borderColor,
-                            borderWidth: 1
-                        };
-                    })()
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: getChartTextColor(),
-                            font: { size: 12, weight: '500' },
-                            callback: function(value) {
-                                return value + ' calo';
-                            }
-                        },
-                        grid: {
-                            color: getChartGridColor()
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: getChartTextColor(),
-                            font: { size: 12, weight: '500' }
-                        },
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-        
-        console.log('Calories chart rendered successfully');
-        } catch (error) {
-            console.error('Error rendering calories chart:', error);
         }
     }
 

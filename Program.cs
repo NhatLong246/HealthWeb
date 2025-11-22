@@ -18,22 +18,25 @@ builder.Services.AddControllersWithViews()
 // Add HttpClient for OpenAI API
 builder.Services.AddHttpClient();
 
-// Kết nối DB với retry logic
+Kết nối DB với retry logic
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    //Connection bên Nhân
-    var connectionString = builder.Configuration.GetConnectionString("HealthTracker");
-    options.UseSqlServer(connectionString, sqlOptions =>
-    {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null);
-        sqlOptions.CommandTimeout(30);
-    });
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")) // đây là connection của ĐA
+   //Connection bên Nhân
+//    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//    options.UseSqlServer(connectionString, sqlOptions =>
+//    {
+//        sqlOptions.EnableRetryOnFailure( 
+//            maxRetryCount: 3,
+//            maxRetryDelay: TimeSpan.FromSeconds(5),
+//            errorNumbersToAdd: null);
+//        sqlOptions.CommandTimeout(30);
+//    });
+   options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")); // đây là connection của ĐA
 });
-    
+
+// builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+// );
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();

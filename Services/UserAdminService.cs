@@ -321,6 +321,7 @@ public class UserAdminService : IUserAdminService
             })
             .ToList();
 
+        // Load kế hoạch tập luyện từ PT giao (GiaoBaiTapChoUsers)
         var workoutPlanEntities = await _context.GiaoBaiTapChoUsers
             .AsNoTracking()
             .Where(p => p.UserId == userId)
@@ -330,7 +331,7 @@ public class UserAdminService : IUserAdminService
             .OrderByDescending(p => p.NgayBatDau)
             .ToListAsync(cancellationToken);
 
-        var workoutPlans = workoutPlanEntities
+        var workoutPlansFromPT = workoutPlanEntities
             .Select(p => new UserWorkoutPlanDto
             {
                 AssignmentId = p.GiaBtId,
@@ -345,6 +346,93 @@ public class UserAdminService : IUserAdminService
                     ? p.NguoiGiaoNavigation.User.HoTen 
                     : (p.NguoiGiao ?? "-")
             })
+            .ToList();
+
+        // Load kế hoạch tập luyện từ user tự tạo (KeHoachTapLuyen)
+        var keHoachTapLuyenEntities = await _context.KeHoachTapLuyens
+            .AsNoTracking()
+            .Where(k => k.UserId == userId)
+            .Include(k => k.MucTieu)
+            .OrderByDescending(k => k.NgayTao)
+            .ToListAsync(cancellationToken);
+
+        // Tính tỷ lệ hoàn thành cho KeHoachTapLuyen dựa trên số ngày đã tập / tổng số ngày có lịch tập
+        var keHoachTapLuyenPlans = new List<UserWorkoutPlanDto>();
+        
+        foreach (var keHoach in keHoachTapLuyenEntities)
+        {
+            // Lấy số ngày có lịch tập (từ ChiTietKeHoachTapLuyen có NgayTap)
+            var totalScheduledDays = await _context.ChiTietKeHoachTapLuyens
+                .AsNoTracking()
+                .Where(c => c.KeHoachId == keHoach.KeHoachId && c.NgayTap.HasValue)
+                .Select(c => c.NgayTap!.Value)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            // Lấy số ngày đã tập (từ NhatKyHoanThanhBaiTap)
+            var completedDays = await _context.NhatKyHoanThanhBaiTaps
+                .AsNoTracking()
+                .Include(n => n.ChiTiet)
+                .Where(n => n.UserId == userId && n.ChiTiet.KeHoachId == keHoach.KeHoachId)
+                .Select(n => n.NgayHoanThanh)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            // Tính tỷ lệ hoàn thành (%)
+            var completionRate = totalScheduledDays > 0 
+                ? Math.Round((completedDays / (double)totalScheduledDays) * 100, 2) 
+                : 0.0;
+
+            // Tính tuần hiện tại (dựa trên số ngày đã trôi qua từ ngày bắt đầu)
+            int? currentWeek = null;
+            if (keHoach.NgayTao.HasValue && keHoach.SoTuan.HasValue)
+            {
+                var daysElapsed = (DateTime.Now.Date - keHoach.NgayTao.Value.Date).TotalDays;
+                var weeksElapsed = (int)Math.Ceiling(daysElapsed / 7.0);
+                currentWeek = Math.Min(weeksElapsed, keHoach.SoTuan.Value);
+            }
+
+            // Xác định trạng thái
+            var status = keHoach.DangSuDung == true ? "Active" : "Completed";
+
+            // Xác định người giao dựa trên nguồn
+            var assignedBy = keHoach.Nguon switch
+            {
+                "PT" => "Personal Trainer",
+                "User" => "Người dùng tự tạo",
+                "AI" => "Hệ thống AI",
+                _ => "Hệ thống"
+            };
+
+            // Tính ngày kết thúc (nếu có)
+            DateTime? endDate = null;
+            if (keHoach.NgayTao.HasValue && keHoach.SoTuan.HasValue)
+            {
+                endDate = keHoach.NgayTao.Value.Date.AddDays(keHoach.SoTuan.Value * 7);
+            }
+            else if (keHoach.MucTieu?.NgayKetThuc.HasValue == true)
+            {
+                endDate = keHoach.MucTieu.NgayKetThuc.Value.ToDateTime(TimeOnly.MinValue);
+            }
+
+            keHoachTapLuyenPlans.Add(new UserWorkoutPlanDto
+            {
+                AssignmentId = int.TryParse(keHoach.KeHoachId.Replace("plan_", "").Replace("kehoach_", ""), out var id) ? id : 0,
+                PlanName = keHoach.TenKeHoach,
+                PlanGoal = keHoach.MucTieu?.LoaiMucTieu,
+                Status = status,
+                StartDate = keHoach.NgayTao?.Date ?? DateTime.Now,
+                EndDate = endDate,
+                CurrentWeek = currentWeek,
+                CompletionRate = completionRate,
+                AssignedBy = assignedBy
+            });
+        }
+
+        // Merge hai danh sách kế hoạch
+        var workoutPlans = workoutPlansFromPT
+            .Concat(keHoachTapLuyenPlans)
+            .OrderByDescending(p => p.StartDate)
             .ToList();
 
         var nutritionPlanEntities = await _context.PhanCongKeHoachAnUongs
@@ -369,41 +457,6 @@ public class UserAdminService : IUserAdminService
                 AssignedBy = (p.NguoiGiaoNavigation != null && p.NguoiGiaoNavigation.User != null) 
                     ? p.NguoiGiaoNavigation.User.HoTen 
                     : (p.NguoiGiao ?? "-")
-            })
-            .ToList();
-
-        var achievementEntities = await _context.ThanhTuus
-            .AsNoTracking()
-            .Where(a => a.UserId == userId)
-            .OrderByDescending(a => a.NgayDatDuoc)
-            .ToListAsync(cancellationToken);
-
-        var achievements = achievementEntities
-            .Select(a => new UserAchievementDto
-            {
-                AchievementId = a.ThanhTuuId,
-                BadgeName = a.TenBadge,
-                Score = a.Diem ?? 0,
-                AchievedAt = a.NgayDatDuoc,
-                Description = a.MoTa
-            })
-            .ToList();
-
-        var notificationEntities = await _context.ThongBaos
-            .AsNoTracking()
-            .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.NgayTao)
-            .Take(50)
-            .ToListAsync(cancellationToken);
-
-        var notifications = notificationEntities
-            .Select(n => new UserNotificationDto
-            {
-                NotificationId = n.ThongBaoId,
-                Type = n.Loai,
-                Content = n.NoiDung ?? string.Empty,
-                CreatedAt = n.NgayTao,
-                IsRead = n.DaDoc ?? false
             })
             .ToList();
 
@@ -452,8 +505,8 @@ public class UserAdminService : IUserAdminService
             Goals = goals,
             WorkoutPlans = workoutPlans,
             NutritionPlans = nutritionPlans,
-            Achievements = achievements,
-            Notifications = notifications,
+            Achievements = Array.Empty<UserAchievementDto>(),
+            Notifications = Array.Empty<UserNotificationDto>(),
             Transactions = transactions,
             PtAccesses = ptAccesses
         };

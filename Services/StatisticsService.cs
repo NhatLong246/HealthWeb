@@ -711,9 +711,9 @@ public class StatisticsService : IStatisticsService
             TotalUsers = totalUsers,
             NewRegistrationsToday = newRegistrationsToday,
             NewRegistrationsThisMonth = newRegistrationsThisMonth,
-            DailyActiveUsers = activeUsersInRange, // Use range-based active users
+            DailyActiveUsers = dailyActiveUsers, // DAU = số user active hôm nay
             MonthlyActiveUsers = monthlyActiveUsers,
-            DailyActiveUsersPercent = totalUsers > 0 ? (activeUsersInRange / (double)totalUsers) * 100 : 0,
+            DailyActiveUsersPercent = totalUsers > 0 ? (dailyActiveUsers / (double)totalUsers) * 100 : 0,
             MonthlyActiveUsersPercent = totalUsers > 0 ? (monthlyActiveUsers / (double)totalUsers) * 100 : 0,
             RetentionRate7Days = retention7Days,
             RetentionRate30Days = retention30Days,
@@ -759,77 +759,90 @@ public class StatisticsService : IStatisticsService
     {
         var now = DateTime.UtcNow;
         var nowDate = now.Date;
-        var cutoffDate = nowDate.AddDays(-days);
-        var cutoffDateOnly = DateOnly.FromDateTime(cutoffDate);
+        
+        // Retention Rate Calculation (Cohort-based):
+        // - Lấy cohort user đăng ký cách đây X ngày (trong khoảng X đến X+7 ngày để có đủ dữ liệu)
+        // - Xem có bao nhiêu % trong số đó quay lại sử dụng trong X ngày gần nhất
+        
+        // Cohort registration window: từ (days + 7) ngày trước đến (days + 1) ngày trước
+        // Ví dụ: 7-day retention → lấy user đăng ký 8-14 ngày trước, xem có bao nhiêu % quay lại trong 7 ngày gần nhất
+        var cohortStartDate = nowDate.AddDays(-(days + 7));
+        var cohortEndDate = nowDate.AddDays(-(days + 1));
+        var cohortStartDateOnly = DateOnly.FromDateTime(cohortStartDate);
+        var cohortEndDateOnly = DateOnly.FromDateTime(cohortEndDate);
+        
+        // Activity window: X ngày gần nhất (để đo lường user có quay lại không)
+        var activityStartDate = nowDate.AddDays(-days);
+        var activityStartDateOnly = DateOnly.FromDateTime(activityStartDate);
         var nowDateOnly = DateOnly.FromDateTime(nowDate);
         
-        // Get users who registered before or on the cutoff date
+        // Get cohort users: users who registered in the cohort window
         // IMPORTANT: Only count Client users (exclude Admin and PT)
-        // For retention calculation, we want users who had enough time to potentially return
-        var usersInPeriod = await _context.Users
+        var cohortUsers = await _context.Users
             .AsNoTracking()
             .Where(u => u.Role != "Admin" && (u.Role == null || u.Role != "PT") &&
-                       u.CreatedDate.HasValue && u.CreatedDate.Value.Date <= cutoffDate)
+                       u.CreatedDate.HasValue &&
+                       u.CreatedDate.Value.Date >= cohortStartDate &&
+                       u.CreatedDate.Value.Date <= cohortEndDate)
             .Select(u => u.UserId)
             .ToListAsync(cancellationToken);
 
-        if (usersInPeriod.Count == 0) return 0;
+        if (cohortUsers.Count == 0) return 0;
 
-        // Get all users with activity after cutoff date (from multiple sources)
-        // IMPORTANT: Only count activity from Client users
-        // Activity must be AFTER the cutoff date (inclusive of cutoff date for proper calculation)
-        var activeUsersAfterCutoff = new HashSet<string>();
+        // Get users from cohort who have activity in the recent X days (from multiple sources)
+        var retainedUsers = new HashSet<string>();
         
-        // From NhatKyUngDung
+        // From NhatKyUngDung (app logs)
         var appLogs = await _context.NhatKyUngDungs
             .AsNoTracking()
             .Where(n => n.ThoiGian.HasValue &&
-                       n.ThoiGian.Value.Date >= cutoffDate &&
+                       n.ThoiGian.Value.Date >= activityStartDate &&
                        n.ThoiGian.Value.Date <= nowDate &&
                        n.UserId != null &&
-                       usersInPeriod.Contains(n.UserId))
+                       cohortUsers.Contains(n.UserId))
             .Select(n => n.UserId!)
             .Distinct()
             .ToListAsync(cancellationToken);
-        activeUsersAfterCutoff.UnionWith(appLogs);
+        retainedUsers.UnionWith(appLogs);
         
-        // From LuuTruSucKhoe
+        // From LuuTruSucKhoe (health logs)
         var healthLogs = await _context.LuuTruSucKhoes
             .AsNoTracking()
-            .Where(l => l.NgayGhiNhan >= cutoffDateOnly &&
+            .Where(l => l.NgayGhiNhan >= activityStartDateOnly &&
                        l.NgayGhiNhan <= nowDateOnly &&
-                       usersInPeriod.Contains(l.UserId))
+                       cohortUsers.Contains(l.UserId))
             .Select(l => l.UserId)
+            .Where(id => !string.IsNullOrEmpty(id))
             .Distinct()
             .ToListAsync(cancellationToken);
-        activeUsersAfterCutoff.UnionWith(healthLogs);
+        retainedUsers.UnionWith(healthLogs.Select(id => id!));
         
-        // From NhatKyDinhDuong
+        // From NhatKyDinhDuong (nutrition logs)
         var nutritionLogs = await _context.NhatKyDinhDuongs
             .AsNoTracking()
-            .Where(n => n.NgayGhiLog >= cutoffDateOnly &&
+            .Where(n => n.NgayGhiLog >= activityStartDateOnly &&
                        n.NgayGhiLog <= nowDateOnly &&
-                       usersInPeriod.Contains(n.UserId))
+                       cohortUsers.Contains(n.UserId))
             .Select(n => n.UserId)
+            .Where(id => !string.IsNullOrEmpty(id))
             .Distinct()
             .ToListAsync(cancellationToken);
-        activeUsersAfterCutoff.UnionWith(nutritionLogs);
+        retainedUsers.UnionWith(nutritionLogs.Select(id => id!));
         
-        // From NhatKyHoanThanhBaiTap
+        // From NhatKyHoanThanhBaiTap (workout logs)
         var workoutLogs = await _context.NhatKyHoanThanhBaiTaps
             .AsNoTracking()
-            .Where(n => n.NgayHoanThanh >= cutoffDateOnly &&
+            .Where(n => n.NgayHoanThanh >= activityStartDateOnly &&
                        n.NgayHoanThanh <= nowDateOnly &&
-                       usersInPeriod.Contains(n.UserId))
+                       cohortUsers.Contains(n.UserId))
             .Select(n => n.UserId)
+            .Where(id => !string.IsNullOrEmpty(id))
             .Distinct()
             .ToListAsync(cancellationToken);
-        activeUsersAfterCutoff.UnionWith(workoutLogs);
+        retainedUsers.UnionWith(workoutLogs.Select(id => id!));
 
-        // Count users who registered before/on cutoff AND have activity after/on cutoff
-        var retainedUsers = activeUsersAfterCutoff.Count;
-
-        return (retainedUsers / (double)usersInPeriod.Count) * 100;
+        // Retention Rate = (Users from cohort who returned in recent X days) / (Total users in cohort) * 100
+        return (retainedUsers.Count / (double)cohortUsers.Count) * 100;
     }
 
     public async Task<PTAnalyticsDto> GetPTAnalyticsAsync(
@@ -1226,63 +1239,36 @@ public class StatisticsService : IStatisticsService
         }).ToList();
 
         // Calculate average completion days
-        // Include both completed goals AND in-progress goals
-        // For completed goals: use NgayKetThuc - NgayBatDau
-        // For in-progress goals: use current date - NgayBatDau (or NgayKetThuc if set and in future)
-        var goalsForAverageDaysQuery = _context.MucTieus
-            .AsNoTracking();
+        // IMPORTANT: Only calculate for COMPLETED goals (DaHoanThanh == true)
+        // Formula: NgayKetThuc - NgayBatDau (số ngày từ bắt đầu đến hoàn thành)
+        var completedGoalsForAverageQuery = _context.MucTieus
+            .AsNoTracking()
+            .Where(m => m.DaHoanThanh == true && m.NgayKetThuc.HasValue);
         
         if (dateFrom.HasValue && dateTo.HasValue)
         {
             var dateFromOnly = DateOnly.FromDateTime(dateFrom.Value);
             var dateToOnly = DateOnly.FromDateTime(dateTo.Value);
-            goalsForAverageDaysQuery = goalsForAverageDaysQuery.Where(m => 
-                m.NgayBatDau >= dateFromOnly && m.NgayBatDau <= dateToOnly);
+            // Filter by completion date (NgayKetThuc) instead of start date (NgayBatDau)
+            // because we want to see when goals were completed in the date range
+            completedGoalsForAverageQuery = completedGoalsForAverageQuery.Where(m => 
+                m.NgayKetThuc!.Value >= dateFromOnly && m.NgayKetThuc.Value <= dateToOnly);
         }
         
-        var allGoals = await goalsForAverageDaysQuery.ToListAsync(cancellationToken);
-
-        // Calculate days for each goal:
-        // - Completed goals: NgayKetThuc - NgayBatDau (if NgayKetThuc exists)
-        // - In-progress goals: currentDate - NgayBatDau (or NgayKetThuc if set and >= currentDate)
-        var goalsWithDays = allGoals
-            .Where(m => 
-                (m.DaHoanThanh == true && m.NgayKetThuc.HasValue) || 
-                (m.DaHoanThanh == false && (m.NgayKetThuc == null || (m.NgayKetThuc.HasValue && m.NgayKetThuc.Value >= currentDate))))
-            .Select(m =>
-            {
-                int days;
-                if (m.DaHoanThanh == true && m.NgayKetThuc.HasValue)
-                {
-                    // Completed goal: use end date
-                    days = m.NgayKetThuc!.Value.DayNumber - m.NgayBatDau.DayNumber;
-                }
-                else if (m.DaHoanThanh == false)
-                {
-                    // In-progress goal: use current date or future end date
-                    DateOnly endDate;
-                    if (m.NgayKetThuc.HasValue && m.NgayKetThuc.Value >= currentDate)
-                    {
-                        endDate = m.NgayKetThuc.Value;
-                    }
-                    else
-                    {
-                        endDate = currentDate;
-                    }
-                    days = endDate.DayNumber - m.NgayBatDau.DayNumber;
-                }
-                else
-                {
-                    // Fallback: should not happen due to Where clause, but set to 0
-                    days = 0;
-                }
-                return days;
-            })
-            .Where(days => days >= 0) // Only include valid positive days
+        // Get all completed goals with their data (materialize query to calculate in memory)
+        var completedGoalsList = await completedGoalsForAverageQuery
+            .ToListAsync(cancellationToken);
+        
+        // Calculate days in memory (after materializing the query)
+        // Filter to ensure NgayKetThuc exists (defensive check even though we filtered above)
+        var completedGoalsWithDays = completedGoalsList
+            .Where(m => m.NgayKetThuc.HasValue)
+            .Select(m => m.NgayKetThuc!.Value.DayNumber - m.NgayBatDau.DayNumber)
+            .Where(days => days > 0) // Only include valid positive days
             .ToList();
 
-        var averageCompletionDays = goalsWithDays.Count > 0
-            ? (int)goalsWithDays.Average()
+        var averageCompletionDays = completedGoalsWithDays.Count > 0
+            ? (int)completedGoalsWithDays.Average()
             : 0;
 
         return new GoalsAnalyticsDto
