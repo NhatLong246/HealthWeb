@@ -18,7 +18,7 @@ builder.Services.AddControllersWithViews()
 // Add HttpClient for OpenAI API
 builder.Services.AddHttpClient();
 
-Kết nối DB với retry logic
+//Kết nối DB với retry logic
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
    //Connection bên Nhân
